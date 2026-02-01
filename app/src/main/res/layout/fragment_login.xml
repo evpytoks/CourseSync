@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".login.LoginFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="56dp"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <EditText
+            android:id="@+id/email"
+            android:layout_width="360dp"
+            android:layout_height="52dp"
+            android:hint="Enter corporative email..."
+            android:inputType="textEmailAddress"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:textSize="16sp"
+            android:gravity="center_vertical"
+            android:singleLine="true" />
+
+        <EditText
+            android:id="@+id/code"
+            android:layout_width="360dp"
+            android:layout_height="52dp"
+            android:layout_marginTop="30dp"
+            android:hint="Enter verification code..."
+            android:inputType="textEmailAddress"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:textSize="16sp"
+            android:gravity="center_vertical"
+            android:singleLine="true"
+            android:visibility="invisible"/>
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="360dp"
+            android:layout_height="100dp"
+            android:layout_marginTop="150dp"
+            android:text="send code"
+            android:textSize="25sp" />
+
+    </LinearLayout>
+
+</FrameLayout>
