@@ -1,4 +1,5 @@
 using CourseSync.Api.Models;
+using CourseSync.Api.Infrastructure.Email;
 using CourseSync.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,27 +12,46 @@ public sealed class AuthController : ControllerBase
     private readonly AuthCodeStore _codes;
     private readonly JwtTokenService _jwt;
     private readonly IConfiguration _cfg;
+    private readonly IEmailSender _email;
+    private readonly ILogger<AuthController> _log;
 
-    public AuthController(AuthCodeStore codes, JwtTokenService jwt, IConfiguration cfg)
-    {
-        _codes = codes;
-        _jwt = jwt;
-        _cfg = cfg;
-    }
+    public AuthController(AuthCodeStore codes, JwtTokenService jwt, IConfiguration cfg, IEmailSender email, ILogger<AuthController> log)
+{
+    _codes = codes;
+    _jwt = jwt;
+    _cfg = cfg;
+    _email = email;
+    _log = log;
+}
 
     [HttpPost("send-code")]
-    public ActionResult<SendCodeResponse> SendCode([FromBody] SendCodeRequest req)
+    public async Task<ActionResult<SendCodeResponse>> SendCode([FromBody] SendCodeRequest req, CancellationToken ct)
     {
         var email = (req.Email ?? "").Trim();
+
         if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
             return BadRequest(new ErrorEnvelope(new ApiError("validation_error", "Email is invalid")));
 
         var ttl = _cfg.GetValue("AuthCode:CodeTtlSeconds", 300);
-
         var (requestId, expiresInSec, code) = _codes.CreateCode(email, ttl);
 
-        // MVP: вместо реальной почты печатаем код в консоль
-        Console.WriteLine($"[AUTH] Code for {email}: {code} (requestId={requestId})");
+        try
+        {
+            await _email.SendAuthCodeAsync(email, code, ttl, ct);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex,
+                "Failed to send auth email. smtpEnabled={Enabled} host={Host} port={Port} security={Security} from={From} to={To}",
+                _cfg.GetValue<bool>("Smtp:Enabled"),
+                _cfg["Smtp:Host"],
+                _cfg["Smtp:Port"],
+                _cfg["Smtp:Security"],
+                _cfg["Smtp:FromEmail"],
+                email);
+
+            return StatusCode(500, new ErrorEnvelope(new ApiError("email_send_failed", "Failed to send email")));
+        }
 
         return Ok(new SendCodeResponse(requestId, expiresInSec));
     }
