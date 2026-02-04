@@ -14,14 +14,17 @@ public sealed class AuthController : ControllerBase
     private readonly IConfiguration _cfg;
     private readonly IEmailSender _email;
     private readonly ILogger<AuthController> _log;
+    private readonly UserService _userService;
 
-    public AuthController(AuthCodeStore codes, JwtTokenService jwt, IConfiguration cfg, IEmailSender email, ILogger<AuthController> log)
+
+    public AuthController(AuthCodeStore codes, JwtTokenService jwt, IConfiguration cfg, IEmailSender email, ILogger<AuthController> log, UserService userService)
 {
     _codes = codes;
     _jwt = jwt;
     _cfg = cfg;
     _email = email;
     _log = log;
+    _userService = userService;
 }
 
     [HttpPost("send-code")]
@@ -57,7 +60,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public ActionResult<LoginResponse> Login([FromBody] LoginRequest req)
+    public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest req)
     {
         var email = (req.Email ?? "").Trim();
         var requestId = (req.RequestId ?? "").Trim();
@@ -80,8 +83,8 @@ public sealed class AuthController : ControllerBase
         if (result == VerifyResult.Invalid)
             return Unauthorized(new ErrorEnvelope(new ApiError("invalid_code", "Code is invalid or expired")));
 
-        // MVP: пользователь в памяти — id стабильно вычисляем из email
-        var userId = StableUserId(email);
+        var user = await _userService.GetOrCreateByEmailAsync(email, HttpContext.RequestAborted);
+        var userId = user.Id; 
 
         var token = _jwt.CreateToken(userId, email);
 

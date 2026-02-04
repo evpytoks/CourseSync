@@ -10,7 +10,7 @@ public sealed class JwtTokenService
     private readonly IConfiguration _cfg;
     public JwtTokenService(IConfiguration cfg) => _cfg = cfg;
 
-    public string CreateToken(int userId, string email)
+    public string CreateToken(Guid userId, string email)
     {
         var jwt = _cfg.GetSection("Jwt");
         var issuer = jwt["Issuer"]!;

@@ -4,12 +4,19 @@ using CourseSync.Api.Infrastructure.Email;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using CourseSync.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+var cs = builder.Configuration.GetConnectionString("AppDb")
+         ?? throw new InvalidOperationException("ConnectionStrings:AppDb is missing");
+builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(cs));
+builder.Services.AddScoped<UserService>();
 
 builder.Services
     .AddOptions<SmtpOptions>()
