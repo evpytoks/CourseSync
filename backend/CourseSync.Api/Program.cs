@@ -24,15 +24,13 @@ builder.Services
     }, "Invalid SMTP configuration");
 
 builder.Services.AddSingleton<MailKitEmailSender>();
-builder.Services.AddSingleton<ConsoleEmailSender>();
 
-builder.Services.AddSingleton<IEmailSender>(sp =>
-{
-    var opt = sp.GetRequiredService<IOptions<SmtpOptions>>().Value;
-    return opt.Enabled
-        ? sp.GetRequiredService<MailKitEmailSender>()
-        : sp.GetRequiredService<ConsoleEmailSender>();
-});
+var smtp = builder.Configuration.GetSection("Smtp").Get<SmtpOptions>();
+
+if (smtp is null || !smtp.Enabled)
+    throw new InvalidOperationException("SMTP is disabled. Email auth requires SMTP configuration.");
+
+builder.Services.AddSingleton<IEmailSender, MailKitEmailSender>();
 
 builder.Services.AddSingleton<AuthCodeStore>();
 builder.Services.AddSingleton<JwtTokenService>();

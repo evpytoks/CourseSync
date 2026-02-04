@@ -9,6 +9,8 @@ obj/
 .idea/
 .vscode/
 
+appsettings.json
+
 appsettings.Development.json
 appsettings.Production.json
 
