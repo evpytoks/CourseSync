@@ -1,10 +1,12 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backend", "backend", "{1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CourseSync.Api", "backend\CourseSync.Api\CourseSync.Api.csproj", "{2795638A-4D99-35D6-7051-326B5F13ABF1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CourseSync.Api.Tests", "backend\CourseSync.Api.Tests\CourseSync.Api.Tests.csproj", "{50D8E3F4-492D-42B5-A369-0FB575E197DC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,12 +18,17 @@ Global
 		{2795638A-4D99-35D6-7051-326B5F13ABF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2795638A-4D99-35D6-7051-326B5F13ABF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2795638A-4D99-35D6-7051-326B5F13ABF1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50D8E3F4-492D-42B5-A369-0FB575E197DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50D8E3F4-492D-42B5-A369-0FB575E197DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50D8E3F4-492D-42B5-A369-0FB575E197DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50D8E3F4-492D-42B5-A369-0FB575E197DC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{2795638A-4D99-35D6-7051-326B5F13ABF1} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
+		{50D8E3F4-492D-42B5-A369-0FB575E197DC} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F2AE2123-5E79-41AA-AA8F-B830DA4A56A8}

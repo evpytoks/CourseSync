@@ -10,7 +10,7 @@ public sealed class JwtTokenService
     private readonly IConfiguration _cfg;
     public JwtTokenService(IConfiguration cfg) => _cfg = cfg;
 
-    public string CreateToken(Guid userId, string email)
+    public string CreateToken(Guid userId, string email, int tokenVersion)
     {
         var jwt = _cfg.GetSection("Jwt");
         var issuer = jwt["Issuer"]!;
@@ -22,7 +22,8 @@ public sealed class JwtTokenService
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, email),
-            new Claim("uid", userId.ToString())
+            new Claim("uid", userId.ToString()),
+            new Claim("tv", tokenVersion.ToString())
         };
 
         var creds = new SigningCredentials(
