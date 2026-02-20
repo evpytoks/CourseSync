@@ -1,6 +1,7 @@
 using System.Text;
 using CourseSync.Api.Services;
 using CourseSync.Api.Infrastructure.Email;
+using CourseSync.Api.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -17,6 +18,19 @@ var cs = builder.Configuration.GetConnectionString("AppDb")
          ?? throw new InvalidOperationException("ConnectionStrings:AppDb is missing");
 builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(cs));
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<TokenVersionJwtBearerEvents>();
+
+builder.Services
+    .AddOptions<AuthCodeOptions>()
+    .Bind(builder.Configuration.GetSection(AuthCodeOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services
+    .AddOptions<AuthTokensOptions>()
+    .Bind(builder.Configuration.GetSection(AuthTokensOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services
     .AddOptions<SmtpOptions>()
@@ -30,16 +44,10 @@ builder.Services
                && !string.IsNullOrWhiteSpace(o.FromEmail);
     }, "Invalid SMTP configuration");
 
-builder.Services.AddSingleton<MailKitEmailSender>();
-
-var smtp = builder.Configuration.GetSection("Smtp").Get<SmtpOptions>();
-
-if (smtp is null || !smtp.Enabled)
-    throw new InvalidOperationException("SMTP is disabled. Email auth requires SMTP configuration.");
-
 builder.Services.AddSingleton<IEmailSender, MailKitEmailSender>();
 
-builder.Services.AddSingleton<AuthCodeStore>();
+builder.Services.AddScoped<AuthLoginCodeService>();
+builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddSingleton<JwtTokenService>();
 
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -47,6 +55,7 @@ var jwt = builder.Configuration.GetSection("Jwt");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
+        o.EventsType = typeof(TokenVersionJwtBearerEvents);
         o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
