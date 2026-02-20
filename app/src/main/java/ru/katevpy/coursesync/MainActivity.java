@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             int id = destination.getId();
 
-            boolean showBottomNav = true;
+            boolean showBottomNav = (id != R.id.loginFragment);
 
             bottomNav.setVisibility(showBottomNav ? View.VISIBLE : View.GONE);
         });

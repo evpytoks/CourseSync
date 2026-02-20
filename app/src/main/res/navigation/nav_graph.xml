@@ -10,8 +10,8 @@
         android:label="Login">
 
         <action
-            android:id="@+id/action_loginFragment_to_coursesListFragment"
-            app:destination="@id/coursesListFragment"
+            android:id="@+id/action_loginFragment_to_groupsFragment"
+            app:destination="@id/groupsFragment"
             app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
     </fragment>
@@ -19,18 +19,12 @@
     <fragment
         android:id="@+id/groupsFragment"
         android:name="ru.katevpy.coursesync.groups.GroupsFragment"
-        android:label="Группа" />
+        android:label="Группы" />
 
     <fragment
-        android:id="@+id/coursesListFragment"
-        android:name="ru.katevpy.coursesync.courses.CoursesListFragment"
-        android:label="Курсы">
-
-        <!-- Переход в экран конкретного курса -->
-        <action
-            android:id="@+id/action_coursesListFragment_to_courseFragment"
-            app:destination="@id/courseFragment" />
-    </fragment>
+        android:id="@+id/coursesFragment"
+        android:name="ru.katevpy.coursesync.courses.CoursesFragment"
+        android:label="Курсы" />
 
     <fragment
         android:id="@+id/calendarFragment"
@@ -41,18 +35,5 @@
         android:id="@+id/settingsFragment"
         android:name="ru.katevpy.coursesync.settings.SettingsFragment"
         android:label="Настройки" />
-
-    <!-- DETAIL SCREEN -->
-    <fragment
-        android:id="@+id/courseFragment"
-        android:name="ru.katevpy.coursesync.course.CourseFragment"
-        android:label="Курс">
-
-        <!-- Аргумент, чтобы передавать courseId -->
-        <argument
-            android:name="courseId"
-            app:argType="string"
-            android:defaultValue="" />
-    </fragment>
 
 </navigation>

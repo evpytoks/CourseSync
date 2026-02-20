@@ -1,12 +1,14 @@
 package ru.katevpy.coursesync.login;
 
+import android.view.View;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 public class LoginViewModel extends ViewModel {
 
-    public enum Step { ENTER_EMAIL, ENTER_CODE }
+    public enum Step { ENTER_EMAIL, ENTER_CODE, VERIFY }
 
     private final MutableLiveData<Step> step = new MutableLiveData<>(Step.ENTER_EMAIL);
 
@@ -15,7 +17,11 @@ public class LoginViewModel extends ViewModel {
     }
 
     public void onSendCodeClicked() {
-        step.setValue(Step.ENTER_CODE);
+        if (step.getValue() == Step.ENTER_EMAIL) {
+            step.setValue(Step.ENTER_CODE);
+        } else {
+            step.setValue(Step.VERIFY);
+        }
     }
 }
 
