@@ -50,4 +50,7 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.navigation.fragment)
+    implementation(libs.navigation.ui)
+
 }

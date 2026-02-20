@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="ru.katevpy.coursesync.login.LoginFragment"
+        android:label="Login">
+
+        <action
+            android:id="@+id/action_loginFragment_to_groupsFragment"
+            app:destination="@id/groupsFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/groupsFragment"
+        android:name="ru.katevpy.coursesync.groups.GroupsFragment"
+        android:label="Группы" />
+
+    <fragment
+        android:id="@+id/coursesFragment"
+        android:name="ru.katevpy.coursesync.courses.CoursesFragment"
+        android:label="Курсы" />
+
+    <fragment
+        android:id="@+id/calendarFragment"
+        android:name="ru.katevpy.coursesync.calendar.CalendarFragment"
+        android:label="Календарь" />
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="ru.katevpy.coursesync.settings.SettingsFragment"
+        android:label="Настройки" />
+
+</navigation>
