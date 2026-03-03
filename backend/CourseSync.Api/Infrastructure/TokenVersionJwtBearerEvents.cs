@@ -23,14 +23,19 @@ public sealed class TokenVersionJwtBearerEvents : JwtBearerEvents
 
         var dbVersion = await _db.Users
             .Where(x => x.Id == userId)
-            .Select(x => x.TokenVersion)
+            .Select(x => (int?)x.TokenVersion)
             .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
 
-        if (dbVersion != tokenVersion)
+        if (dbVersion is null)
+        {
+            context.Fail("user_not_found");
+            return;
+        }
+
+        if (dbVersion.Value != tokenVersion)
         {
             context.Fail("token_version_mismatch");
             return;
         }
     }
 }
-

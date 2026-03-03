@@ -17,14 +17,6 @@ public sealed class UserService
     public async Task<User?> FindByIdAsync(Guid id, CancellationToken ct = default)
         => await _db.Users.SingleOrDefaultAsync(x => x.Id == id, ct);
 
-    public async Task<int> BumpTokenVersionAsync(Guid id, CancellationToken ct = default)
-    {
-        var user = await _db.Users.SingleAsync(x => x.Id == id, ct);
-        user.TokenVersion++;
-        await _db.SaveChangesAsync(ct);
-        return user.TokenVersion;
-    }
-
     public async Task<User> GetOrCreateByEmailAsync(string email, CancellationToken ct = default)
     {
         email = email.Trim().ToLowerInvariant();

@@ -24,6 +24,17 @@ public sealed class AppDbContext : DbContext
                 .HasColumnName("token_version")
                 .HasDefaultValue(0)
                 .IsRequired();
+
+            e.Property(x => x.AuthCodeFailCount)
+                .HasColumnName("auth_code_fail_count")
+                .HasDefaultValue(0)
+                .IsRequired();
+
+            e.Property(x => x.AuthCodeLockoutUntil)
+                .HasColumnName("auth_code_lockout_until");
+
+            e.Property(x => x.AuthCodeLastSentAt)
+                .HasColumnName("auth_code_last_sent_at");
         });
 
         b.Entity<AuthLoginRequest>(e =>

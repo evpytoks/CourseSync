@@ -19,6 +19,7 @@ var cs = builder.Configuration.GetConnectionString("AppDb")
 builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(cs));
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<TokenVersionJwtBearerEvents>();
+builder.Services.AddHostedService<AuthCleanupHostedService>();
 
 builder.Services
     .AddOptions<AuthCodeOptions>()

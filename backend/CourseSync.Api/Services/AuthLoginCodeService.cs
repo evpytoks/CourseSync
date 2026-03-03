@@ -7,6 +7,12 @@ using Microsoft.Extensions.Options;
 
 namespace CourseSync.Api.Services;
 
+public enum CreateAuthCodeStatus
+{
+    Ok,
+    RateLimited
+}
+
 public sealed class AuthLoginCodeService
 {
     private readonly AppDbContext _db;
@@ -25,16 +31,48 @@ public sealed class AuthLoginCodeService
         _hashKey = Encoding.UTF8.GetBytes(hashKey);
     }
 
-    public async Task<(string requestId, int expiresInSec, string plainCode)> CreateAsync(User user, int ttlSeconds, CancellationToken ct)
+    public async Task<(CreateAuthCodeStatus status, string requestId, DateTimeOffset expiresAt, string plainCode)> CreateAsync(
+        User user,
+        int ttlSeconds,
+        int cooldownSeconds,
+        CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
         await CleanupAsync(now, ct);
 
+        var allowedLastSentAt = now.AddSeconds(-cooldownSeconds);
+
+        int updated;
+        try
+        {
+            updated = await _db.Users
+                .Where(x => x.Id == user.Id
+                            && (x.AuthCodeLastSentAt == null || x.AuthCodeLastSentAt <= allowedLastSentAt))
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.AuthCodeLastSentAt, now), ct);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException)
+        {
+            var dbUser = await _db.Users.SingleOrDefaultAsync(x => x.Id == user.Id, ct);
+            if (dbUser is null) return (CreateAuthCodeStatus.RateLimited, "", default, "");
+
+            if (dbUser.AuthCodeLastSentAt is not null && dbUser.AuthCodeLastSentAt > allowedLastSentAt)
+                return (CreateAuthCodeStatus.RateLimited, "", default, "");
+
+            dbUser.AuthCodeLastSentAt = now;
+            await _db.SaveChangesAsync(ct);
+            updated = 1;
+        }
+
+        if (updated == 0)
+            return (CreateAuthCodeStatus.RateLimited, "", default, "");
+
+        user.AuthCodeLastSentAt = now;
+
         var email = NormalizeEmail(user.Email);
 
-        await _db.AuthLoginRequests
-            .Where(x => x.UserId == user.Id && x.UsedAt == null && x.ExpiresAt > now)
-            .ExecuteDeleteAsync(ct);
+        await DeleteAuthLoginRequestsAsync(
+            _db.AuthLoginRequests.Where(x => x.UserId == user.Id && x.UsedAt == null && x.ExpiresAt > now),
+            ct);
 
         var requestId = "req_" + Base64Url(RandomNumberGenerator.GetBytes(16));
         var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
@@ -54,7 +92,7 @@ public sealed class AuthLoginCodeService
         _db.AuthLoginRequests.Add(rec);
         await _db.SaveChangesAsync(ct);
 
-        return (requestId, ttlSeconds, code);
+        return (CreateAuthCodeStatus.Ok, requestId, rec.ExpiresAt, code);
     }
 
     public async Task InvalidateAsync(string requestId, CancellationToken ct)
@@ -62,9 +100,7 @@ public sealed class AuthLoginCodeService
         requestId = (requestId ?? "").Trim();
         if (string.IsNullOrWhiteSpace(requestId)) return;
 
-        await _db.AuthLoginRequests
-            .Where(x => x.RequestId == requestId)
-            .ExecuteDeleteAsync(ct);
+        await DeleteAuthLoginRequestsAsync(_db.AuthLoginRequests.Where(x => x.RequestId == requestId), ct);
     }
 
     public async Task<VerifyResult> VerifyAsync(string email, string requestId, string code, int maxAttempts, CancellationToken ct)
@@ -85,7 +121,11 @@ public sealed class AuthLoginCodeService
         if (!string.Equals(rec.Email, emailNorm, StringComparison.OrdinalIgnoreCase)) return VerifyResult.Invalid;
         if (rec.UsedAt is not null || rec.ExpiresAt <= now) return VerifyResult.Invalid;
 
-        if (rec.AttemptCount >= maxAttempts) return VerifyResult.TooManyAttempts;
+        if (rec.AttemptCount >= maxAttempts)
+        {
+            await InvalidateAsync(rec.RequestId, ct);
+            return VerifyResult.TooManyAttempts;
+        }
 
         rec.AttemptCount++;
 
@@ -95,6 +135,13 @@ public sealed class AuthLoginCodeService
         {
             try
             {
+                if (rec.AttemptCount >= maxAttempts)
+                {
+                    _db.AuthLoginRequests.Remove(rec);
+                    await _db.SaveChangesAsync(ct);
+                    return VerifyResult.TooManyAttempts;
+                }
+
                 await _db.SaveChangesAsync(ct);
             }
             catch (DbUpdateConcurrencyException)
@@ -120,9 +167,25 @@ public sealed class AuthLoginCodeService
 
     private async Task CleanupAsync(DateTimeOffset now, CancellationToken ct)
     {
-        await _db.AuthLoginRequests
-            .Where(x => x.UsedAt != null || x.ExpiresAt <= now)
-            .ExecuteDeleteAsync(ct);
+        await DeleteAuthLoginRequestsAsync(
+            _db.AuthLoginRequests.Where(x => x.UsedAt != null || x.ExpiresAt <= now),
+            ct);
+    }
+
+    private async Task DeleteAuthLoginRequestsAsync(IQueryable<AuthLoginRequest> query, CancellationToken ct)
+    {
+        try
+        {
+            await query.ExecuteDeleteAsync(ct);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException)
+        {
+            var rows = await query.ToListAsync(ct);
+            if (rows.Count == 0) return;
+
+            _db.AuthLoginRequests.RemoveRange(rows);
+            await _db.SaveChangesAsync(ct);
+        }
     }
 
     private byte[] Hash(string email, string requestId, string code)
