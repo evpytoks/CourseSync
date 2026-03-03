@@ -55,7 +55,7 @@ public sealed class AuthController : ControllerBase
         var user = await _userService.GetOrCreateByEmailAsync(email, ct);
 
         var ttl = _authOpt.CodeTtlSeconds;
-        var (status, requestId, expiresInSec, code) = await _codes.CreateAsync(user, ttl, _authOpt.SendCooldownSeconds, ct);
+        var (status, requestId, expiresAt, code) = await _codes.CreateAsync(user, ttl, _authOpt.SendCooldownSeconds, ct);
 
         if (status == CreateAuthCodeStatus.RateLimited)
             return StatusCode(429, new ErrorEnvelope(new ApiError("rate_limited")));
@@ -80,7 +80,7 @@ public sealed class AuthController : ControllerBase
             return StatusCode(500, new ErrorEnvelope(new ApiError("email_send_failed")));
         }
 
-        return Ok(new SendCodeResponse(requestId, expiresInSec));
+        return Ok(new SendCodeResponse(requestId, expiresAt));
     }
 
     [HttpPost("login")]
@@ -118,7 +118,7 @@ public sealed class AuthController : ControllerBase
         var (refreshToken, _, tokenVersion) = await _refresh.EstablishSingleSessionAsync(userId, ct);
         var token = _jwt.CreateToken(userId, user.Email, tokenVersion);
 
-        return Ok(new LoginResponse(token, refreshToken, new UserDto(userId, user.Email)));
+        return Ok(new LoginResponse(token, refreshToken));
     }
 
     [HttpPost("refresh")]

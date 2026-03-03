@@ -3,6 +3,7 @@ using System.Text;
 using CourseSync.Api.Data;
 using CourseSync.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 
 namespace CourseSync.Api.Services;
@@ -32,7 +33,7 @@ public sealed class RefreshTokenService
     {
         var now = DateTimeOffset.UtcNow;
 
-        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        await using var tx = await TryBeginTransactionAsync(ct);
 
         await RevokeAllActiveForUserAsync(userId, now, ct);
         var tokenVersion = await BumpUserTokenVersionAsync(userId, ct);
@@ -41,7 +42,8 @@ public sealed class RefreshTokenService
         _db.RefreshTokens.Add(rec);
         await _db.SaveChangesAsync(ct);
 
-        await tx.CommitAsync(ct);
+        if (tx is not null)
+            await tx.CommitAsync(ct);
 
         return (plain, rec.ExpiresAt, tokenVersion);
     }
@@ -55,11 +57,20 @@ public sealed class RefreshTokenService
         var now = DateTimeOffset.UtcNow;
         var tokenHash = Hash(refreshToken);
 
-        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        await using var tx = await TryBeginTransactionAsync(ct);
 
         await LockRefreshTokenRowAsync(tokenHash, ct);
 
-        var rec = await _db.RefreshTokens.SingleOrDefaultAsync(x => x.TokenHash == tokenHash, ct);
+        RefreshToken? rec;
+        if (_db.Database.IsRelational())
+        {
+            rec = await _db.RefreshTokens.SingleOrDefaultAsync(x => x.TokenHash == tokenHash, ct);
+        }
+        else
+        {
+            var rows = await _db.RefreshTokens.ToListAsync(ct);
+            rec = rows.SingleOrDefault(x => x.TokenHash.AsSpan().SequenceEqual(tokenHash));
+        }
         if (rec is null) return (RefreshRotateStatus.Invalid, Guid.Empty, "", default);
 
         if (rec.ExpiresAt <= now || rec.RevokedAt is not null)
@@ -69,7 +80,8 @@ public sealed class RefreshTokenService
         {
             await RevokeAllActiveForUserAsync(rec.UserId, now, ct);
             await BumpUserTokenVersionAsync(rec.UserId, ct);
-            await tx.CommitAsync(ct);
+            if (tx is not null)
+                await tx.CommitAsync(ct);
             return (RefreshRotateStatus.Reused, Guid.Empty, "", default);
         }
 
@@ -80,7 +92,8 @@ public sealed class RefreshTokenService
         rec.ReplacedByTokenId = newRec.Id;
 
         await _db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+        if (tx is not null)
+            await tx.CommitAsync(ct);
 
         return (RefreshRotateStatus.Ok, rec.UserId, newPlain, newRec.ExpiresAt);
     }
@@ -93,7 +106,16 @@ public sealed class RefreshTokenService
         var now = DateTimeOffset.UtcNow;
         var tokenHash = Hash(refreshToken);
 
-        var rec = await _db.RefreshTokens.SingleOrDefaultAsync(x => x.TokenHash == tokenHash, ct);
+        RefreshToken? rec;
+        if (_db.Database.IsRelational())
+        {
+            rec = await _db.RefreshTokens.SingleOrDefaultAsync(x => x.TokenHash == tokenHash, ct);
+        }
+        else
+        {
+            var rows = await _db.RefreshTokens.ToListAsync(ct);
+            rec = rows.SingleOrDefault(x => x.TokenHash.AsSpan().SequenceEqual(tokenHash));
+        }
         if (rec is null) return;
 
         rec.RevokedAt = now;
@@ -102,9 +124,24 @@ public sealed class RefreshTokenService
 
     private async Task RevokeAllActiveForUserAsync(Guid userId, DateTimeOffset now, CancellationToken ct)
     {
-        await _db.RefreshTokens
+        if (_db.Database.IsRelational())
+        {
+            await _db.RefreshTokens
+                .Where(x => x.UserId == userId && x.UsedAt == null && x.RevokedAt == null && x.ExpiresAt > now)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.RevokedAt, now), ct);
+            return;
+        }
+
+        var rows = await _db.RefreshTokens
             .Where(x => x.UserId == userId && x.UsedAt == null && x.RevokedAt == null && x.ExpiresAt > now)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.RevokedAt, now), ct);
+            .ToListAsync(ct);
+
+        if (rows.Count == 0) return;
+
+        foreach (var rec in rows)
+            rec.RevokedAt = now;
+
+        await _db.SaveChangesAsync(ct);
     }
 
     private async Task<int> BumpUserTokenVersionAsync(Guid userId, CancellationToken ct)
@@ -121,6 +158,9 @@ public sealed class RefreshTokenService
 
     private async Task LockUserRowAsync(Guid userId, CancellationToken ct)
     {
+        if (!_db.Database.IsRelational())
+            return;
+
         await _db.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT 1 FROM users WHERE \"Id\" = {userId} FOR UPDATE",
             ct);
@@ -128,6 +168,9 @@ public sealed class RefreshTokenService
 
     private async Task LockRefreshTokenRowAsync(byte[] tokenHash, CancellationToken ct)
     {
+        if (!_db.Database.IsRelational())
+            return;
+
         await _db.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT 1 FROM refresh_tokens WHERE token_hash = {tokenHash} FOR UPDATE",
             ct);
@@ -135,6 +178,22 @@ public sealed class RefreshTokenService
 
     private byte[] Hash(string refreshToken)
         => HMACSHA256.HashData(_hashKey, Encoding.UTF8.GetBytes(refreshToken));
+
+    private async Task<IDbContextTransaction?> TryBeginTransactionAsync(CancellationToken ct)
+    {
+        try
+        {
+            return await _db.Database.BeginTransactionAsync(ct);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
+    }
 
     private (RefreshToken rec, string plain) CreateRecord(Guid userId, DateTimeOffset now)
     {

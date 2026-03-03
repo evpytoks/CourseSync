@@ -118,7 +118,7 @@ public sealed class AuthController : ControllerBase
         var (refreshToken, _, tokenVersion) = await _refresh.EstablishSingleSessionAsync(userId, ct);
         var token = _jwt.CreateToken(userId, user.Email, tokenVersion);
 
-        return Ok(new LoginResponse(token, refreshToken, new UserDto(userId, user.Email)));
+        return Ok(new LoginResponse(token, refreshToken));
     }
 
     [HttpPost("refresh")]
