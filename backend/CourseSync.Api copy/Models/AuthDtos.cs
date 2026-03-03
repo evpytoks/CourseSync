@@ -13,5 +13,5 @@ public sealed record LoginResponse(string Token, string RefreshToken, UserDto Us
 public sealed record RefreshRequest(string RefreshToken);
 public sealed record RefreshResponse(string Token, string RefreshToken);
 
-public sealed record ApiError([property: JsonPropertyName("error_code")] string Code);
+public sealed record ApiError([property: JsonPropertyName("error_code")] string Code, string Message);
 public sealed record ErrorEnvelope(ApiError Error);

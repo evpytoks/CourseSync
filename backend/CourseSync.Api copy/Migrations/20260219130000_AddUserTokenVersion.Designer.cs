@@ -3,6 +3,7 @@ using System;
 using CourseSync.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CourseSync.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260219130000_AddUserTokenVersion")]
+    partial class AddUserTokenVersion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -24,10 +27,6 @@ namespace CourseSync.Api.Migrations
 
             modelBuilder.Entity("CourseSync.Api.Data.AuthLoginRequest", b =>
                 {
-                    b.Property<string>("RequestId")
-                        .HasColumnType("text")
-                        .HasColumnName("request_id");
-
                     b.Property<int>("AttemptCount")
                         .HasColumnType("integer")
                         .HasColumnName("attempt_count");
@@ -50,6 +49,10 @@ namespace CourseSync.Api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
+                    b.Property<string>("RequestId")
+                        .HasColumnType("text")
+                        .HasColumnName("request_id");
+
                     b.Property<DateTimeOffset?>("UsedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("used_at");
@@ -59,10 +62,10 @@ namespace CourseSync.Api.Migrations
                         .HasColumnName("user_id");
 
                     b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
-                        .HasColumnName("xmin");
+                        .HasColumnName("xmin")
+                        .IsConcurrencyToken();
 
                     b.HasKey("RequestId");
 
@@ -78,7 +81,6 @@ namespace CourseSync.Api.Migrations
             modelBuilder.Entity("CourseSync.Api.Data.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -112,10 +114,10 @@ namespace CourseSync.Api.Migrations
                         .HasColumnName("user_id");
 
                     b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
-                        .HasColumnName("xmin");
+                        .HasColumnName("xmin")
+                        .IsConcurrencyToken();
 
                     b.HasKey("Id");
 
@@ -135,29 +137,14 @@ namespace CourseSync.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("AuthCodeFailCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("auth_code_fail_count");
-
-                    b.Property<DateTimeOffset?>("AuthCodeLastSentAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("auth_code_last_sent_at");
-
-                    b.Property<DateTimeOffset?>("AuthCodeLockoutUntil")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("auth_code_lockout_until");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("TokenVersion")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("token_version");
+                        .HasColumnName("token_version")
+                        .HasDefaultValue(0);
 
                     b.HasKey("Id");
 
@@ -192,3 +179,4 @@ namespace CourseSync.Api.Migrations
         }
     }
 }
+

@@ -58,7 +58,7 @@ public sealed class AuthController : ControllerBase
         var (status, requestId, expiresInSec, code) = await _codes.CreateAsync(user, ttl, _authOpt.SendCooldownSeconds, ct);
 
         if (status == CreateAuthCodeStatus.RateLimited)
-            return StatusCode(429, new ErrorEnvelope(new ApiError("rate_limited")));
+            return StatusCode(429, new ErrorEnvelope(new ApiError("rate_limited", "Код уже был отправлен недавно. Попробуйте через минуту")));
 
         try
         {
@@ -77,7 +77,7 @@ public sealed class AuthController : ControllerBase
                 _cfg["Smtp:FromEmail"],
                 email);
 
-            return StatusCode(500, new ErrorEnvelope(new ApiError("email_send_failed")));
+            return StatusCode(500, new ErrorEnvelope(new ApiError("email_send_failed", "Ошибка при отправке кода на почту. Попробуйте позже")));
         }
 
         return Ok(new SendCodeResponse(requestId, expiresInSec));
@@ -94,24 +94,24 @@ public sealed class AuthController : ControllerBase
         if (emailValidation is not null) return BadRequest(emailValidation);
 
         if (string.IsNullOrWhiteSpace(requestId))
-            return BadRequest(new ErrorEnvelope(new ApiError("request_id_required")));
+            return BadRequest(new ErrorEnvelope(new ApiError("request_id_required", "requestId обязателен")));
 
         if (string.IsNullOrWhiteSpace(code))
-            return BadRequest(new ErrorEnvelope(new ApiError("code_required")));
+            return BadRequest(new ErrorEnvelope(new ApiError("code_required", "Код обязателен")));
 
         var maxAttempts = _authOpt.MaxAttempts;
 
         var result = await _codes.VerifyAsync(email, requestId, code, maxAttempts, ct);
 
         if (result == VerifyResult.TooManyAttempts)
-            return StatusCode(429, new ErrorEnvelope(new ApiError("code_attempts_exceeded")));
+            return StatusCode(429, new ErrorEnvelope(new ApiError("code_attempts_exceeded", "Слишком много попыток. Код сброшен — запросите новый")));
 
         if (result == VerifyResult.Invalid)
-            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_code")));
+            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_code", "Неверный или просроченный код")));
 
         var user = await _userService.FindByEmailAsync(email, ct);
         if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_code")));
+            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_code", "Неверный или просроченный код")));
 
         var userId = user.Id;
 
@@ -126,18 +126,18 @@ public sealed class AuthController : ControllerBase
     {
         var refreshToken = (req.RefreshToken ?? "").Trim();
         if (string.IsNullOrWhiteSpace(refreshToken))
-            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
+            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required", "refreshToken обязателен")));
 
         var (status, userId, newRefreshToken, _) = await _refresh.RotateAsync(refreshToken, ct);
         if (status == RefreshRotateStatus.Reused)
-            return Unauthorized(new ErrorEnvelope(new ApiError("refresh_reused")));
+            return Unauthorized(new ErrorEnvelope(new ApiError("refresh_reused", "Сессия недействительна. Войдите заново")));
 
         if (status != RefreshRotateStatus.Ok)
-            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_refresh_token")));
+            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_refresh_token", "Недействительный refresh token")));
 
         var user = await _userService.FindByIdAsync(userId, ct);
         if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_refresh_token")));
+            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_refresh_token", "Недействительный refresh token")));
 
         var token = _jwt.CreateToken(userId, user.Email, user.TokenVersion);
         return Ok(new RefreshResponse(token, newRefreshToken));
@@ -148,13 +148,13 @@ public sealed class AuthController : ControllerBase
         email = (email ?? "").Trim();
 
         if (string.IsNullOrWhiteSpace(email))
-            return new ErrorEnvelope(new ApiError("email_required"));
+            return new ErrorEnvelope(new ApiError("email_required", "Почта обязательна"));
 
         if (!MailAddress.TryCreate(email, out var addr) || !string.Equals(addr.Address, email, StringComparison.OrdinalIgnoreCase))
-            return new ErrorEnvelope(new ApiError("invalid_email"));
+            return new ErrorEnvelope(new ApiError("invalid_email", "Некорректная почта"));
 
         if (!string.Equals(addr.Host, AllowedEmailDomain, StringComparison.OrdinalIgnoreCase))
-            return new ErrorEnvelope(new ApiError("email_domain_not_allowed"));
+            return new ErrorEnvelope(new ApiError("email_domain_not_allowed", $"Разрешены только почты @{AllowedEmailDomain}"));
 
         return null;
     }
