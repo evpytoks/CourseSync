@@ -80,6 +80,7 @@ public sealed class AuthController : ControllerBase
             return StatusCode(500, new ErrorEnvelope(new ApiError("email_send_failed")));
         }
 
+        await _codes.MarkCodeSentAsync(user.Id, ct);
         return Ok(new SendCodeResponse(requestId, expiresAt));
     }
 
