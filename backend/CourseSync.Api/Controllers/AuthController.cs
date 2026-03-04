@@ -154,7 +154,7 @@ public sealed class AuthController : ControllerBase
             return new ErrorEnvelope(new ApiError("invalid_email"));
 
         if (!string.Equals(addr.Host, AllowedEmailDomain, StringComparison.OrdinalIgnoreCase))
-            return new ErrorEnvelope(new ApiError("email_domain_not_allowed"));
+            return new ErrorEnvelope(new ApiError("not_hse_email"));
 
         return null;
     }

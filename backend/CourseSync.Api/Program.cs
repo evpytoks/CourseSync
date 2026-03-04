@@ -1,7 +1,9 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using CourseSync.Api.Services;
 using CourseSync.Api.Infrastructure.Email;
 using CourseSync.Api.Infrastructure;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -73,6 +75,46 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+var rateLimit = builder.Configuration.GetSection("RateLimit");
+var globalPermit = rateLimit.GetValue("GlobalPermitLimit", 100);
+var globalWindowMin = rateLimit.GetValue("GlobalWindowMinutes", 1);
+var sendCodePermit = rateLimit.GetValue("SendCodePermitLimit", 1);
+var sendCodeWindowMin = rateLimit.GetValue("SendCodeWindowMinutes", 1);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, ct) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+            context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds).ToString();
+        await context.HttpContext.Response.WriteAsJsonAsync(new { error = new { error_code = "rate_limited" } }, ct);
+    };
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var path = httpContext.Request.Path.Value ?? "";
+
+        if (path.Contains("send-code", StringComparison.OrdinalIgnoreCase))
+            return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = sendCodePermit,
+                Window = TimeSpan.FromMinutes(sendCodeWindowMin),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = globalPermit,
+            Window = TimeSpan.FromMinutes(globalWindowMin),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -84,6 +126,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

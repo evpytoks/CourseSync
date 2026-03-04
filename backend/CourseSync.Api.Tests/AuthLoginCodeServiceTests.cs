@@ -94,4 +94,64 @@ public sealed class AuthLoginCodeServiceTests
         var sec = (rec.ExpiresAt - rec.CreatedAt).TotalSeconds;
         Assert.InRange(sec, ttl - 1, ttl + 1);
     }
+
+    [Fact]
+    public async Task VerifyAsync_returns_Invalid_for_expired_code()
+    {
+        await using var tdb = new TestDb();
+        var db = tdb.Db;
+
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var now = DateTimeOffset.UtcNow;
+        var rec = new AuthLoginRequest
+        {
+            RequestId = "req_expired",
+            UserId = user.Id,
+            Email = user.Email,
+            CodeHash = new byte[32],
+            CreatedAt = now.AddMinutes(-10),
+            ExpiresAt = now.AddSeconds(-1)
+        };
+        db.AuthLoginRequests.Add(rec);
+        await db.SaveChangesAsync();
+
+        var svc = CreateService(db);
+        var result = await svc.VerifyAsync(user.Email, "req_expired", "123456", maxAttempts: 3, CancellationToken.None);
+
+        Assert.Equal(VerifyResult.Invalid, result);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_returns_Invalid_for_wrong_email()
+    {
+        await using var tdb = new TestDb();
+        var db = tdb.Db;
+
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var svc = CreateService(db);
+        var (status, requestId, _, correctCode) = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 0, CancellationToken.None);
+        Assert.Equal(CreateAuthCodeStatus.Ok, status);
+
+        var result = await svc.VerifyAsync("other@edu.hse.ru", requestId, correctCode, maxAttempts: 3, CancellationToken.None);
+
+        Assert.Equal(VerifyResult.Invalid, result);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_returns_Invalid_for_nonexistent_request_id()
+    {
+        await using var tdb = new TestDb();
+        var db = tdb.Db;
+
+        var svc = CreateService(db);
+        var result = await svc.VerifyAsync("user@edu.hse.ru", "req_nonexistent", "123456", maxAttempts: 3, CancellationToken.None);
+
+        Assert.Equal(VerifyResult.Invalid, result);
+    }
 }
