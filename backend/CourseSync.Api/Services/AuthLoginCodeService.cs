@@ -77,9 +77,6 @@ public sealed class AuthLoginCodeService
         return (CreateAuthCodeStatus.Ok, requestId, rec.ExpiresAt, code);
     }
 
-    /// <summary>
-    /// Call after the auth code was successfully sent by email. Updates cooldown so the user cannot request another code within the configured window.
-    /// </summary>
     public async Task MarkCodeSentAsync(Guid userId, CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
