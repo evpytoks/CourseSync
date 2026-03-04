@@ -78,8 +78,15 @@ builder.Services.AddAuthorization();
 var rateLimit = builder.Configuration.GetSection("RateLimit");
 var globalPermit = rateLimit.GetValue("GlobalPermitLimit", 100);
 var globalWindowMin = rateLimit.GetValue("GlobalWindowMinutes", 1);
-var sendCodePermit = rateLimit.GetValue("SendCodePermitLimit", 1);
-var sendCodeWindowMin = rateLimit.GetValue("SendCodeWindowMinutes", 1);
+
+var endpointsSection = rateLimit.GetSection("Endpoints");
+var endpointLimits = new Dictionary<string, (int PermitLimit, int WindowMinutes)>(StringComparer.OrdinalIgnoreCase);
+foreach (var child in endpointsSection.GetChildren())
+{
+    var permit = child.GetValue("PermitLimit", globalPermit);
+    var window = child.GetValue("WindowMinutes", globalWindowMin);
+    endpointLimits[child.Key.TrimStart('/')] = (permit, window);
+}
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -94,21 +101,26 @@ builder.Services.AddRateLimiter(options =>
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
     {
         var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        var path = httpContext.Request.Path.Value ?? "";
-
-        if (path.Contains("send-code", StringComparison.OrdinalIgnoreCase))
-            return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = sendCodePermit,
-                Window = TimeSpan.FromMinutes(sendCodeWindowMin),
-                QueueLimit = 0,
-                AutoReplenishment = true
-            });
-
-        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        var path = (httpContext.Request.Path.Value ?? "").TrimStart('/');
+        var endpointKey = "default";
+        var bestLength = 0;
+        foreach (var key in endpointLimits.Keys)
         {
-            PermitLimit = globalPermit,
-            Window = TimeSpan.FromMinutes(globalWindowMin),
+            if ((path.Equals(key, StringComparison.OrdinalIgnoreCase) || path.StartsWith(key + "/", StringComparison.OrdinalIgnoreCase))
+                && key.Length > bestLength)
+            {
+                endpointKey = key;
+                bestLength = key.Length;
+            }
+        }
+        var partitionKey = $"{ip}:{endpointKey}";
+        var (permitLimit, windowMin) = endpointKey == "default"
+            ? (globalPermit, globalWindowMin)
+            : endpointLimits[endpointKey];
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = TimeSpan.FromMinutes(windowMin),
             QueueLimit = 0,
             AutoReplenishment = true
         });
@@ -127,6 +139,23 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+
+app.Use(async (context, next) =>
+{
+    await next();
+
+    var status = context.Response.StatusCode;
+    if (status >= 400)
+    {
+        var loggerFactory = context.RequestServices.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger("HttpStatusLogger");
+
+        logger.LogWarning("HTTP {StatusCode} {Method} {Path}",
+            status,
+            context.Request.Method,
+            context.Request.Path);
+    }
+});
 
 app.MapControllers();
 

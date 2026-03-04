@@ -42,31 +42,13 @@ public sealed class AuthLoginCodeService
 
         var allowedLastSentAt = now.AddSeconds(-cooldownSeconds);
 
-        int updated;
-        try
-        {
-            updated = await _db.Users
-                .Where(x => x.Id == user.Id
-                            && (x.AuthCodeLastSentAt == null || x.AuthCodeLastSentAt <= allowedLastSentAt))
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.AuthCodeLastSentAt, now), ct);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException)
-        {
-            var dbUser = await _db.Users.SingleOrDefaultAsync(x => x.Id == user.Id, ct);
-            if (dbUser is null) return (CreateAuthCodeStatus.RateLimited, "", default, "");
+        var lastSentAt = await _db.Users
+            .Where(x => x.Id == user.Id)
+            .Select(x => x.AuthCodeLastSentAt)
+            .FirstOrDefaultAsync(ct);
 
-            if (dbUser.AuthCodeLastSentAt is not null && dbUser.AuthCodeLastSentAt > allowedLastSentAt)
-                return (CreateAuthCodeStatus.RateLimited, "", default, "");
-
-            dbUser.AuthCodeLastSentAt = now;
-            await _db.SaveChangesAsync(ct);
-            updated = 1;
-        }
-
-        if (updated == 0)
+        if (lastSentAt.HasValue && lastSentAt.GetValueOrDefault() > allowedLastSentAt)
             return (CreateAuthCodeStatus.RateLimited, "", default, "");
-
-        user.AuthCodeLastSentAt = now;
 
         var email = NormalizeEmail(user.Email);
 
@@ -93,6 +75,17 @@ public sealed class AuthLoginCodeService
         await _db.SaveChangesAsync(ct);
 
         return (CreateAuthCodeStatus.Ok, requestId, rec.ExpiresAt, code);
+    }
+
+    /// <summary>
+    /// Call after the auth code was successfully sent by email. Updates cooldown so the user cannot request another code within the configured window.
+    /// </summary>
+    public async Task MarkCodeSentAsync(Guid userId, CancellationToken ct)
+    {
+        var now = DateTimeOffset.UtcNow;
+        await _db.Users
+            .Where(x => x.Id == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AuthCodeLastSentAt, now), ct);
     }
 
     public async Task InvalidateAsync(string requestId, CancellationToken ct)

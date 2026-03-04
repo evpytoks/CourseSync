@@ -39,6 +39,8 @@ public sealed class AuthLoginCodeServiceTests
         var first = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 60, CancellationToken.None);
         Assert.Equal(CreateAuthCodeStatus.Ok, first.status);
 
+        await svc.MarkCodeSentAsync(user.Id, CancellationToken.None);
+
         var second = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 60, CancellationToken.None);
         Assert.Equal(CreateAuthCodeStatus.RateLimited, second.status);
     }
