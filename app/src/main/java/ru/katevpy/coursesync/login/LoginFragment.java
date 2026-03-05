@@ -44,10 +44,10 @@ public class LoginFragment extends Fragment {
         viewModel.getUi().observe(getViewLifecycleOwner(), state -> {
             if (state.step == LoginViewModel.Step.ENTER_EMAIL) {
                 binding.code.setVisibility(View.GONE);
-                binding.button.setText("send code");
+                binding.button.setText(R.string.send_code);
             } else if (state.step == LoginViewModel.Step.ENTER_CODE) {
                 binding.code.setVisibility(View.VISIBLE);
-                binding.button.setText("verify");
+                binding.button.setText(R.string.verify_code);
             }
 
             binding.button.setEnabled(!state.loading);
