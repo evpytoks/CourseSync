@@ -9,6 +9,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<AuthLoginRequest> AuthLoginRequests => Set<AuthLoginRequest>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Group> Groups => Set<Group>();
+    public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -94,6 +96,41 @@ public sealed class AppDbContext : DbContext
             e.HasIndex(x => x.TokenHash).IsUnique();
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.ExpiresAt);
+        });
+
+        b.Entity<Group>(e =>
+        {
+            e.ToTable("groups");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(20);
+            e.Property(x => x.Code).HasColumnName("code").IsRequired().HasMaxLength(6);
+            e.Property(x => x.CodeGeneratedAt).HasColumnName("code_generated_at").IsRequired();
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+
+            e.HasIndex(x => x.Name);
+        });
+
+        b.Entity<GroupMember>(e =>
+        {
+            e.ToTable("group_members");
+            e.HasKey(x => new { x.GroupId, x.UserId });
+
+            e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.Role).HasColumnName("role").IsRequired();
+            e.Property(x => x.JoinedAt).HasColumnName("joined_at").IsRequired();
+
+            e.HasOne(x => x.Group)
+                .WithMany()
+                .HasForeignKey(x => x.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.UserId);
         });
     }
 }

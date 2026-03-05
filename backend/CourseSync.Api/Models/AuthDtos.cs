@@ -14,3 +14,13 @@ public sealed record RefreshResponse(string Token, string RefreshToken);
 
 public sealed record ApiError([property: JsonPropertyName("error_code")] string Code);
 public sealed record ErrorEnvelope(ApiError Error);
+
+// Groups
+public sealed record CreateGroupRequest(string Name);
+public sealed record CreateGroupResponse(Guid Id, string Name, string Code);
+public sealed record GroupListItem(
+    Guid Id,
+    string Name,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("group_code")] string? GroupCode);
+public sealed record GroupListResponse(IReadOnlyList<GroupListItem> Groups);
