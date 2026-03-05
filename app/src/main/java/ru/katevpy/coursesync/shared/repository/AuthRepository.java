@@ -29,6 +29,10 @@ public final class AuthRepository {
         this.tokens = tokens;
     }
 
+    public void clearPending() {
+        pending.clear();
+    }
+
     public Result<SendCodeResponse> startLogin(String email) {
         try {
             Response<SendCodeResponse> r = api.sendCode(new SendCodeRequest(email)).execute();
@@ -61,7 +65,7 @@ public final class AuthRepository {
     public Result<LoginResponse> verifyCode(String code) {
         if (!pending.hasPending()) {
             if (pending.isExpired()) {
-                pending.clear();
+                clearPending();
                 return Result.logicalError("Код истёк. Запросите новый");
             }
             return Result.logicalError("Сначала введите почту");
@@ -76,7 +80,7 @@ public final class AuthRepository {
             if (r.isSuccessful() && r.body() != null) {
                 LoginResponse body = r.body();
                 tokens.save(body.token, body.refreshToken);
-                pending.clear();
+                clearPending();
                 return Result.success(body);
             }
 
@@ -116,5 +120,17 @@ public final class AuthRepository {
         } catch (ParseException e) {
             return -1;
         }
+    }
+
+    public long getPendingExpiresAtMs() {
+        return pending.getExpiresAtMs();
+    }
+
+    public boolean hasPending() {
+        return pending.hasPending();
+    }
+
+    public boolean isPendingExpired() {
+        return pending.isExpired();
     }
 }

@@ -8,6 +8,9 @@ import androidx.lifecycle.ViewModel;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.LoginResponse;
@@ -25,9 +28,16 @@ public class LoginViewModel extends ViewModel {
     private final MutableLiveData<LoginUiState> ui = new MutableLiveData<>(LoginUiState.initial());
     private final AtomicInteger opCounter = new AtomicInteger(0);
     private volatile boolean inFlight = false;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private @Nullable ScheduledFuture<?> expiryTask = null;
 
     public LoginViewModel(AuthRepository repo) {
         this.repo = repo;
+
+        if (repo.hasPending()) {
+            ui.setValue(new LoginUiState(Step.ENTER_CODE, false, null, null, null, false));
+            scheduleExpiryTimer();
+        }
     }
 
     public LiveData<LoginUiState> getUi() {
@@ -79,6 +89,58 @@ public class LoginViewModel extends ViewModel {
         ));
     }
 
+    private void showCodeRequired() {
+        ui.postValue(new LoginUiState(
+                Step.ENTER_CODE,
+                false,
+                null,
+                "Введите код",
+                null,
+                false
+        ));
+    }
+
+    private void scheduleExpiryTimer() {
+        if (expiryTask != null) {
+            expiryTask.cancel(true);
+            expiryTask = null;
+        }
+
+        if (!repo.hasPending()) return;
+
+        long expiresAtMs = repo.getPendingExpiresAtMs();
+        long now = System.currentTimeMillis();
+        long delayMs = expiresAtMs - now;
+
+        if (delayMs <= 0) {
+            repo.clearPending();
+            ui.postValue(new LoginUiState(
+                    Step.ENTER_EMAIL,
+                    false,
+                    null,
+                    null,
+                    "Код истёк. Отправьте новый",
+                    false
+            ));
+            return;
+        }
+
+        expiryTask = scheduler.schedule(() -> {
+            LoginUiState s = ui.getValue();
+            if (s != null && s.navigateToApp) return;
+
+            repo.clearPending();
+            ui.postValue(new LoginUiState(
+                    Step.ENTER_EMAIL,
+                    false,
+                    null,
+                    null,
+                    "Код истёк. Отправьте новый",
+                    false
+            ));
+        }, delayMs, TimeUnit.MILLISECONDS);
+    }
+
     public void onMainButtonClicked(String emailInput, String codeInput) {
         LoginUiState s = ui.getValue();
         if (s == null) s = LoginUiState.initial();
@@ -115,6 +177,7 @@ public class LoginViewModel extends ViewModel {
 
             if (r instanceof Result.Success) {
                 ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, null, false));
+                scheduleExpiryTimer();
                 return;
             }
 
@@ -138,14 +201,7 @@ public class LoginViewModel extends ViewModel {
         final String code = (codeInput == null ? "" : codeInput.trim());
 
         if (code.isEmpty()) {
-            ui.setValue(new LoginUiState(
-                    Step.ENTER_CODE,
-                    false,
-                    null,
-                    "Введите код",
-                    null,
-                    false
-            ));
+            showCodeRequired();
             return;
         }
 
@@ -166,6 +222,12 @@ public class LoginViewModel extends ViewModel {
 
             if (r instanceof Result.Success) {
                 inFlight = false;
+
+                if (expiryTask != null) {
+                    expiryTask.cancel(true);
+                    expiryTask = null;
+                }
+
                 ui.postValue(new LoginUiState(Step.VERIFY, false, null, null, null, true));
                 return;
             }
@@ -229,42 +291,48 @@ public class LoginViewModel extends ViewModel {
 
         if (http == 400) {
             if ("email_required".equals(code)) {
-                ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, "Введите почту", null, null, false));
+                showEmailRequired();
                 return;
             }
             if ("invalid_email".equals(code)) {
-                ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, "Некорректная почта", null, null, false));
+                showInvalidEmail();
                 return;
             }
             if ("not_hse_email".equals(code)) {
-                ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, "Нужна почта edu.hse.ru", null, null, false));
-                return;
-            }
-            if ("request_id_required".equals(code)) {
-                ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, "Запросите код ещё раз", false));
+                showNotHseEmail();
                 return;
             }
             if ("code_required".equals(code)) {
-                ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, "Введите код", null, false));
+                showCodeRequired();
                 return;
             }
         }
 
         if (http == 401 && "invalid_code".equals(code)) {
-            ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, "Неверный или просроченный код", null, false));
+            ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, "Неверный код", null, false));
             return;
         }
 
         if (http == 429 && "code_attempts_exceeded".equals(code)) {
-            ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, "Слишком много попыток. Попробуйте позже", false));
+            repo.clearPending();
+
+            ui.postValue(new LoginUiState(
+                    Step.ENTER_EMAIL,
+                    false,
+                    null,
+                    null,
+                    "Слишком много попыток",
+                    false
+            ));
             return;
         }
 
-        ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, "Ошибка (" + http + ")", false));
+        ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, "Внутренняя ошибка. Уже работаем над исправлением", false));
     }
 
     @Override
     protected void onCleared() {
         io.shutdownNow();
+        scheduler.shutdownNow();
     }
 }
