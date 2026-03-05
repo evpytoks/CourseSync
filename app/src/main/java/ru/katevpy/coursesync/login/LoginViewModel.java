@@ -34,6 +34,51 @@ public class LoginViewModel extends ViewModel {
         return ui;
     }
 
+    private boolean isValidEmail(String email) {
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
+
+    private boolean isHseEmail(String email) {
+        int at = email.lastIndexOf('@');
+        if (at == -1) return false;
+
+        String domain = email.substring(at + 1).toLowerCase();
+        return domain.equals("edu.hse.ru");
+    }
+
+    private void showEmailRequired() {
+        ui.postValue(new LoginUiState(
+                Step.ENTER_EMAIL,
+                false,
+                "Поле не должно быть пустым",
+                null,
+                null,
+                false
+        ));
+    }
+
+    private void showInvalidEmail() {
+        ui.postValue(new LoginUiState(
+                Step.ENTER_EMAIL,
+                false,
+                "Введите корректную почту",
+                null,
+                null,
+                false
+        ));
+    }
+
+    private void showNotHseEmail() {
+        ui.postValue(new LoginUiState(
+                Step.ENTER_EMAIL,
+                false,
+                "Поддерживается только корпоративная почта ВШЭ",
+                null,
+                null,
+                false
+        ));
+    }
+
     public void onMainButtonClicked(String emailInput, String codeInput) {
         LoginUiState s = ui.getValue();
         if (s == null) s = LoginUiState.initial();
@@ -47,6 +92,21 @@ public class LoginViewModel extends ViewModel {
 
     private void doSendCode(String emailInput) {
         final String email = (emailInput == null ? "" : emailInput.trim());
+
+        if (email.isEmpty()) {
+            showEmailRequired();
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            showInvalidEmail();
+            return;
+        }
+
+        if (!isHseEmail(email)) {
+            showNotHseEmail();
+            return;
+        }
 
         ui.setValue(new LoginUiState(Step.ENTER_EMAIL, true, null, null, null, false));
 
@@ -78,7 +138,14 @@ public class LoginViewModel extends ViewModel {
         final String code = (codeInput == null ? "" : codeInput.trim());
 
         if (code.isEmpty()) {
-            ui.setValue(new LoginUiState(Step.ENTER_CODE, false, null, "Введите код", null, false));
+            ui.setValue(new LoginUiState(
+                    Step.ENTER_CODE,
+                    false,
+                    null,
+                    "Введите код",
+                    null,
+                    false
+            ));
             return;
         }
 
@@ -131,21 +198,21 @@ public class LoginViewModel extends ViewModel {
 
         if (http == 400) {
             if ("email_required".equals(code)) {
-                ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, "Введите почту", null, null, false));
+                showEmailRequired();
                 return;
             }
             if ("invalid_email".equals(code)) {
-                ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, "Некорректная почта", null, null, false));
+                showInvalidEmail();
                 return;
             }
             if ("not_hse_email".equals(code)) {
-                ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, "Нужна почта edu.hse.ru", null, null, false));
+                showNotHseEmail();
                 return;
             }
         }
 
         if (http == 429 && "rate_limited".equals(code)) {
-            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, "Слишком часто. Попробуйте позже", false));
+            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, "Можно отправить только 1 код в минуту", false));
             return;
         }
 
@@ -154,7 +221,7 @@ public class LoginViewModel extends ViewModel {
             return;
         }
 
-        ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, "Ошибка (" + http + ")", false));
+        ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, "Внутренняя ошибка. Уже работаем над исправлением", false));
     }
 
     private void postLoginHttpError(int http, @Nullable ApiError apiError) {
