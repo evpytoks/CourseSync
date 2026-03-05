@@ -115,6 +115,7 @@ public sealed class AuthController : ControllerBase
             return Unauthorized(new ErrorEnvelope(new ApiError("invalid_code")));
 
         var userId = user.Id;
+        await _userService.ClearCurrentGroupAsync(userId, ct);
 
         var (refreshToken, _, tokenVersion) = await _refresh.EstablishSingleSessionAsync(userId, ct);
         var token = _jwt.CreateToken(userId, user.Email, tokenVersion);

@@ -17,6 +17,13 @@ public sealed class UserService
     public async Task<User?> FindByIdAsync(Guid id, CancellationToken ct = default)
         => await _db.Users.SingleOrDefaultAsync(x => x.Id == id, ct);
 
+    public async Task ClearCurrentGroupAsync(Guid userId, CancellationToken ct = default)
+    {
+        await _db.Users
+            .Where(u => u.Id == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.CurrentGroupId, (Guid?)null), ct);
+    }
+
     public async Task<User> GetOrCreateByEmailAsync(string email, CancellationToken ct = default)
     {
         email = email.Trim().ToLowerInvariant();

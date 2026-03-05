@@ -37,6 +37,14 @@ public sealed class AppDbContext : DbContext
 
             e.Property(x => x.AuthCodeLastSentAt)
                 .HasColumnName("auth_code_last_sent_at");
+
+            e.Property(x => x.CurrentGroupId)
+                .HasColumnName("current_group_id");
+
+            e.HasOne<Group>()
+                .WithMany()
+                .HasForeignKey(x => x.CurrentGroupId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<AuthLoginRequest>(e =>

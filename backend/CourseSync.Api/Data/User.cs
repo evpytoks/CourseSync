@@ -8,4 +8,5 @@ public sealed class User
     public int AuthCodeFailCount { get; set; }
     public DateTimeOffset? AuthCodeLockoutUntil { get; set; }
     public DateTimeOffset? AuthCodeLastSentAt { get; set; }
+    public Guid? CurrentGroupId { get; set; }
 }

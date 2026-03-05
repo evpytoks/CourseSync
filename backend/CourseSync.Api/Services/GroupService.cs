@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using CourseSync.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace CourseSync.Api.Services;
 
@@ -97,4 +98,60 @@ public sealed class GroupService
     }
 
     public sealed record GroupListDto(Guid Id, string Name, string Role, string? GroupCode);
+
+    public async Task<(Guid GroupId, string Name, string Role)?> JoinByCodeAsync(Guid userId, string code, CancellationToken ct)
+    {
+        code = (code ?? "").Trim();
+        if (code.Length != CodeLength || !code.All(c => CodeChars.Contains(c)))
+            return null;
+
+        var group = await _db.Groups.FirstOrDefaultAsync(g => g.Code == code, ct);
+        if (group is null)
+            return null;
+
+        var existing = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == group.Id && m.UserId == userId, ct);
+        if (existing is not null)
+            return (group.Id, group.Name, existing.Role == GroupRole.Owner ? "owner" : "participant");
+
+        _db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = userId,
+            Role = GroupRole.Participant,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        await _db.SaveChangesAsync(ct);
+        return (group.Id, group.Name, "participant");
+    }
+
+    public async Task<(bool Ok, string? ErrorCode)> ChangeNameAsync(Guid userId, Guid groupId, string name, CancellationToken ct)
+    {
+        var validation = ValidateGroupName(name);
+        if (!validation.Valid)
+            return (false, validation.ErrorCode);
+
+        var member = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (member is null || member.Role != GroupRole.Owner)
+            return (false, "forbidden");
+
+        await _db.Groups
+            .Where(g => g.Id == groupId)
+            .ExecuteUpdateAsync(s => s.SetProperty(g => g.Name, name.Trim()), ct);
+        return (true, null);
+    }
+
+    public async Task<bool> ChooseGroupAsync(Guid userId, Guid groupId, CancellationToken ct)
+    {
+        var isMember = await _db.GroupMembers
+            .AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (!isMember)
+            return false;
+
+        await _db.Users
+            .Where(u => u.Id == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.CurrentGroupId, groupId), ct);
+        return true;
+    }
 }

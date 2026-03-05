@@ -131,8 +131,30 @@ builder.Services.AddRateLimiter(options =>
         var bestLength = 0;
         foreach (var key in endpointLimits.Keys)
         {
-            if ((path.Equals(key, StringComparison.OrdinalIgnoreCase) || path.StartsWith(key + "/", StringComparison.OrdinalIgnoreCase))
-                && key.Length > bestLength)
+            var matches = false;
+            if (key.Contains("{id}", StringComparison.OrdinalIgnoreCase))
+            {
+                var pathSegments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                var keySegments = key.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (pathSegments.Length == keySegments.Length)
+                {
+                    matches = true;
+                    for (var i = 0; i < keySegments.Length; i++)
+                    {
+                        if (!string.Equals(keySegments[i], "{id}", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(pathSegments[i], keySegments[i], StringComparison.OrdinalIgnoreCase))
+                        {
+                            matches = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            else if (path.Equals(key, StringComparison.OrdinalIgnoreCase) || path.StartsWith(key + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                matches = true;
+            }
+            if (matches && key.Length > bestLength)
             {
                 endpointKey = key;
                 bestLength = key.Length;
