@@ -2,7 +2,6 @@ package ru.katevpy.coursesync.login;
 
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -10,6 +9,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
+import com.google.android.material.snackbar.Snackbar;
 
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.databinding.FragmentLoginBinding;
@@ -59,7 +59,24 @@ public class LoginFragment extends Fragment {
             if (state.codeError != null) binding.code.setError(state.codeError);
 
             if (state.message != null) {
-                Toast.makeText(requireContext(), state.message, Toast.LENGTH_SHORT).show();
+                if (state.message != null) {
+
+                    if ("Код истёк. Отправьте новый".equals(state.message)) {
+
+                        Snackbar.make(binding.getRoot(),
+                                        state.message,
+                                        Snackbar.LENGTH_INDEFINITE)
+                                .setAction("OK", v -> {})
+                                .show();
+
+                    } else {
+
+                        Snackbar.make(binding.getRoot(),
+                                        state.message,
+                                        Snackbar.LENGTH_LONG)
+                                .show();
+                    }
+                }
             }
 
             if (state.navigateToApp) {

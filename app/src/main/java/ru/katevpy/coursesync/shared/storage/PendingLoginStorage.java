@@ -25,6 +25,10 @@ public final class PendingLoginStorage {
     @Nullable public String getEmail() { return sp.getString(KEY_EMAIL, null); }
     @Nullable public String getRequestId() { return sp.getString(KEY_REQ_ID, null); }
 
+    public long getExpiresAtMs() {
+        return sp.getLong(KEY_EXPIRES_AT_MS, 0L);
+    }
+
     public boolean isExpired() {
         long exp = sp.getLong(KEY_EXPIRES_AT_MS, 0L);
         return exp > 0 && System.currentTimeMillis() > exp;
