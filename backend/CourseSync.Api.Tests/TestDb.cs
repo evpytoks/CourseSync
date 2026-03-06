@@ -10,16 +10,12 @@ public sealed class TestDb : IAsyncDisposable
     public TestDb()
     {
         var opt = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase("coursesync_test_" + Guid.NewGuid())
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .EnableSensitiveDataLogging()
             .Options;
-
         Db = new AppDbContext(opt);
         Db.Database.EnsureCreated();
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await Db.DisposeAsync();
-    }
+    public async ValueTask DisposeAsync() => await Db.DisposeAsync();
 }

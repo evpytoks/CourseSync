@@ -17,7 +17,6 @@ public sealed class AuthLoginCodeServiceTests
             CodeTtlSeconds = 300,
             SendCooldownSeconds = 60,
             MaxAttempts = 3,
-            LockoutSeconds = 600,
             HashKey = "SUPER_LONG_SECRET_KEY_CHANGE_ME_AUTHCODE_1234567890"
         });
 

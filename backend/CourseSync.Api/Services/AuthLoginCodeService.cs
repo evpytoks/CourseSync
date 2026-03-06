@@ -80,9 +80,10 @@ public sealed class AuthLoginCodeService
     public async Task MarkCodeSentAsync(Guid userId, CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
-        await _db.Users
-            .Where(x => x.Id == userId)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AuthCodeLastSentAt, now), ct);
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+        if (user is null) return;
+        user.AuthCodeLastSentAt = now;
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task InvalidateAsync(string requestId, CancellationToken ct)

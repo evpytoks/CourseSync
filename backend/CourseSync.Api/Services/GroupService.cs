@@ -84,13 +84,13 @@ public sealed class GroupService
         for (var attempt = 0; attempt < CodeCollisionRetryCount; attempt++)
         {
             var newCode = GenerateCode();
+            var entity = await _db.Groups.FirstOrDefaultAsync(x => x.Id == group.Id, ct);
+            if (entity is null) continue;
+            entity.Code = newCode;
+            entity.CodeGeneratedAt = DateTimeOffset.UtcNow;
             try
             {
-                await _db.Groups
-                    .Where(x => x.Id == group.Id)
-                    .ExecuteUpdateAsync(s => s
-                        .SetProperty(x => x.Code, newCode)
-                        .SetProperty(x => x.CodeGeneratedAt, DateTimeOffset.UtcNow), ct);
+                await _db.SaveChangesAsync(ct);
                 return newCode;
             }
             catch (DbUpdateException ex) when (IsUniqueCodeViolation(ex) && attempt < CodeCollisionRetryCount - 1)
@@ -171,9 +171,10 @@ public sealed class GroupService
         if (member is null || member.Role != GroupRole.Owner)
             return (false, "forbidden");
 
-        await _db.Groups
-            .Where(g => g.Id == groupId)
-            .ExecuteUpdateAsync(s => s.SetProperty(g => g.Name, name.Trim()), ct);
+        var group = await _db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
+        if (group is null) return (false, "forbidden");
+        group.Name = name.Trim();
+        await _db.SaveChangesAsync(ct);
         return (true, null);
     }
 
@@ -185,9 +186,10 @@ public sealed class GroupService
         if (member is null)
             return (false, null, null);
 
-        await _db.Users
-            .Where(u => u.Id == userId)
-            .ExecuteUpdateAsync(s => s.SetProperty(u => u.CurrentGroupId, groupId), ct);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null) return (false, null, null);
+        user.CurrentGroupId = groupId;
+        await _db.SaveChangesAsync(ct);
         return (true, groupId, member.Group!.Name);
     }
 
