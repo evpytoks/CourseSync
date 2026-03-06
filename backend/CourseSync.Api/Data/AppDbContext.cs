@@ -27,16 +27,16 @@ public sealed class AppDbContext : DbContext
                 .HasDefaultValue(0)
                 .IsRequired();
 
-            e.Property(x => x.AuthCodeFailCount)
-                .HasColumnName("auth_code_fail_count")
-                .HasDefaultValue(0)
-                .IsRequired();
-
-            e.Property(x => x.AuthCodeLockoutUntil)
-                .HasColumnName("auth_code_lockout_until");
-
             e.Property(x => x.AuthCodeLastSentAt)
                 .HasColumnName("auth_code_last_sent_at");
+
+            e.Property(x => x.CurrentGroupId)
+                .HasColumnName("current_group_id");
+
+            e.HasOne<Group>()
+                .WithMany()
+                .HasForeignKey(x => x.CurrentGroupId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<AuthLoginRequest>(e =>
@@ -109,6 +109,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
             e.HasIndex(x => x.Name);
+            e.HasIndex(x => x.Code).IsUnique();
         });
 
         b.Entity<GroupMember>(e =>

@@ -78,24 +78,35 @@ builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddSingleton<JwtTokenService>();
 
-var jwt = builder.Configuration.GetSection("Jwt");
+builder.Services
+    .AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOptions<JwtBearerOptions>>(sp =>
+{
+    var jwtOpts = sp.GetRequiredService<IOptions<JwtOptions>>().Value;
+    return new ConfigureNamedOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
     {
-        o.EventsType = typeof(TokenVersionJwtBearerEvents);
-        o.TokenValidationParameters = new TokenValidationParameters
+        options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-
-            ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!)),
+            ValidIssuer = jwtOpts.Issuer,
+            ValidAudience = jwtOpts.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOpts.Key)),
             ClockSkew = TimeSpan.FromSeconds(10)
         };
+    });
+});
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.EventsType = typeof(TokenVersionJwtBearerEvents);
     });
 
 builder.Services.AddAuthorization();
@@ -131,8 +142,30 @@ builder.Services.AddRateLimiter(options =>
         var bestLength = 0;
         foreach (var key in endpointLimits.Keys)
         {
-            if ((path.Equals(key, StringComparison.OrdinalIgnoreCase) || path.StartsWith(key + "/", StringComparison.OrdinalIgnoreCase))
-                && key.Length > bestLength)
+            var matches = false;
+            if (key.Contains("{id}", StringComparison.OrdinalIgnoreCase))
+            {
+                var pathSegments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                var keySegments = key.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (pathSegments.Length == keySegments.Length)
+                {
+                    matches = true;
+                    for (var i = 0; i < keySegments.Length; i++)
+                    {
+                        if (!string.Equals(keySegments[i], "{id}", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(pathSegments[i], keySegments[i], StringComparison.OrdinalIgnoreCase))
+                        {
+                            matches = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            else if (path.Equals(key, StringComparison.OrdinalIgnoreCase) || path.StartsWith(key + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                matches = true;
+            }
+            if (matches && key.Length > bestLength)
             {
                 endpointKey = key;
                 bestLength = key.Length;

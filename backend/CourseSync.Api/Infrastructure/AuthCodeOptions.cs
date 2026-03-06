@@ -15,9 +15,6 @@ public sealed class AuthCodeOptions
     [Range(1, 5)]
     public int MaxAttempts { get; set; }
 
-    [Range(10, 86400)]
-    public int LockoutSeconds { get; set; }
-
     [Required]
     [MinLength(16)]
     public string HashKey { get; set; } = null!;

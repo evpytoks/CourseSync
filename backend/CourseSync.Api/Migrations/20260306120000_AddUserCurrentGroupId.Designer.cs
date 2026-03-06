@@ -3,6 +3,7 @@ using System;
 using CourseSync.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CourseSync.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260306120000_AddUserCurrentGroupId")]
+    partial class AddUserCurrentGroupId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -27,113 +30,39 @@ namespace CourseSync.Api.Migrations
                     b.Property<string>("RequestId")
                         .HasColumnType("text")
                         .HasColumnName("request_id");
-
                     b.Property<int>("AttemptCount")
                         .HasColumnType("integer")
                         .HasColumnName("attempt_count");
-
                     b.Property<byte[]>("CodeHash")
                         .IsRequired()
                         .HasColumnType("bytea")
                         .HasColumnName("code_hash");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("email");
-
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
-
                     b.Property<DateTimeOffset?>("UsedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("used_at");
-
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
-
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
-
                     b.HasKey("RequestId");
-
                     b.HasIndex("Email");
-
                     b.HasIndex("ExpiresAt");
-
                     b.HasIndex("UserId");
-
                     b.ToTable("auth_login_requests", (string)null);
-                });
-
-            modelBuilder.Entity("CourseSync.Api.Data.Group", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(6)
-                        .HasColumnType("character varying(6)")
-                        .HasColumnName("code");
-
-                    b.Property<DateTimeOffset>("CodeGeneratedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("code_generated_at");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.ToTable("groups", (string)null);
-                });
-
-            modelBuilder.Entity("CourseSync.Api.Data.GroupMember", b =>
-                {
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("group_id");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.Property<DateTimeOffset>("JoinedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("joined_at");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("integer")
-                        .HasColumnName("role");
-
-                    b.HasKey("GroupId", "UserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("group_members", (string)null);
                 });
 
             modelBuilder.Entity("CourseSync.Api.Data.RefreshToken", b =>
@@ -142,52 +71,84 @@ namespace CourseSync.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
-
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
-
                     b.Property<Guid?>("ReplacedByTokenId")
                         .HasColumnType("uuid")
                         .HasColumnName("replaced_by_token_id");
-
                     b.Property<DateTimeOffset?>("RevokedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("revoked_at");
-
                     b.Property<byte[]>("TokenHash")
                         .IsRequired()
                         .HasColumnType("bytea")
                         .HasColumnName("token_hash");
-
                     b.Property<DateTimeOffset?>("UsedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("used_at");
-
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
-
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
-
                     b.HasKey("Id");
-
                     b.HasIndex("ExpiresAt");
-
                     b.HasIndex("TokenHash")
                         .IsUnique();
-
                     b.HasIndex("UserId");
-
                     b.ToTable("refresh_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("CourseSync.Api.Data.Group", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("code");
+                    b.Property<DateTimeOffset>("CodeGeneratedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("code_generated_at");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("name");
+                    b.HasKey("Id");
+                    b.HasIndex("Name");
+                    b.ToTable("groups", (string)null);
+                });
+
+            modelBuilder.Entity("CourseSync.Api.Data.GroupMember", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at");
+                    b.Property<int>("Role")
+                        .HasColumnType("integer")
+                        .HasColumnName("role");
+                    b.HasKey("GroupId", "UserId");
+                    b.HasIndex("UserId");
+                    b.ToTable("group_members", (string)null);
                 });
 
             modelBuilder.Entity("CourseSync.Api.Data.User", b =>
@@ -195,32 +156,32 @@ namespace CourseSync.Api.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
+                    b.Property<int>("AuthCodeFailCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("auth_code_fail_count");
                     b.Property<DateTimeOffset?>("AuthCodeLastSentAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("auth_code_last_sent_at");
-
-                    b.Property<Guid?>("CurrentGroupId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("current_group_id");
-
+                    b.Property<DateTimeOffset?>("AuthCodeLockoutUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("auth_code_lockout_until");
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
-
                     b.Property<int>("TokenVersion")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0)
                         .HasColumnName("token_version");
-
+                    b.Property<Guid?>("CurrentGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("current_group_id");
                     b.HasKey("Id");
-
                     b.HasIndex("CurrentGroupId");
-
                     b.HasIndex("Email")
                         .IsUnique();
-
                     b.ToTable("users", (string)null);
                 });
 
@@ -231,26 +192,6 @@ namespace CourseSync.Api.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("CourseSync.Api.Data.GroupMember", b =>
-                {
-                    b.HasOne("CourseSync.Api.Data.Group", "Group")
-                        .WithMany()
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CourseSync.Api.Data.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Group");
-
                     b.Navigation("User");
                 });
 
@@ -261,7 +202,22 @@ namespace CourseSync.Api.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                    b.Navigation("User");
+                });
 
+            modelBuilder.Entity("CourseSync.Api.Data.GroupMember", b =>
+                {
+                    b.HasOne("CourseSync.Api.Data.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                    b.HasOne("CourseSync.Api.Data.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                    b.Navigation("Group");
                     b.Navigation("User");
                 });
 

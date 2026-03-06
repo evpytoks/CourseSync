@@ -115,6 +115,7 @@ public sealed class AuthController : ControllerBase
             return Unauthorized(new ErrorEnvelope(new ApiError("invalid_code")));
 
         var userId = user.Id;
+        await _userService.ClearCurrentGroupAsync(userId, ct);
 
         var (refreshToken, _, tokenVersion) = await _refresh.EstablishSingleSessionAsync(userId, ct);
         var token = _jwt.CreateToken(userId, user.Email, tokenVersion);
@@ -142,6 +143,17 @@ public sealed class AuthController : ControllerBase
 
         var token = _jwt.CreateToken(userId, user.Email, user.TokenVersion);
         return Ok(new RefreshResponse(token, newRefreshToken));
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] RefreshRequest req, CancellationToken ct)
+    {
+        var refreshToken = (req.RefreshToken ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
+
+        await _refresh.RevokeAsync(refreshToken, ct);
+        return NoContent();
     }
 
     private static ErrorEnvelope? ValidateAllowedEmail(string email)
