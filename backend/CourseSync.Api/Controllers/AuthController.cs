@@ -145,6 +145,17 @@ public sealed class AuthController : ControllerBase
         return Ok(new RefreshResponse(token, newRefreshToken));
     }
 
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] RefreshRequest req, CancellationToken ct)
+    {
+        var refreshToken = (req.RefreshToken ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
+
+        await _refresh.RevokeAsync(refreshToken, ct);
+        return NoContent();
+    }
+
     private static ErrorEnvelope? ValidateAllowedEmail(string email)
     {
         email = (email ?? "").Trim();

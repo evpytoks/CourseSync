@@ -78,24 +78,35 @@ builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddSingleton<JwtTokenService>();
 
-var jwt = builder.Configuration.GetSection("Jwt");
+builder.Services
+    .AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOptions<JwtBearerOptions>>(sp =>
+{
+    var jwtOpts = sp.GetRequiredService<IOptions<JwtOptions>>().Value;
+    return new ConfigureNamedOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
     {
-        o.EventsType = typeof(TokenVersionJwtBearerEvents);
-        o.TokenValidationParameters = new TokenValidationParameters
+        options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-
-            ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!)),
+            ValidIssuer = jwtOpts.Issuer,
+            ValidAudience = jwtOpts.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOpts.Key)),
             ClockSkew = TimeSpan.FromSeconds(10)
         };
+    });
+});
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.EventsType = typeof(TokenVersionJwtBearerEvents);
     });
 
 builder.Services.AddAuthorization();

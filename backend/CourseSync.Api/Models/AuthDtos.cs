@@ -29,3 +29,4 @@ public sealed record GroupJoinResponse(Guid GroupId, string Name, string Role);
 
 public sealed record GroupChangeRequest(string Name);
 public sealed record GroupChangeResponse(Guid Id, string Name);
+public sealed record ChooseGroupResponse(Guid Id, string Name);

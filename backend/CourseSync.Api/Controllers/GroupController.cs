@@ -53,7 +53,11 @@ public sealed class GroupController : ControllerBase
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        var result = await _groupService.JoinByCodeAsync(userId.Value, req.Code ?? "", ct);
+        var codeValidation = GroupService.ValidateGroupCode(req.Code);
+        if (!codeValidation.Valid)
+            return BadRequest(new ErrorEnvelope(new ApiError(codeValidation.ErrorCode!)));
+
+        var result = await _groupService.JoinByCodeAsync(userId.Value, (req.Code ?? "").Trim(), ct);
         if (result is null)
             return NotFound(new ErrorEnvelope(new ApiError("group_not_found")));
 
@@ -79,17 +83,17 @@ public sealed class GroupController : ControllerBase
     }
 
     [HttpPost("{id:guid}/choose")]
-    public async Task<IActionResult> Choose(Guid id, CancellationToken ct)
+    public async Task<ActionResult<ChooseGroupResponse>> Choose(Guid id, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        var ok = await _groupService.ChooseGroupAsync(userId.Value, id, ct);
+        var (ok, groupId, name) = await _groupService.ChooseGroupAsync(userId.Value, id, ct);
         if (!ok)
             return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
 
-        return Ok();
+        return Ok(new ChooseGroupResponse(groupId!.Value, name!));
     }
 
     private Guid? GetCurrentUserId()

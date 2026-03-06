@@ -1,23 +1,19 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using CourseSync.Api.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CourseSync.Api.Services;
 
 public sealed class JwtTokenService
 {
-    private readonly IConfiguration _cfg;
-    public JwtTokenService(IConfiguration cfg) => _cfg = cfg;
+    private readonly JwtOptions _options;
+
+    public JwtTokenService(Microsoft.Extensions.Options.IOptions<JwtOptions> options) => _options = options.Value;
 
     public string CreateToken(Guid userId, string email, int tokenVersion)
     {
-        var jwt = _cfg.GetSection("Jwt");
-        var issuer = jwt["Issuer"]!;
-        var audience = jwt["Audience"]!;
-        var key = jwt["Key"]!;
-        var minutes = int.Parse(jwt["AccessTokenMinutes"]!);
-
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
@@ -27,15 +23,15 @@ public sealed class JwtTokenService
         };
 
         var creds = new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key)),
             SecurityAlgorithms.HmacSha256
         );
 
         var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
+            issuer: _options.Issuer,
+            audience: _options.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(minutes),
+            expires: DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes),
             signingCredentials: creds
         );
 
