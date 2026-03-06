@@ -40,6 +40,27 @@ public class LoginViewModel extends ViewModel {
         }
     }
 
+    public boolean onBackPressed() {
+        LoginUiState state = ui.getValue();
+        if (state == null) return false;
+
+        if (state.step == Step.ENTER_CODE) {
+            repo.clearPending();
+
+            ui.setValue(new LoginUiState(
+                    Step.ENTER_EMAIL,
+                    false,
+                    null,
+                    null,
+                    null,
+                    false
+            ));
+            return true;
+        }
+
+        return false;
+    }
+
     public LiveData<LoginUiState> getUi() {
         return ui;
     }
