@@ -76,6 +76,7 @@ builder.Services.AddSingleton<IEmailSender, MailKitEmailSender>();
 builder.Services.AddScoped<AuthLoginCodeService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<GroupService>();
+builder.Services.AddScoped<CourseService>();
 builder.Services.AddSingleton<JwtTokenService>();
 
 builder.Services
@@ -84,29 +85,26 @@ builder.Services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOptions<JwtBearerOptions>>(sp =>
-{
-    var jwtOpts = sp.GetRequiredService<IOptions<JwtOptions>>().Value;
-    return new ConfigureNamedOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtOpts.Issuer,
-            ValidAudience = jwtOpts.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOpts.Key)),
-            ClockSkew = TimeSpan.FromSeconds(10)
-        };
-    });
-});
+var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
+var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key is required.");
+var jwtIssuer = jwtSection["Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer is required.");
+var jwtAudience = jwtSection["Audience"] ?? throw new InvalidOperationException("Jwt:Audience is required.");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
         o.EventsType = typeof(TokenVersionJwtBearerEvents);
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.FromSeconds(10)
+        };
     });
 
 builder.Services.AddAuthorization();

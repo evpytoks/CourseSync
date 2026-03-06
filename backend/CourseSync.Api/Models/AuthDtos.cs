@@ -30,3 +30,10 @@ public sealed record GroupJoinResponse(Guid GroupId, string Name, string Role);
 public sealed record GroupChangeRequest(string Name);
 public sealed record GroupChangeResponse(Guid Id, string Name);
 public sealed record ChooseGroupResponse(Guid Id, string Name);
+
+public sealed record CourseListItem(
+    Guid Id,
+    string Name,
+    [property: JsonPropertyName("general_info")] string GeneralInfo,
+    [property: JsonPropertyName("useful_links")] string UsefulLinks);
+public sealed record CourseListResponse(IReadOnlyList<CourseListItem> Courses);

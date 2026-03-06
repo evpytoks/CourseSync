@@ -11,6 +11,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
+    public DbSet<Course> Courses => Set<Course>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -132,6 +133,25 @@ public sealed class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(x => x.UserId);
+        });
+
+        b.Entity<Course>(e =>
+        {
+            e.ToTable("courses");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
+            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(20);
+            e.Property(x => x.GeneralInfo).HasColumnName("general_info").IsRequired().HasMaxLength(2000);
+            e.Property(x => x.UsefulLinks).HasColumnName("useful_links").IsRequired().HasMaxLength(1000);
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+
+            e.HasOne<Group>()
+                .WithMany()
+                .HasForeignKey(x => x.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.GroupId);
         });
     }
 }
