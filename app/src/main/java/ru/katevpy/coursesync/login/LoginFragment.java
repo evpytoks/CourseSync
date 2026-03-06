@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
+import androidx.activity.OnBackPressedCallback;
 import com.google.android.material.snackbar.Snackbar;
 
 import ru.katevpy.coursesync.R;
@@ -34,6 +35,21 @@ public class LoginFragment extends Fragment {
                 new LoginViewModelFactory(requireContext().getApplicationContext())
         ).get(LoginViewModel.class);
 
+        requireActivity().getOnBackPressedDispatcher().addCallback(
+                getViewLifecycleOwner(),
+                new OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        boolean handled = viewModel.onBackPressed();
+
+                        if (!handled) {
+                            setEnabled(false);
+                            requireActivity().getOnBackPressedDispatcher().onBackPressed();
+                        }
+                    }
+                }
+        );
+
         binding.button.setOnClickListener(v -> {
             binding.button.setEnabled(false);
             String email = binding.email.getText() != null ? binding.email.getText().toString() : "";
@@ -44,6 +60,7 @@ public class LoginFragment extends Fragment {
         viewModel.getUi().observe(getViewLifecycleOwner(), state -> {
             if (state.step == LoginViewModel.Step.ENTER_EMAIL) {
                 binding.code.setVisibility(View.GONE);
+                binding.code.setText("");
                 binding.button.setText(R.string.send_code);
             } else if (state.step == LoginViewModel.Step.ENTER_CODE) {
                 binding.code.setVisibility(View.VISIBLE);
