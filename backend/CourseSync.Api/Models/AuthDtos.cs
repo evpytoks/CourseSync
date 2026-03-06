@@ -37,3 +37,13 @@ public sealed record CourseListItem(
     [property: JsonPropertyName("general_info")] string GeneralInfo,
     [property: JsonPropertyName("useful_links")] string UsefulLinks);
 public sealed record CourseListResponse(IReadOnlyList<CourseListItem> Courses);
+
+public sealed record AddCourseRequest(
+    string Name,
+    [property: JsonPropertyName("general_info")] string? GeneralInfo,
+    [property: JsonPropertyName("useful_links")] string? UsefulLinks);
+public sealed record AddCourseResponse(
+    Guid Id,
+    string Name,
+    [property: JsonPropertyName("general_info")] string GeneralInfo,
+    [property: JsonPropertyName("useful_links")] string UsefulLinks);
