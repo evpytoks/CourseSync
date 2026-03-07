@@ -2,8 +2,10 @@ package ru.katevpy.coursesync.shared.network;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -14,11 +16,18 @@ public final class NetworkModule {
 
     public static final class Deps {
         public final AuthApi authApi;
+        public final GroupApi groupApi;
         public final TokenStorage tokenStorage;
         public final PendingLoginStorage pendingLoginStorage;
 
-        Deps(AuthApi authApi, TokenStorage tokenStorage, PendingLoginStorage pendingLoginStorage) {
+        Deps(
+                AuthApi authApi,
+                GroupApi groupApi,
+                TokenStorage tokenStorage,
+                PendingLoginStorage pendingLoginStorage
+        ) {
             this.authApi = authApi;
+            this.groupApi = groupApi;
             this.tokenStorage = tokenStorage;
             this.pendingLoginStorage = pendingLoginStorage;
         }
@@ -31,16 +40,35 @@ public final class NetworkModule {
         TokenStorage tokenStorage = new TokenStorage(authSp);
         PendingLoginStorage pendingLoginStorage = new PendingLoginStorage(pendingSp);
 
-        OkHttpClient client = new OkHttpClient.Builder().build();
+        OkHttpClient clientNoAuth = new OkHttpClient.Builder()
+                .addInterceptor(new AuthInterceptor(tokenStorage))
+                .build();
 
-        Retrofit retrofit = new Retrofit.Builder()
+        Retrofit retrofitAuth = new Retrofit.Builder()
                 .baseUrl(baseUrl)
-                .client(client)
+                .client(clientNoAuth)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
-        AuthApi api = retrofit.create(AuthApi.class);
+        AuthApi authApi = retrofitAuth.create(AuthApi.class);
 
-        return new Deps(api, tokenStorage, pendingLoginStorage);
+        HttpLoggingInterceptor logging = new HttpLoggingInterceptor(message -> Log.d("OkHttp", message));
+        logging.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+
+        OkHttpClient clientWithAuth = new OkHttpClient.Builder()
+                .addInterceptor(new AuthInterceptor(tokenStorage))
+                .addInterceptor(logging)
+                .authenticator(new TokenAuthenticator(tokenStorage, authApi))
+                .build();
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .client(clientWithAuth)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        GroupApi groupApi = retrofit.create(GroupApi.class);
+
+        return new Deps(authApi, groupApi, tokenStorage, pendingLoginStorage);
     }
 }

@@ -2,4 +2,8 @@
     <string name="app_name">CourseSync</string>
     <string name="send_code">Отправить код</string>
     <string name="verify_code">Войти</string>
+    <string name="create_group">Создать группу</string>
+    <string name="join_group">Присоединиться к группе</string>
+    <string name="group_name_hint">Название группы</string>
+    <string name="create">Создать</string>
 </resources>

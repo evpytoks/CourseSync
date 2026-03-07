@@ -2,6 +2,7 @@ package ru.katevpy.coursesync;
 
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -21,6 +22,9 @@ public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
     private TextView tvGroupIndicator;
+    private Button btnCreateGroup;
+    private Button btnJoinGroup;
+    private NavController navController;
     private SharedGroupViewModel groupVm;
 
     @Override
@@ -36,10 +40,17 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tvGroupIndicator = findViewById(R.id.tvGroupIndicator);
+        btnCreateGroup = findViewById(R.id.btnCreateGroup);
+        btnJoinGroup = findViewById(R.id.btnJoinGroup);
 
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
 
-        NavController navController = navHostFragment.getNavController();
+        navController = navHostFragment.getNavController();
+
+        btnCreateGroup.setOnClickListener(v ->
+                navController.navigate(R.id.action_groupsFragment_to_createGroupFragment));
+        btnJoinGroup.setOnClickListener(v ->
+                navController.navigate(R.id.action_groupsFragment_to_joinGroupFragment));
 
         bottomNav = findViewById(R.id.bottom_nav);
         NavigationUI.setupWithNavController(bottomNav, navController);
@@ -69,6 +80,19 @@ public class MainActivity extends AppCompatActivity {
 
             if (tvGroupIndicator != null) {
                 tvGroupIndicator.setVisibility(isLogin ? View.GONE : View.VISIBLE);
+            }
+
+            boolean isGroupsScreen = (id == R.id.groupsFragment);
+
+            if (btnCreateGroup != null) {
+                btnCreateGroup.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
+            }
+            if (btnJoinGroup != null) {
+                btnJoinGroup.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
+            }
+
+            if (toolbar != null && getSupportActionBar() != null) {
+                getSupportActionBar().setDisplayHomeAsUpEnabled(false);
             }
         });
     }
