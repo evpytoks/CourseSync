@@ -18,13 +18,17 @@ public sealed class AuthControllerValidationTests
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Jwt:Issuer"] = "CourseSync",
-                ["Jwt:Audience"] = "CourseSyncMobile",
-                ["Jwt:Key"] = "SUPER_LONG_SECRET_KEY_CHANGE_ME_1234567890",
-                ["Jwt:AccessTokenMinutes"] = "60",
                 ["Smtp:Enabled"] = "false"
             })
             .Build();
+
+    private static JwtOptions CreateJwtOptions() => new()
+    {
+        Issuer = "CourseSync",
+        Audience = "CourseSyncMobile",
+        Key = "SUPER_LONG_SECRET_KEY_CHANGE_ME_1234567890",
+        AccessTokenMinutes = 60
+    };
 
     private static (AuthController controller, TestEmailSender email) CreateController(AppDbContext db, AuthCodeOptions authOpt)
     {
@@ -44,7 +48,6 @@ public sealed class AuthControllerValidationTests
                 CodeTtlSeconds = authOpt.CodeTtlSeconds,
                 SendCooldownSeconds = authOpt.SendCooldownSeconds,
                 MaxAttempts = authOpt.MaxAttempts,
-                LockoutSeconds = authOpt.LockoutSeconds,
                 HashKey = "SUPER_LONG_SECRET_KEY_CHANGE_ME_AUTHCODE_1234567890"
             }),
             NullLogger<AuthLoginCodeService>.Instance);
@@ -58,7 +61,7 @@ public sealed class AuthControllerValidationTests
             }));
 
         var users = new UserService(db);
-        var jwt = new JwtTokenService(cfg);
+        var jwt = new JwtTokenService(Options.Create(CreateJwtOptions()));
 
         var controller = new AuthController(
             codes,
@@ -80,7 +83,7 @@ public sealed class AuthControllerValidationTests
     public async Task SendCode_validates_email(string email, string expectedCode)
     {
         await using var tdb = new TestDb();
-        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3, LockoutSeconds = 600 });
+        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var res = await controller.SendCode(new SendCodeRequest(email), CancellationToken.None);
 
@@ -93,7 +96,7 @@ public sealed class AuthControllerValidationTests
     public async Task SendCode_rate_limits_second_request()
     {
         await using var tdb = new TestDb();
-        var (controller, emailSender) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3, LockoutSeconds = 600 });
+        var (controller, emailSender) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var email = "user@edu.hse.ru";
 
@@ -118,7 +121,7 @@ public sealed class AuthControllerValidationTests
     public async Task Login_requires_request_id_and_code()
     {
         await using var tdb = new TestDb();
-        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3, LockoutSeconds = 600 });
+        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var missingRequestId = await controller.Login(new LoginRequest("user@edu.hse.ru", "", "123456"), CancellationToken.None);
         var br1 = Assert.IsType<BadRequestObjectResult>(missingRequestId.Result);
@@ -137,7 +140,7 @@ public sealed class AuthControllerValidationTests
     public async Task Login_validates_email(string email, string expectedCode)
     {
         await using var tdb = new TestDb();
-        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3, LockoutSeconds = 600 });
+        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var res = await controller.Login(new LoginRequest(email, "req_x", "123456"), CancellationToken.None);
         var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
@@ -149,7 +152,7 @@ public sealed class AuthControllerValidationTests
     public async Task Refresh_requires_refresh_token()
     {
         await using var tdb = new TestDb();
-        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3, LockoutSeconds = 600 });
+        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var res = await controller.Refresh(new RefreshRequest(""), CancellationToken.None);
         var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
@@ -160,7 +163,7 @@ public sealed class AuthControllerValidationTests
     public async Task Login_wrong_code_returns_401_invalid_code()
     {
         await using var tdb = new TestDb();
-        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 0, MaxAttempts = 3, LockoutSeconds = 600 });
+        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 0, MaxAttempts = 3 });
 
         var email = "user@edu.hse.ru";
         var send = await controller.SendCode(new SendCodeRequest(email), CancellationToken.None);
@@ -176,7 +179,7 @@ public sealed class AuthControllerValidationTests
     public async Task Login_three_wrong_attempts_returns_429_code_attempts_exceeded()
     {
         await using var tdb = new TestDb();
-        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 0, MaxAttempts = 3, LockoutSeconds = 600 });
+        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 0, MaxAttempts = 3 });
 
         var email = "user@edu.hse.ru";
         var send = await controller.SendCode(new SendCodeRequest(email), CancellationToken.None);
@@ -199,7 +202,7 @@ public sealed class AuthControllerValidationTests
     public async Task Login_nonexistent_request_id_returns_401_invalid_code()
     {
         await using var tdb = new TestDb();
-        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3, LockoutSeconds = 600 });
+        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var login = await controller.Login(new LoginRequest("user@edu.hse.ru", "req_nonexistent", "123456"), CancellationToken.None);
         var unauth = Assert.IsType<UnauthorizedObjectResult>(login.Result);
@@ -210,7 +213,7 @@ public sealed class AuthControllerValidationTests
     public async Task Refresh_invalid_token_returns_401_invalid_refresh_token()
     {
         await using var tdb = new TestDb();
-        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3, LockoutSeconds = 600 });
+        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var res = await controller.Refresh(new RefreshRequest("not-a-valid-refresh-token"), CancellationToken.None);
         var unauth = Assert.IsType<UnauthorizedObjectResult>(res.Result);
@@ -218,10 +221,50 @@ public sealed class AuthControllerValidationTests
     }
 
     [Fact]
+    public async Task Logout_empty_token_returns_400_refresh_token_required()
+    {
+        await using var tdb = new TestDb();
+        var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
+
+        var res = await controller.Logout(new RefreshRequest("   "), CancellationToken.None);
+        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        Assert.Equal("refresh_token_required", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
+    }
+
+    [Fact]
+    public async Task Logout_success_returns_204()
+    {
+        await using var tdb = new TestDb();
+        var capturingSender = new CapturingEmailSender();
+        var (controller, _) = CreateControllerWithSender(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 0, MaxAttempts = 3 }, capturingSender);
+
+        var email = "user@edu.hse.ru";
+        var send = await controller.SendCode(new SendCodeRequest(email), CancellationToken.None);
+        var sendOk = Assert.IsType<OkObjectResult>(send.Result);
+        var sendPayload = Assert.IsType<SendCodeResponse>(sendOk.Value);
+        var login = await controller.Login(new LoginRequest(email, sendPayload.RequestId, capturingSender.LastCode!), CancellationToken.None);
+        var loginOk = Assert.IsType<OkObjectResult>(login.Result);
+        var loginPayload = Assert.IsType<LoginResponse>(loginOk.Value);
+
+        var logout = await controller.Logout(new RefreshRequest(loginPayload.RefreshToken), CancellationToken.None);
+        Assert.IsType<NoContentResult>(logout);
+    }
+
+    private sealed class CapturingEmailSender : IEmailSender
+    {
+        public string? LastCode { get; private set; }
+        public Task SendAuthCodeAsync(string toEmail, string code, int ttlSeconds, CancellationToken ct = default)
+        {
+            LastCode = code;
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
     public async Task SendCode_email_send_fails_returns_500_email_send_failed()
     {
         await using var tdb = new TestDb();
-        var (controller, _) = CreateControllerWithSender(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 0, MaxAttempts = 3, LockoutSeconds = 600 }, new ThrowingEmailSender());
+        var (controller, _) = CreateControllerWithSender(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 0, MaxAttempts = 3 }, new ThrowingEmailSender());
 
         var send = await controller.SendCode(new SendCodeRequest("user@edu.hse.ru"), CancellationToken.None);
         var fail = Assert.IsType<ObjectResult>(send.Result);

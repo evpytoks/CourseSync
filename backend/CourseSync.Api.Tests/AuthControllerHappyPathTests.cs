@@ -52,10 +52,6 @@ public sealed class AuthControllerHappyPathTests
         var cfg = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Jwt:Issuer"] = "CourseSync",
-                ["Jwt:Audience"] = "CourseSyncMobile",
-                ["Jwt:Key"] = "SUPER_LONG_SECRET_KEY_CHANGE_ME_1234567890",
-                ["Jwt:AccessTokenMinutes"] = "60",
                 ["Smtp:Enabled"] = "false"
             })
             .Build();
@@ -65,7 +61,6 @@ public sealed class AuthControllerHappyPathTests
             CodeTtlSeconds = 300,
             SendCooldownSeconds = 0,
             MaxAttempts = 3,
-            LockoutSeconds = 600,
             HashKey = "SUPER_LONG_SECRET_KEY_CHANGE_ME_AUTHCODE_1234567890"
         };
 
@@ -78,7 +73,13 @@ public sealed class AuthControllerHappyPathTests
 
         var email = new CapturingEmailSender();
         var users = new UserService(db);
-        var jwt = new JwtTokenService(cfg);
+        var jwt = new JwtTokenService(Options.Create(new JwtOptions
+        {
+            Issuer = "CourseSync",
+            Audience = "CourseSyncMobile",
+            Key = "SUPER_LONG_SECRET_KEY_CHANGE_ME_1234567890",
+            AccessTokenMinutes = 60
+        }));
 
         return (new AuthController(
             codes,
