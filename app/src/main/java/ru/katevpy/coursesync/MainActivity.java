@@ -75,11 +75,12 @@ public class MainActivity extends AppCompatActivity {
             int id = destination.getId();
 
             boolean isLogin = (id == R.id.loginFragment);
+            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment);
 
-            bottomNav.setVisibility(isLogin ? View.GONE : View.VISIBLE);
+            bottomNav.setVisibility((isLogin || isCreateOrJoinGroup) ? View.GONE : View.VISIBLE);
 
             if (tvGroupIndicator != null) {
-                tvGroupIndicator.setVisibility(isLogin ? View.GONE : View.VISIBLE);
+                tvGroupIndicator.setVisibility((isLogin || isCreateOrJoinGroup) ? View.GONE : View.VISIBLE);
             }
 
             boolean isGroupsScreen = (id == R.id.groupsFragment);

@@ -2,10 +2,8 @@ package ru.katevpy.coursesync.shared.network;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.util.Log;
 
 import okhttp3.OkHttpClient;
-import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -52,12 +50,8 @@ public final class NetworkModule {
 
         AuthApi authApi = retrofitAuth.create(AuthApi.class);
 
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor(message -> Log.d("OkHttp", message));
-        logging.setLevel(HttpLoggingInterceptor.Level.HEADERS);
-
         OkHttpClient clientWithAuth = new OkHttpClient.Builder()
                 .addInterceptor(new AuthInterceptor(tokenStorage))
-                .addInterceptor(logging)
                 .authenticator(new TokenAuthenticator(tokenStorage, authApi))
                 .build();
 

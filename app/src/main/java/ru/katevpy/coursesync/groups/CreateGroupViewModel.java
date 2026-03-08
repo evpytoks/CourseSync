@@ -40,7 +40,7 @@ public class CreateGroupViewModel extends ViewModel {
         }
         if (trimmed.length() > 20 || !trimmed.matches(NAME_PATTERN)) {
             createResult.postValue(Result.logicalError(
-                    "длина от 1 до 20 только латинские и русские буквы и цифры"));
+                    "• Длина от 1 до 20 \n• Только латинские и русские буквы и цифры"));
             return;
         }
 
