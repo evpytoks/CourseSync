@@ -23,6 +23,7 @@ public class LoginViewModel extends ViewModel {
     public enum Step { ENTER_EMAIL, ENTER_CODE, VERIFY }
 
     private final AuthRepository repo;
+    private final String internalErrorMessage;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     private final MutableLiveData<LoginUiState> ui = new MutableLiveData<>(LoginUiState.initial());
@@ -31,8 +32,9 @@ public class LoginViewModel extends ViewModel {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private @Nullable ScheduledFuture<?> expiryTask = null;
 
-    public LoginViewModel(AuthRepository repo) {
+    public LoginViewModel(AuthRepository repo, String internalErrorMessage) {
         this.repo = repo;
+        this.internalErrorMessage = internalErrorMessage;
 
         if (repo.hasPending()) {
             ui.setValue(new LoginUiState(Step.ENTER_CODE, false, null, null, null, false));
@@ -304,7 +306,7 @@ public class LoginViewModel extends ViewModel {
             return;
         }
 
-        ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, "Внутренняя ошибка. Уже работаем над исправлением", false));
+        ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, internalErrorMessage, false));
     }
 
     private void postLoginHttpError(int http, @Nullable ApiError apiError) {
@@ -348,7 +350,7 @@ public class LoginViewModel extends ViewModel {
             return;
         }
 
-        ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, "Внутренняя ошибка. Уже работаем над исправлением", false));
+        ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, internalErrorMessage, false));
     }
 
     @Override

@@ -19,7 +19,25 @@
     <fragment
         android:id="@+id/groupsFragment"
         android:name="ru.katevpy.coursesync.groups.GroupsFragment"
-        android:label="Группы" />
+        android:label="Группы">
+
+        <action
+            android:id="@+id/action_groupsFragment_to_createGroupFragment"
+            app:destination="@id/createGroupFragment" />
+        <action
+            android:id="@+id/action_groupsFragment_to_joinGroupFragment"
+            app:destination="@id/joinGroupFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createGroupFragment"
+        android:name="ru.katevpy.coursesync.groups.CreateGroupFragment"
+        android:label="Создать группу" />
+
+    <fragment
+        android:id="@+id/joinGroupFragment"
+        android:name="ru.katevpy.coursesync.groups.JoinGroupFragment"
+        android:label="Присоединиться к группе" />
 
     <fragment
         android:id="@+id/coursesFragment"

@@ -2,4 +2,14 @@
     <string name="app_name">CourseSync</string>
     <string name="send_code">Отправить код</string>
     <string name="verify_code">Войти</string>
+    <string name="create_group">Создать группу</string>
+    <string name="join_group">Присоединиться к группе</string>
+    <string name="group_name_hint">Название группы</string>
+    <string name="create">Создать</string>
+    <string name="no_groups">Вы не состоите ни в одной группе…</string>
+    <string name="groups_load_error">Не удалось загрузить список групп. Уже работаем над этим</string>
+    <string name="create_group_validation_error">• Длина от 1 до 20\n• Только латинские и русские буквы и цифры</string>
+    <string name="create_group_server_error">Ошибка при создании группы. Попробуйте позже</string>
+    <string name="internal_error">Внутренняя ошибка. Уже работаем над исправлением</string>
+    <string name="network_error">Ошибка сети</string>
 </resources>
