@@ -14,6 +14,8 @@ import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
 import ru.katevpy.coursesync.shared.dto.CreateGroupRequest;
 import ru.katevpy.coursesync.shared.dto.CreateGroupResponse;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
+import ru.katevpy.coursesync.shared.dto.GroupChangeRequest;
+import ru.katevpy.coursesync.shared.dto.GroupChangeResponse;
 import ru.katevpy.coursesync.shared.dto.GroupJoinRequest;
 import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
@@ -87,6 +89,21 @@ public class GroupRepository {
     public Result<ChooseGroupResponse> chooseGroup(UUID groupId) {
         try {
             Response<ChooseGroupResponse> r = api.chooseGroup(groupId).execute();
+
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<GroupChangeResponse> changeGroupName(java.util.UUID groupId, String name) {
+        try {
+            Response<GroupChangeResponse> r = api.changeGroup(groupId, new GroupChangeRequest(name)).execute();
 
             if (r.isSuccessful() && r.body() != null) {
                 return Result.success(r.body());

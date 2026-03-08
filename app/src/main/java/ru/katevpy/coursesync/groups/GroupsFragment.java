@@ -65,8 +65,8 @@ public class GroupsFragment extends Fragment {
 
         if (result instanceof Result.Success) {
             ChooseGroupResponse data = ((Result.Success<ChooseGroupResponse>) result).data;
-            if (data != null && data.name != null && getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).setSelectedGroupAndPersist(data.name);
+            if (data != null && data.name != null && data.id != null && getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).setSelectedGroupAndPersist(data.id, data.name);
             }
             return;
         }
@@ -75,6 +75,9 @@ public class GroupsFragment extends Fragment {
             int code = ((Result.HttpError<ChooseGroupResponse>) result).httpCode;
             if (code == 401) {
                 App.getDeps().tokenStorage.clear();
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).clearSelectedGroupAndPersist();
+                }
                 NavController nav = NavHostFragment.findNavController(this);
                 NavOptions opts = new NavOptions.Builder()
                         .setPopUpTo(R.id.groupsFragment, true)
@@ -129,6 +132,13 @@ public class GroupsFragment extends Fragment {
                 btn.setOnClickListener(v -> viewModel.chooseGroup(groupId));
                 wrapper.addView(btn);
 
+                LinearLayout iconsRow = new LinearLayout(requireContext());
+                iconsRow.setOrientation(LinearLayout.HORIZONTAL);
+                iconsRow.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+                FrameLayout.LayoutParams iconsLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                iconsLp.gravity = android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL;
+                iconsRow.setLayoutParams(iconsLp);
+
                 boolean isOwner = "owner".equalsIgnoreCase(g.role) && g.groupCode != null && !g.groupCode.isEmpty();
                 if (isOwner) {
                     ImageButton copyBtn = new ImageButton(requireContext());
@@ -136,8 +146,7 @@ public class GroupsFragment extends Fragment {
                     copyBtn.setBackground(null);
                     copyBtn.setContentDescription(getString(R.string.copy_invite_code));
                     copyBtn.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-                    FrameLayout.LayoutParams copyLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                    copyLp.gravity = android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL;
+                    LinearLayout.LayoutParams copyLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                     copyBtn.setLayoutParams(copyLp);
                     String code = g.groupCode;
                     copyBtn.setOnClickListener(v -> {
@@ -147,8 +156,25 @@ public class GroupsFragment extends Fragment {
                             Snackbar.make(groupsContainer, R.string.invite_code_copied, Snackbar.LENGTH_SHORT).show();
                         }
                     });
-                    wrapper.addView(copyBtn);
+                    iconsRow.addView(copyBtn);
                 }
+                ImageButton editBtn = new ImageButton(requireContext());
+                editBtn.setImageResource(R.drawable.ic_edit);
+                editBtn.setBackground(null);
+                editBtn.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
+                LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                editBtn.setLayoutParams(editLp);
+                java.util.UUID editGroupId = g.id;
+                String editGroupName = g.name != null ? g.name : "";
+                editBtn.setOnClickListener(v -> {
+                    Bundle args = new Bundle();
+                    args.putString("groupId", editGroupId.toString());
+                    args.putString("groupName", editGroupName);
+                    NavController nav = NavHostFragment.findNavController(GroupsFragment.this);
+                    nav.navigate(R.id.action_groupsFragment_to_editGroupFragment, args);
+                });
+                iconsRow.addView(editBtn);
+                wrapper.addView(iconsRow);
                 groupsContainer.addView(wrapper);
             }
             return;
@@ -158,6 +184,9 @@ public class GroupsFragment extends Fragment {
             int code = ((Result.HttpError<List<GroupListItem>>) result).httpCode;
             if (code == 401) {
                 App.getDeps().tokenStorage.clear();
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).clearSelectedGroupAndPersist();
+                }
                 NavController nav = NavHostFragment.findNavController(this);
                 NavOptions opts = new NavOptions.Builder()
                         .setPopUpTo(R.id.groupsFragment, true)

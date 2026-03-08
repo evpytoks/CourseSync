@@ -27,6 +27,9 @@
         <action
             android:id="@+id/action_groupsFragment_to_joinGroupFragment"
             app:destination="@id/joinGroupFragment" />
+        <action
+            android:id="@+id/action_groupsFragment_to_editGroupFragment"
+            app:destination="@id/editGroupFragment" />
     </fragment>
 
     <fragment
@@ -38,6 +41,11 @@
         android:id="@+id/joinGroupFragment"
         android:name="ru.katevpy.coursesync.groups.JoinGroupFragment"
         android:label="Присоединиться к группе" />
+
+    <fragment
+        android:id="@+id/editGroupFragment"
+        android:name="ru.katevpy.coursesync.groups.EditGroupFragment"
+        android:label="Редактировать группу" />
 
     <fragment
         android:id="@+id/coursesFragment"
