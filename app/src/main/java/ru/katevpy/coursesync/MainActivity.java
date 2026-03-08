@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
             if (tvGroupIndicator == null) return;
 
             if (state != null && state.hasGroup()) {
-                tvGroupIndicator.setText("Группа " + state.groupNumber);
+                tvGroupIndicator.setText(state.groupNumber);
             } else {
                 tvGroupIndicator.setText("Нет группы");
             }
@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
             int id = destination.getId();
 
             boolean isLogin = (id == R.id.loginFragment);
-            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment);
+            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment);
 
             bottomNav.setVisibility((isLogin || isCreateOrJoinGroup) ? View.GONE : View.VISIBLE);
 
@@ -98,19 +98,41 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void setSelectedGroupAndPersist(@Nullable String groupNumber) {
-        if (groupNumber == null || groupNumber.trim().isEmpty()) {
-            getSharedPreferences("app_prefs", MODE_PRIVATE)
-                    .edit()
-                    .remove("selected_group_number")
-                    .apply();
-            groupVm.clearGroup();
+    public void setSelectedGroupAndPersist(@Nullable String groupId, @Nullable String groupName) {
+        if (groupId == null || groupId.trim().isEmpty() || groupName == null || groupName.trim().isEmpty()) {
+            clearSelectedGroupAndPersist();
         } else {
             getSharedPreferences("app_prefs", MODE_PRIVATE)
                     .edit()
-                    .putString("selected_group_number", groupNumber)
+                    .putString("selected_group_id", groupId.trim().toLowerCase())
+                    .putString("selected_group_number", groupName.trim())
                     .apply();
-            groupVm.setGroup(groupNumber);
+            groupVm.setGroup(groupName.trim());
+        }
+    }
+
+    public void clearSelectedGroupAndPersist() {
+        getSharedPreferences("app_prefs", MODE_PRIVATE)
+                .edit()
+                .remove("selected_group_number")
+                .remove("selected_group_id")
+                .apply();
+        groupVm.clearGroup();
+    }
+
+    public void updateSelectedGroupNameIfIdMatches(String editedGroupId, String newName) {
+        if (editedGroupId == null || newName == null) return;
+        String selectedId = getSharedPreferences("app_prefs", MODE_PRIVATE)
+                .getString("selected_group_id", null);
+        if (selectedId == null) return;
+        String editedIdNorm = editedGroupId.trim().toLowerCase();
+        String selectedIdNorm = selectedId.trim().toLowerCase();
+        if (selectedIdNorm.equals(editedIdNorm)) {
+            getSharedPreferences("app_prefs", MODE_PRIVATE)
+                    .edit()
+                    .putString("selected_group_number", newName.trim())
+                    .apply();
+            groupVm.setGroup(newName.trim());
         }
     }
 }

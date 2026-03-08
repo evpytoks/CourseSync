@@ -14,6 +14,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 
 import ru.katevpy.coursesync.App;
+import ru.katevpy.coursesync.MainActivity;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.util.Result;
@@ -65,6 +66,9 @@ public class JoinGroupFragment extends Fragment {
             Result.HttpError<GroupJoinResponse> he = (Result.HttpError<GroupJoinResponse>) result;
             if (he.httpCode == 401) {
                 App.getDeps().tokenStorage.clear();
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).clearSelectedGroupAndPersist();
+                }
                 NavController nav = NavHostFragment.findNavController(this);
                 NavOptions opts = new NavOptions.Builder()
                         .setPopUpTo(R.id.groupsFragment, true)

@@ -2,7 +2,6 @@ package ru.katevpy.coursesync.groups;
 
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,41 +14,65 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.util.UUID;
+
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.MainActivity;
 import ru.katevpy.coursesync.R;
-import ru.katevpy.coursesync.shared.dto.CreateGroupResponse;
+import ru.katevpy.coursesync.shared.dto.GroupChangeResponse;
 import ru.katevpy.coursesync.shared.util.Result;
 
-public class CreateGroupFragment extends Fragment {
+public class EditGroupFragment extends Fragment {
 
     private TextInputLayout groupNameLayout;
-    private CreateGroupViewModel viewModel;
+    private EditGroupViewModel viewModel;
+    private UUID groupId;
 
-    public CreateGroupFragment() {
-        super(R.layout.fragment_create_group);
+    public EditGroupFragment() {
+        super(R.layout.fragment_edit_group);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        groupNameLayout = view.findViewById(R.id.groupNameLayout);
-        viewModel = new ViewModelProvider(this, new CreateGroupViewModelFactory())
-                .get(CreateGroupViewModel.class);
+        Bundle args = getArguments();
+        if (args == null) {
+            NavHostFragment.findNavController(this).navigateUp();
+            return;
+        }
+        String idStr = args.getString("groupId");
+        String groupName = args.getString("groupName", "");
+        if (idStr == null || idStr.isEmpty()) {
+            NavHostFragment.findNavController(this).navigateUp();
+            return;
+        }
+        try {
+            groupId = UUID.fromString(idStr);
+        } catch (Exception e) {
+            NavHostFragment.findNavController(this).navigateUp();
+            return;
+        }
 
-        Button btnCreate = view.findViewById(R.id.btnCreate);
-        btnCreate.setOnClickListener(v -> {
+        groupNameLayout = view.findViewById(R.id.groupNameLayout);
+        if (groupNameLayout.getEditText() != null) {
+            groupNameLayout.getEditText().setText(groupName);
+        }
+
+        viewModel = new ViewModelProvider(this, new EditGroupViewModelFactory())
+                .get(EditGroupViewModel.class);
+
+        view.findViewById(R.id.btnSave).setOnClickListener(v -> {
             String name = groupNameLayout.getEditText() != null
                     ? groupNameLayout.getEditText().getText().toString()
                     : "";
-            viewModel.createGroup(name);
+            viewModel.saveGroupName(groupId, name);
         });
 
-        viewModel.getCreateResult().observe(getViewLifecycleOwner(), this::onCreateResult);
+        viewModel.getChangeResult().observe(getViewLifecycleOwner(), this::onChangeResult);
     }
 
-    private void onCreateResult(@Nullable Result<CreateGroupResponse> result) {
+    private void onChangeResult(@Nullable Result<GroupChangeResponse> result) {
         if (result == null) {
             groupNameLayout.setError(null);
             return;
@@ -57,16 +80,25 @@ public class CreateGroupFragment extends Fragment {
 
         if (result instanceof Result.Success) {
             groupNameLayout.setError(null);
+            GroupChangeResponse data = ((Result.Success<GroupChangeResponse>) result).data;
+            if (data != null && data.name != null) {
+                android.app.Activity act = requireActivity();
+                if (act instanceof MainActivity) {
+                    ((MainActivity) act).updateSelectedGroupNameIfIdMatches(groupId.toString(), data.name);
+                }
+            }
             NavController nav = NavHostFragment.findNavController(this);
             nav.navigateUp();
             return;
         }
 
-        String message;
         if (result instanceof Result.LogicalError) {
-            message = ((Result.LogicalError<CreateGroupResponse>) result).message;
-        } else if (result instanceof Result.HttpError) {
-            Result.HttpError<CreateGroupResponse> he = (Result.HttpError<CreateGroupResponse>) result;
+            groupNameLayout.setError(((Result.LogicalError<GroupChangeResponse>) result).message);
+            return;
+        }
+
+        if (result instanceof Result.HttpError) {
+            Result.HttpError<GroupChangeResponse> he = (Result.HttpError<GroupChangeResponse>) result;
             if (he.httpCode == 401) {
                 App.getDeps().tokenStorage.clear();
                 if (getActivity() instanceof MainActivity) {
@@ -87,14 +119,16 @@ public class CreateGroupFragment extends Fragment {
                 groupNameLayout.setError(null);
                 View v = getView();
                 if (v != null) {
-                    Snackbar.make(v, R.string.create_group_server_error, Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(v, R.string.update_group_name_error, Snackbar.LENGTH_LONG).show();
                 }
                 return;
             }
-            message = getString(R.string.internal_error);
-        } else {
-            message = getString(R.string.network_error);
         }
-        groupNameLayout.setError(message);
+
+        groupNameLayout.setError(null);
+        View v = getView();
+        if (v != null) {
+            Snackbar.make(v, R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        }
     }
 }
