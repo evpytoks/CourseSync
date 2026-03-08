@@ -12,4 +12,12 @@
     <string name="create_group_server_error">Ошибка при создании группы. Попробуйте позже</string>
     <string name="internal_error">Внутренняя ошибка. Уже работаем над исправлением</string>
     <string name="network_error">Ошибка сети</string>
+    <string name="copy_invite_code">Скопировать пригласительный код</string>
+    <string name="invite_code_copied">Пригласительный код скопирован</string>
+    <string name="group_code_hint">Введите код группы</string>
+    <string name="join">Присоединиться</string>
+    <string name="invalid_code">Неверный код</string>
+    <string name="enter_code">Введите код</string>
+    <string name="join_group_server_error">Не удалось присоединиться к группе. Попробуйте позже</string>
+    <string name="choose_group_error">Не удается выбрать группу. Попробуйте еще раз</string>
 </resources>
