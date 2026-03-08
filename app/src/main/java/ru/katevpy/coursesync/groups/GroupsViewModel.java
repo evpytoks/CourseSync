@@ -6,9 +6,11 @@ import androidx.lifecycle.ViewModel;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListItem;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
 import ru.katevpy.coursesync.shared.repository.GroupRepository;
@@ -20,6 +22,7 @@ public class GroupsViewModel extends ViewModel {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     private final MutableLiveData<Result<List<GroupListItem>>> groupsResult = new MutableLiveData<>();
+    private final MutableLiveData<Result<ChooseGroupResponse>> chooseResult = new MutableLiveData<>();
 
     public GroupsViewModel(GroupRepository repo) {
         this.repo = repo;
@@ -27,6 +30,15 @@ public class GroupsViewModel extends ViewModel {
 
     public LiveData<Result<List<GroupListItem>>> getGroupsResult() {
         return groupsResult;
+    }
+
+    public LiveData<Result<ChooseGroupResponse>> getChooseResult() {
+        return chooseResult;
+    }
+
+    public void chooseGroup(UUID groupId) {
+        chooseResult.postValue(null);
+        io.execute(() -> chooseResult.postValue(repo.chooseGroup(groupId)));
     }
 
     public void loadGroups() {

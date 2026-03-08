@@ -1,5 +1,7 @@
 package ru.katevpy.coursesync.shared.repository;
 
+import java.util.UUID;
+
 import java.io.IOException;
 
 import com.google.gson.Gson;
@@ -8,9 +10,12 @@ import okhttp3.ResponseBody;
 import retrofit2.Response;
 
 import ru.katevpy.coursesync.shared.dto.ApiError;
+import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
 import ru.katevpy.coursesync.shared.dto.CreateGroupRequest;
 import ru.katevpy.coursesync.shared.dto.CreateGroupResponse;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
+import ru.katevpy.coursesync.shared.dto.GroupJoinRequest;
+import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
 import ru.katevpy.coursesync.shared.network.GroupApi;
 import ru.katevpy.coursesync.shared.util.Result;
@@ -52,6 +57,36 @@ public class GroupRepository {
     public Result<CreateGroupResponse> createGroup(String name) {
         try {
             Response<CreateGroupResponse> r = api.createGroup(new CreateGroupRequest(name)).execute();
+
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<GroupJoinResponse> joinGroup(String code) {
+        try {
+            Response<GroupJoinResponse> r = api.joinGroup(new GroupJoinRequest(code)).execute();
+
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<ChooseGroupResponse> chooseGroup(UUID groupId) {
+        try {
+            Response<ChooseGroupResponse> r = api.chooseGroup(groupId).execute();
 
             if (r.isSuccessful() && r.body() != null) {
                 return Result.success(r.body());
