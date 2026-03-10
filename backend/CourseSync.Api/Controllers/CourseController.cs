@@ -36,7 +36,7 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
         var dtos = await _courseService.GetByGroupIdAsync(user.CurrentGroupId.Value, ct);
-        var items = dtos.Select(d => new CourseListItem(d.Id, d.Name, d.GeneralInfo, d.UsefulLinks)).ToList();
+        var items = dtos.Select(d => new CourseListItem(d.Id, d.Name)).ToList();
         return Ok(new CourseListResponse(items));
     }
 

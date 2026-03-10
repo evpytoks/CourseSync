@@ -31,7 +31,7 @@ public sealed class GroupController : ControllerBase
         if (result is null)
             return StatusCode(500, new ErrorEnvelope(new ApiError("group_creation_failed")));
 
-        return Ok(new CreateGroupResponse(result.Value.GroupId, result.Value.Name, result.Value.Code));
+        return Ok(new CreateGroupResponse(result.Value.GroupId, result.Value.Name));
     }
 
     [HttpGet("list")]
@@ -61,7 +61,7 @@ public sealed class GroupController : ControllerBase
         if (result is null)
             return NotFound(new ErrorEnvelope(new ApiError("group_not_found")));
 
-        return Ok(new GroupJoinResponse(result.Value.GroupId, result.Value.Role));
+        return Ok();
     }
 
     [HttpPut("{id:guid}/change")]
@@ -93,21 +93,21 @@ public sealed class GroupController : ControllerBase
         if (!ok)
             return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
 
-        return Ok(new ChooseGroupResponse(groupId!.Value, name!));
+        return Ok();
     }
 
-    [HttpGet("{id:guid}/name")]
-    public async Task<ActionResult<GroupNameResponse>> GetName(Guid id, CancellationToken ct)
+    [HttpGet("current")]
+    public async Task<ActionResult<GroupDetailsResponse>> GetCurrent(CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        var (ok, name) = await _groupService.GetGroupNameAsync(userId.Value, id, ct);
+        var (ok, groupId, name, role, groupCode) = await _groupService.GetGroupDetailsAsync(userId.Value, ct);
         if (!ok)
             return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
 
-        return Ok(new GroupNameResponse(id, name!));
+        return Ok(new GroupDetailsResponse(groupId, name, role, groupCode));
     }
 
     private Guid? GetCurrentUserId()

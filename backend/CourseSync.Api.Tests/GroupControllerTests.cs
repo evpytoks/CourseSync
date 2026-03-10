@@ -64,7 +64,6 @@ public sealed class GroupControllerTests
         var payload = Assert.IsType<CreateGroupResponse>(ok.Value);
         Assert.NotEqual(Guid.Empty, payload.Id);
         Assert.Equal("MyGroup", payload.Name);
-        Assert.Equal(6, payload.Code.Length);
     }
 
     [Fact]
@@ -133,10 +132,7 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, joiner.Id);
         var res = await controller.Join(new GroupJoinRequest(create.Value.Code), CancellationToken.None);
-        var ok = Assert.IsType<OkObjectResult>(res.Result);
-        var payload = Assert.IsType<GroupJoinResponse>(ok.Value);
-        Assert.Equal(create.Value.GroupId, payload.GroupId);
-        Assert.Equal("participant", payload.Role);
+        Assert.IsType<OkResult>(res.Result);
     }
 
     [Fact]
@@ -207,7 +203,7 @@ public sealed class GroupControllerTests
     }
 
     [Fact]
-    public async Task Choose_success_returns_200_with_id_and_name()
+    public async Task Choose_success_returns_200()
     {
         await using var tdb = new TestDb();
         var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
@@ -218,14 +214,11 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Choose(create.Value.GroupId, CancellationToken.None);
-        var ok = Assert.IsType<OkObjectResult>(res.Result);
-        var payload = Assert.IsType<ChooseGroupResponse>(ok.Value);
-        Assert.Equal(create.Value.GroupId, payload.Id);
-        Assert.Equal("Chosen", payload.Name);
+        Assert.IsType<OkResult>(res.Result);
     }
 
     [Fact]
-    public async Task GetName_forbidden_when_not_member_returns_403()
+    public async Task GetCurrent_forbidden_when_not_member_returns_403()
     {
         await using var tdb = new TestDb();
         var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
@@ -236,13 +229,30 @@ public sealed class GroupControllerTests
         var create = await svc.CreateGroupAsync(other.Id, "G", CancellationToken.None);
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
-        var res = await controller.GetName(create.Value.GroupId, CancellationToken.None);
+        var res = await controller.GetCurrent(CancellationToken.None);
         var forbidden = Assert.IsType<ObjectResult>(res.Result);
         Assert.Equal(403, forbidden.StatusCode);
     }
 
     [Fact]
-    public async Task GetName_success_returns_id_and_name()
+    public async Task GetCurrent_forbidden_when_not_chosen_returns_403()
+    {
+        await using var tdb = new TestDb();
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        tdb.Db.Users.Add(user);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db);
+        var create = await svc.CreateGroupAsync(user.Id, "G", CancellationToken.None);
+        Assert.NotNull(create);
+
+        var controller = CreateController(svc, user.Id);
+        var res = await controller.GetCurrent(CancellationToken.None);
+        var forbidden = Assert.IsType<ObjectResult>(res.Result);
+        Assert.Equal(403, forbidden.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetCurrent_success_returns_id_name_and_role()
     {
         await using var tdb = new TestDb();
         var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
@@ -251,11 +261,17 @@ public sealed class GroupControllerTests
         var svc = new GroupService(tdb.Db);
         var create = await svc.CreateGroupAsync(user.Id, "MyGroup", CancellationToken.None);
         Assert.NotNull(create);
+        var choose = await svc.ChooseGroupAsync(user.Id, create.Value.GroupId, CancellationToken.None);
+        Assert.True(choose.Ok);
+
         var controller = CreateController(svc, user.Id);
-        var res = await controller.GetName(create.Value.GroupId, CancellationToken.None);
+        var res = await controller.GetCurrent(CancellationToken.None);
         var ok = Assert.IsType<OkObjectResult>(res.Result);
-        var payload = Assert.IsType<GroupNameResponse>(ok.Value);
+        var payload = Assert.IsType<GroupDetailsResponse>(ok.Value);
         Assert.Equal(create.Value.GroupId, payload.Id);
         Assert.Equal("MyGroup", payload.Name);
+        Assert.Equal("owner", payload.Role);
+        Assert.NotNull(payload.GroupCode);
+        Assert.Equal(6, payload.GroupCode!.Length);
     }
 }

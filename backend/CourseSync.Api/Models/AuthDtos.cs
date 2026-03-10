@@ -16,7 +16,7 @@ public sealed record ApiError([property: JsonPropertyName("error_code")] string 
 public sealed record ErrorEnvelope(ApiError Error);
 
 public sealed record CreateGroupRequest(string Name);
-public sealed record CreateGroupResponse(Guid Id, string Name, string Code);
+public sealed record CreateGroupResponse(Guid Id, string Name);
 public sealed record GroupListItem(
     Guid Id,
     string Name,
@@ -31,13 +31,15 @@ public sealed record GroupChangeRequest(string Name);
 public sealed record GroupChangeResponse(Guid Id, string Name);
 public sealed record ChooseGroupResponse(Guid Id, string Name);
 
-public sealed record GroupNameResponse(Guid Id, string Name);
+public sealed record GroupDetailsResponse(
+    Guid Id,
+    string Name,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("group_code")] string? GroupCode);
 
 public sealed record CourseListItem(
     Guid Id,
-    string Name,
-    [property: JsonPropertyName("general_info")] string GeneralInfo,
-    [property: JsonPropertyName("useful_links")] string UsefulLinks);
+    string Name);
 public sealed record CourseListResponse(IReadOnlyList<CourseListItem> Courses);
 
 public sealed record AddCourseRequest(
