@@ -17,7 +17,7 @@ public sealed class GroupController : ControllerBase
     public GroupController(GroupService groupService) => _groupService = groupService;
 
     [HttpPost("create")]
-    public async Task<ActionResult<CreateGroupResponse>> Create([FromBody] CreateGroupRequest req, CancellationToken ct)
+    public async Task<IActionResult> Create([FromBody] CreateGroupRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
@@ -31,7 +31,7 @@ public sealed class GroupController : ControllerBase
         if (result is null)
             return StatusCode(500, new ErrorEnvelope(new ApiError("group_creation_failed")));
 
-        return Ok(new CreateGroupResponse(result.Value.GroupId, result.Value.Name));
+        return Ok();
     }
 
     [HttpGet("list")]
@@ -47,7 +47,7 @@ public sealed class GroupController : ControllerBase
     }
 
     [HttpPost("join")]
-    public async Task<ActionResult<GroupJoinResponse>> Join([FromBody] GroupJoinRequest req, CancellationToken ct)
+    public async Task<IActionResult> Join([FromBody] GroupJoinRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
@@ -65,7 +65,7 @@ public sealed class GroupController : ControllerBase
     }
 
     [HttpPut("{id:guid}/change")]
-    public async Task<ActionResult<GroupChangeResponse>> Change(Guid id, [FromBody] GroupChangeRequest req, CancellationToken ct)
+    public async Task<IActionResult> Change(Guid id, [FromBody] GroupChangeRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
@@ -79,11 +79,11 @@ public sealed class GroupController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
         }
 
-        return Ok(new GroupChangeResponse(id, req.Name!.Trim()));
+        return Ok();
     }
 
     [HttpPost("{id:guid}/choose")]
-    public async Task<ActionResult<ChooseGroupResponse>> Choose(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Choose(Guid id, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)

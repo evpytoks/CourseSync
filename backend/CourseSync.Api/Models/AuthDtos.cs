@@ -25,17 +25,23 @@ public sealed record GroupListItem(
 public sealed record GroupListResponse(IReadOnlyList<GroupListItem> Groups);
 
 public sealed record GroupJoinRequest(string Code);
-public sealed record GroupJoinResponse(Guid GroupId, string Role);
 
 public sealed record GroupChangeRequest(string Name);
 public sealed record GroupChangeResponse(Guid Id, string Name);
-public sealed record ChooseGroupResponse(Guid Id, string Name);
 
 public sealed record GroupDetailsResponse(
     Guid Id,
     string Name,
     [property: JsonPropertyName("role")] string Role,
     [property: JsonPropertyName("group_code")] string? GroupCode);
+
+public sealed record UserSettingsResponse(
+    [property: JsonPropertyName("notifications_on")] bool NotificationsOn,
+    [property: JsonPropertyName("dark_theme_on")] bool DarkThemeOn);
+
+public sealed record UpdateUserSettingsRequest(
+    [property: JsonPropertyName("notifications_on")] bool? NotificationsOn,
+    [property: JsonPropertyName("dark_theme_on")] bool? DarkThemeOn);
 
 public sealed record CourseListItem(
     Guid Id,

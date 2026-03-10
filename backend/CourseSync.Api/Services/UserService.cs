@@ -25,6 +25,20 @@ public sealed class UserService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task UpdateSettingsAsync(Guid userId, bool? notificationsOn, bool? darkThemeOn, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null) return;
+
+        if (notificationsOn is not null)
+            user.NotificationsOn = notificationsOn.Value;
+
+        if (darkThemeOn is not null)
+            user.DarkThemeOn = darkThemeOn.Value;
+
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task<User> GetOrCreateByEmailAsync(string email, CancellationToken ct = default)
     {
         email = email.Trim().ToLowerInvariant();

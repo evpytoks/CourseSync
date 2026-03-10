@@ -60,10 +60,7 @@ public sealed class GroupControllerTests
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db), user.Id);
         var res = await controller.Create(new CreateGroupRequest("MyGroup"), CancellationToken.None);
-        var ok = Assert.IsType<OkObjectResult>(res.Result);
-        var payload = Assert.IsType<CreateGroupResponse>(ok.Value);
-        Assert.NotEqual(Guid.Empty, payload.Id);
-        Assert.Equal("MyGroup", payload.Name);
+        Assert.IsType<OkResult>(res.Result);
     }
 
     [Fact]
@@ -181,9 +178,7 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("NewName"), CancellationToken.None);
-        var ok = Assert.IsType<OkObjectResult>(res.Result);
-        var payload = Assert.IsType<GroupChangeResponse>(ok.Value);
-        Assert.Equal("NewName", payload.Name);
+        Assert.IsType<OkResult>(res.Result);
     }
 
     [Fact]

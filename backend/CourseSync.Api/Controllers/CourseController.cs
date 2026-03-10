@@ -41,7 +41,7 @@ public sealed class CourseController : ControllerBase
     }
 
     [HttpPost("add")]
-    public async Task<ActionResult<AddCourseResponse>> Add([FromBody] AddCourseRequest req, CancellationToken ct)
+    public async Task<IActionResult> Add([FromBody] AddCourseRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
@@ -81,7 +81,7 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
         }
 
-        return Ok(new AddCourseResponse(courseId!.Value, name!, generalInfo, usefulLinks));
+        return Ok();
     }
 
     private Guid? GetCurrentUserId()
