@@ -8,7 +8,7 @@ public sealed class CourseService
 {
     private static readonly Regex CourseNameRegex = new(@"^[a-zA-Zа-яА-ЯёЁ0-9]{1,20}$", RegexOptions.Compiled);
     private const int GeneralInfoMaxLength = 2000;
-    private const int UsefulLinksMaxLength = 1000;
+    private const int UsefulLinksMaxLength = 2000;
 
     private readonly AppDbContext _db;
 
@@ -29,16 +29,18 @@ public sealed class CourseService
     public static (bool Valid, string? ErrorCode) ValidateGeneralInfo(string? value)
     {
         if (value is null) return (true, null);
-        if (value.Length > GeneralInfoMaxLength)
-            return (false, "general_info_too_long");
+        var len = value.Length;
+        if (len == 0 || string.IsNullOrWhiteSpace(value)) return (false, "general_info_too_short");
+        if (len > GeneralInfoMaxLength) return (false, "general_info_too_long");
         return (true, null);
     }
 
     public static (bool Valid, string? ErrorCode) ValidateUsefulLinks(string? value)
     {
         if (value is null) return (true, null);
-        if (value.Length > UsefulLinksMaxLength)
-            return (false, "useful_links_too_long");
+        var len = value.Length;
+        if (len == 0 || string.IsNullOrWhiteSpace(value)) return (false, "useful_links_too_short");
+        if (len > UsefulLinksMaxLength) return (false, "useful_links_too_long");
         return (true, null);
     }
 
