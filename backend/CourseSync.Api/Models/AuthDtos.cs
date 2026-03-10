@@ -25,11 +25,13 @@ public sealed record GroupListItem(
 public sealed record GroupListResponse(IReadOnlyList<GroupListItem> Groups);
 
 public sealed record GroupJoinRequest(string Code);
-public sealed record GroupJoinResponse(Guid GroupId, string Name, string Role);
+public sealed record GroupJoinResponse(Guid GroupId, string Role);
 
 public sealed record GroupChangeRequest(string Name);
 public sealed record GroupChangeResponse(Guid Id, string Name);
 public sealed record ChooseGroupResponse(Guid Id, string Name);
+
+public sealed record GroupNameResponse(Guid Id, string Name);
 
 public sealed record CourseListItem(
     Guid Id,

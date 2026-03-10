@@ -193,6 +193,17 @@ public sealed class GroupService
         return (true, groupId, member.Group!.Name);
     }
 
+    public async Task<(bool Ok, string? Name)> GetGroupNameAsync(Guid userId, Guid groupId, CancellationToken ct)
+    {
+        var member = await _db.GroupMembers
+            .Include(m => m.Group)
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (member is null || member.Group is null)
+            return (false, null);
+
+        return (true, member.Group.Name);
+    }
+
     private static bool IsUniqueCodeViolation(DbUpdateException ex)
     {
         for (var e = ex.InnerException; e != null; e = e.InnerException)

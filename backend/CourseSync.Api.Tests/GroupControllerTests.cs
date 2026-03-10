@@ -223,4 +223,39 @@ public sealed class GroupControllerTests
         Assert.Equal(create.Value.GroupId, payload.Id);
         Assert.Equal("Chosen", payload.Name);
     }
+
+    [Fact]
+    public async Task GetName_forbidden_when_not_member_returns_403()
+    {
+        await using var tdb = new TestDb();
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var other = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        tdb.Db.Users.AddRange(user, other);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db);
+        var create = await svc.CreateGroupAsync(other.Id, "G", CancellationToken.None);
+        Assert.NotNull(create);
+        var controller = CreateController(svc, user.Id);
+        var res = await controller.GetName(create.Value.GroupId, CancellationToken.None);
+        var forbidden = Assert.IsType<ObjectResult>(res.Result);
+        Assert.Equal(403, forbidden.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetName_success_returns_id_and_name()
+    {
+        await using var tdb = new TestDb();
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        tdb.Db.Users.Add(user);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db);
+        var create = await svc.CreateGroupAsync(user.Id, "MyGroup", CancellationToken.None);
+        Assert.NotNull(create);
+        var controller = CreateController(svc, user.Id);
+        var res = await controller.GetName(create.Value.GroupId, CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(res.Result);
+        var payload = Assert.IsType<GroupNameResponse>(ok.Value);
+        Assert.Equal(create.Value.GroupId, payload.Id);
+        Assert.Equal("MyGroup", payload.Name);
+    }
 }
