@@ -34,6 +34,16 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.CurrentGroupId)
                 .HasColumnName("current_group_id");
 
+            e.Property(x => x.NotificationsOn)
+                .HasColumnName("notifications_on")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            e.Property(x => x.DarkThemeOn)
+                .HasColumnName("dark_theme_on")
+                .HasDefaultValue(false)
+                .IsRequired();
+
             e.HasOne<Group>()
                 .WithMany()
                 .HasForeignKey(x => x.CurrentGroupId)

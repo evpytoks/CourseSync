@@ -76,10 +76,10 @@ public sealed class CourseService
         var list = await _db.Courses
             .Where(c => c.GroupId == groupId)
             .OrderBy(c => c.CreatedAt)
-            .Select(c => new CourseListDto(c.Id, c.Name, c.GeneralInfo, c.UsefulLinks))
+            .Select(c => new CourseListDto(c.Id, c.Name))
             .ToListAsync(ct);
         return list;
     }
 
-    public sealed record CourseListDto(Guid Id, string Name, string GeneralInfo, string UsefulLinks);
+    public sealed record CourseListDto(Guid Id, string Name);
 }

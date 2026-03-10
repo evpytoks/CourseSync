@@ -7,4 +7,6 @@ public sealed class User
     public int TokenVersion { get; set; }
     public DateTimeOffset? AuthCodeLastSentAt { get; set; }
     public Guid? CurrentGroupId { get; set; }
+    public bool NotificationsOn { get; set; }
+    public bool DarkThemeOn { get; set; }
 }

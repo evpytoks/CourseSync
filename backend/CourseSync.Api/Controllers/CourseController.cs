@@ -36,12 +36,12 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
         var dtos = await _courseService.GetByGroupIdAsync(user.CurrentGroupId.Value, ct);
-        var items = dtos.Select(d => new CourseListItem(d.Id, d.Name, d.GeneralInfo, d.UsefulLinks)).ToList();
+        var items = dtos.Select(d => new CourseListItem(d.Id, d.Name)).ToList();
         return Ok(new CourseListResponse(items));
     }
 
     [HttpPost("add")]
-    public async Task<ActionResult<AddCourseResponse>> Add([FromBody] AddCourseRequest req, CancellationToken ct)
+    public async Task<IActionResult> Add([FromBody] AddCourseRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
@@ -81,7 +81,7 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
         }
 
-        return Ok(new AddCourseResponse(courseId!.Value, name!, generalInfo, usefulLinks));
+        return Ok();
     }
 
     private Guid? GetCurrentUserId()
