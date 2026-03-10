@@ -61,7 +61,7 @@ public sealed class GroupController : ControllerBase
         if (result is null)
             return NotFound(new ErrorEnvelope(new ApiError("group_not_found")));
 
-        return Ok(new GroupJoinResponse(result.Value.GroupId, result.Value.Name, result.Value.Role));
+        return Ok(new GroupJoinResponse(result.Value.GroupId, result.Value.Role));
     }
 
     [HttpPut("{id:guid}/change")]
@@ -94,6 +94,20 @@ public sealed class GroupController : ControllerBase
             return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
 
         return Ok(new ChooseGroupResponse(groupId!.Value, name!));
+    }
+
+    [HttpGet("{id:guid}/name")]
+    public async Task<ActionResult<GroupNameResponse>> GetName(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var (ok, name) = await _groupService.GetGroupNameAsync(userId.Value, id, ct);
+        if (!ok)
+            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+
+        return Ok(new GroupNameResponse(id, name!));
     }
 
     private Guid? GetCurrentUserId()
