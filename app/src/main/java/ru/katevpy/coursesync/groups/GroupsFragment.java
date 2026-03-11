@@ -28,7 +28,9 @@ import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.MainActivity;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
+import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListItem;
+import ru.katevpy.coursesync.shared.repository.GroupRepository;
 import ru.katevpy.coursesync.shared.util.Result;
 
 public class GroupsFragment extends Fragment {
@@ -64,9 +66,9 @@ public class GroupsFragment extends Fragment {
         if (result == null) return;
 
         if (result instanceof Result.Success) {
-            ChooseGroupResponse data = ((Result.Success<ChooseGroupResponse>) result).data;
-            if (data != null && data.name != null && data.id != null && getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).setSelectedGroupAndPersist(data.id, data.name);
+            android.app.Activity a = requireActivity();
+            if (a instanceof MainActivity) {
+                ((MainActivity) a).refreshCurrentGroup();
             }
             return;
         }
@@ -75,9 +77,6 @@ public class GroupsFragment extends Fragment {
             int code = ((Result.HttpError<ChooseGroupResponse>) result).httpCode;
             if (code == 401) {
                 App.getDeps().tokenStorage.clear();
-                if (getActivity() instanceof MainActivity) {
-                    ((MainActivity) getActivity()).clearSelectedGroupAndPersist();
-                }
                 NavController nav = NavHostFragment.findNavController(this);
                 NavOptions opts = new NavOptions.Builder()
                         .setPopUpTo(R.id.groupsFragment, true)
@@ -139,7 +138,7 @@ public class GroupsFragment extends Fragment {
                 iconsLp.gravity = android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL;
                 iconsRow.setLayoutParams(iconsLp);
 
-                boolean isOwner = "owner".equalsIgnoreCase(g.role) && g.groupCode != null && !g.groupCode.isEmpty();
+                boolean isOwner = "owner".equalsIgnoreCase(g.role);
                 if (isOwner) {
                     ImageButton copyBtn = new ImageButton(requireContext());
                     copyBtn.setImageResource(R.drawable.ic_content_copy);
@@ -148,13 +147,25 @@ public class GroupsFragment extends Fragment {
                     copyBtn.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
                     LinearLayout.LayoutParams copyLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                     copyBtn.setLayoutParams(copyLp);
-                    String code = g.groupCode;
                     copyBtn.setOnClickListener(v -> {
-                        ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                        if (clipboard != null && code != null) {
-                            clipboard.setPrimaryClip(ClipData.newPlainText("invite_code", code));
-                            Snackbar.make(groupsContainer, R.string.invite_code_copied, Snackbar.LENGTH_SHORT).show();
-                        }
+                        new Thread(() -> {
+                            GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
+                            repo.chooseGroup(groupId);
+                            Result<GroupDetailsResponse> res = repo.getCurrentGroup();
+                            if (res instanceof Result.Success && ((Result.Success<GroupDetailsResponse>) res).data != null) {
+                                GroupDetailsResponse data = ((Result.Success<GroupDetailsResponse>) res).data;
+                                String code = data.groupCode;
+                                if (code != null && !code.isEmpty()) {
+                                    requireActivity().runOnUiThread(() -> {
+                                        ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                                        if (clipboard != null) {
+                                            clipboard.setPrimaryClip(ClipData.newPlainText("invite_code", code));
+                                            Snackbar.make(groupsContainer, R.string.invite_code_copied, Snackbar.LENGTH_SHORT).show();
+                                        }
+                                    });
+                                }
+                            }
+                        }).start();
                     });
                     iconsRow.addView(copyBtn);
                 }
@@ -184,9 +195,6 @@ public class GroupsFragment extends Fragment {
             int code = ((Result.HttpError<List<GroupListItem>>) result).httpCode;
             if (code == 401) {
                 App.getDeps().tokenStorage.clear();
-                if (getActivity() instanceof MainActivity) {
-                    ((MainActivity) getActivity()).clearSelectedGroupAndPersist();
-                }
                 NavController nav = NavHostFragment.findNavController(this);
                 NavOptions opts = new NavOptions.Builder()
                         .setPopUpTo(R.id.groupsFragment, true)

@@ -12,7 +12,6 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.activity.OnBackPressedCallback;
 import com.google.android.material.snackbar.Snackbar;
 
-import ru.katevpy.coursesync.MainActivity;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.databinding.FragmentLoginBinding;
 
@@ -98,9 +97,6 @@ public class LoginFragment extends Fragment {
             }
 
             if (state.navigateToApp) {
-                if (requireActivity() instanceof MainActivity) {
-                    ((MainActivity) requireActivity()).clearSelectedGroupAndPersist();
-                }
                 NavController navController = NavHostFragment.findNavController(this);
                 navController.navigate(R.id.action_loginFragment_to_groupsFragment);
             }

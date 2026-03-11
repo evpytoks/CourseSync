@@ -54,6 +54,9 @@ public class JoinGroupFragment extends Fragment {
 
         if (result instanceof Result.Success) {
             groupCodeLayout.setError(null);
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).refreshCurrentGroup();
+            }
             NavController nav = NavHostFragment.findNavController(this);
             nav.navigateUp();
             return;
@@ -66,9 +69,6 @@ public class JoinGroupFragment extends Fragment {
             Result.HttpError<GroupJoinResponse> he = (Result.HttpError<GroupJoinResponse>) result;
             if (he.httpCode == 401) {
                 App.getDeps().tokenStorage.clear();
-                if (getActivity() instanceof MainActivity) {
-                    ((MainActivity) getActivity()).clearSelectedGroupAndPersist();
-                }
                 NavController nav = NavHostFragment.findNavController(this);
                 NavOptions opts = new NavOptions.Builder()
                         .setPopUpTo(R.id.groupsFragment, true)
