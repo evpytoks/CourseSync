@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="max_course_name_length">20</integer>
+    <integer name="max_general_info_length">2000</integer>
+    <integer name="max_useful_links_length">1000</integer>
+</resources>

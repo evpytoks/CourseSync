@@ -22,4 +22,16 @@
     <string name="choose_group_error">Не удается выбрать группу. Попробуйте еще раз</string>
     <string name="save">Сохранить</string>
     <string name="update_group_name_error">Не удалось обновить название группы. Попробуйте позже</string>
+    <string name="courses_no_group">Упс…\nВыберите хотя бы одну группу…</string>
+    <string name="create_course">Создать курс</string>
+    <string name="course_name_hint">Название курса</string>
+    <string name="general_info_hint">Общая информация</string>
+    <string name="enter_course_name">Введите название курса…</string>
+    <string name="enter_general_info">Введите общую информацию…</string>
+    <string name="course_name_max_length">Длина не более 20 символов</string>
+    <string name="general_info_max_length">Длина не более 2000 символов</string>
+    <string name="useful_links_hint">Полезные ссылки</string>
+    <string name="enter_useful_links">Введите полезные ссылки…</string>
+    <string name="useful_links_max_length">Длина не более 1000 символов</string>
+    <string name="create_course_server_error">Не удалось создать курс. Попробуйте позже</string>
 </resources>
