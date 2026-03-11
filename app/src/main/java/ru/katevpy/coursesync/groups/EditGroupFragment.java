@@ -80,12 +80,8 @@ public class EditGroupFragment extends Fragment {
 
         if (result instanceof Result.Success) {
             groupNameLayout.setError(null);
-            GroupChangeResponse data = ((Result.Success<GroupChangeResponse>) result).data;
-            if (data != null && data.name != null) {
-                android.app.Activity act = requireActivity();
-                if (act instanceof MainActivity) {
-                    ((MainActivity) act).updateSelectedGroupNameIfIdMatches(groupId.toString(), data.name);
-                }
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).refreshCurrentGroup();
             }
             NavController nav = NavHostFragment.findNavController(this);
             nav.navigateUp();
@@ -101,9 +97,6 @@ public class EditGroupFragment extends Fragment {
             Result.HttpError<GroupChangeResponse> he = (Result.HttpError<GroupChangeResponse>) result;
             if (he.httpCode == 401) {
                 App.getDeps().tokenStorage.clear();
-                if (getActivity() instanceof MainActivity) {
-                    ((MainActivity) getActivity()).clearSelectedGroupAndPersist();
-                }
                 NavController nav = NavHostFragment.findNavController(this);
                 NavOptions opts = new NavOptions.Builder()
                         .setPopUpTo(R.id.groupsFragment, true)

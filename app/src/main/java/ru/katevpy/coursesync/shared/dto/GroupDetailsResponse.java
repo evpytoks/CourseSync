@@ -2,17 +2,16 @@ package ru.katevpy.coursesync.shared.dto;
 
 import com.google.gson.annotations.SerializedName;
 
-public final class ChooseGroupResponse {
+public final class GroupDetailsResponse {
     @SerializedName(value = "Id", alternate = {"id"})
     public String id;
 
     @SerializedName(value = "Name", alternate = {"name"})
     public String name;
 
-    public ChooseGroupResponse() {}
+    @SerializedName(value = "Role", alternate = {"role"})
+    public String role;
 
-    public ChooseGroupResponse(String id, String name) {
-        this.id = id;
-        this.name = name;
-    }
+    @SerializedName(value = "GroupCode", alternate = {"group_code", "groupCode"})
+    public String groupCode;
 }

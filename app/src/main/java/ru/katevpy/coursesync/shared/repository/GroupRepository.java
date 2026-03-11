@@ -2,6 +2,7 @@ package ru.katevpy.coursesync.shared.repository;
 
 import java.util.UUID;
 
+import java.io.EOFException;
 import java.io.IOException;
 
 import com.google.gson.Gson;
@@ -16,6 +17,7 @@ import ru.katevpy.coursesync.shared.dto.CreateGroupResponse;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
 import ru.katevpy.coursesync.shared.dto.GroupChangeRequest;
 import ru.katevpy.coursesync.shared.dto.GroupChangeResponse;
+import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupJoinRequest;
 import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
@@ -67,6 +69,9 @@ public class GroupRepository {
             return Result.httpError(r.code(), parseError(r.errorBody()));
 
         } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
             return Result.networkError(e);
         }
     }
@@ -75,12 +80,28 @@ public class GroupRepository {
         try {
             Response<GroupJoinResponse> r = api.joinGroup(new GroupJoinRequest(code)).execute();
 
-            if (r.isSuccessful() && r.body() != null) {
+            if (r.isSuccessful()) {
                 return Result.success(r.body());
             }
 
             return Result.httpError(r.code(), parseError(r.errorBody()));
 
+        } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<GroupDetailsResponse> getCurrentGroup() {
+        try {
+            Response<GroupDetailsResponse> r = api.getCurrentGroup(System.currentTimeMillis()).execute();
+            GroupDetailsResponse body = r.body();
+            if (r.isSuccessful() && body != null) {
+                return Result.success(body);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
         } catch (IOException e) {
             return Result.networkError(e);
         }
@@ -90,13 +111,16 @@ public class GroupRepository {
         try {
             Response<ChooseGroupResponse> r = api.chooseGroup(groupId).execute();
 
-            if (r.isSuccessful() && r.body() != null) {
+            if (r.isSuccessful()) {
                 return Result.success(r.body());
             }
 
             return Result.httpError(r.code(), parseError(r.errorBody()));
 
         } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
             return Result.networkError(e);
         }
     }
@@ -105,13 +129,16 @@ public class GroupRepository {
         try {
             Response<GroupChangeResponse> r = api.changeGroup(groupId, new GroupChangeRequest(name)).execute();
 
-            if (r.isSuccessful() && r.body() != null) {
+            if (r.isSuccessful()) {
                 return Result.success(r.body());
             }
 
             return Result.httpError(r.code(), parseError(r.errorBody()));
 
         } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
             return Result.networkError(e);
         }
     }

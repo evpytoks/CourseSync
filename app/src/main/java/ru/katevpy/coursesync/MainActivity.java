@@ -6,7 +6,6 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -17,6 +16,9 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
+import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
+import ru.katevpy.coursesync.shared.repository.GroupRepository;
+import ru.katevpy.coursesync.shared.util.Result;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -57,10 +59,6 @@ public class MainActivity extends AppCompatActivity {
 
         groupVm = new ViewModelProvider(this).get(SharedGroupViewModel.class);
 
-        String savedGroup = getSharedPreferences("app_prefs", MODE_PRIVATE)
-                .getString("selected_group_number", null);
-        groupVm.setGroup(savedGroup);
-
         groupVm.getGroupState().observe(this, state -> {
             if (tvGroupIndicator == null) return;
 
@@ -83,6 +81,12 @@ public class MainActivity extends AppCompatActivity {
                 tvGroupIndicator.setVisibility((isLogin || isCreateOrJoinGroup) ? View.GONE : View.VISIBLE);
             }
 
+            boolean isMainScreen = (id == R.id.groupsFragment || id == R.id.coursesFragment
+                    || id == R.id.calendarFragment || id == R.id.settingsFragment);
+            if (isMainScreen) {
+                refreshCurrentGroup();
+            }
+
             boolean isGroupsScreen = (id == R.id.groupsFragment);
 
             if (btnCreateGroup != null) {
@@ -98,41 +102,28 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void setSelectedGroupAndPersist(@Nullable String groupId, @Nullable String groupName) {
-        if (groupId == null || groupId.trim().isEmpty() || groupName == null || groupName.trim().isEmpty()) {
-            clearSelectedGroupAndPersist();
+    public void setCurrentGroupName(String name) {
+        if (name != null && !name.trim().isEmpty()) {
+            groupVm.setGroup(name.trim());
         } else {
-            getSharedPreferences("app_prefs", MODE_PRIVATE)
-                    .edit()
-                    .putString("selected_group_id", groupId.trim().toLowerCase())
-                    .putString("selected_group_number", groupName.trim())
-                    .apply();
-            groupVm.setGroup(groupName.trim());
+            groupVm.clearGroup();
         }
     }
 
-    public void clearSelectedGroupAndPersist() {
-        getSharedPreferences("app_prefs", MODE_PRIVATE)
-                .edit()
-                .remove("selected_group_number")
-                .remove("selected_group_id")
-                .apply();
-        groupVm.clearGroup();
-    }
-
-    public void updateSelectedGroupNameIfIdMatches(String editedGroupId, String newName) {
-        if (editedGroupId == null || newName == null) return;
-        String selectedId = getSharedPreferences("app_prefs", MODE_PRIVATE)
-                .getString("selected_group_id", null);
-        if (selectedId == null) return;
-        String editedIdNorm = editedGroupId.trim().toLowerCase();
-        String selectedIdNorm = selectedId.trim().toLowerCase();
-        if (selectedIdNorm.equals(editedIdNorm)) {
-            getSharedPreferences("app_prefs", MODE_PRIVATE)
-                    .edit()
-                    .putString("selected_group_number", newName.trim())
-                    .apply();
-            groupVm.setGroup(newName.trim());
-        }
+    public void refreshCurrentGroup() {
+        GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
+        new Thread(() -> {
+            Result<GroupDetailsResponse> result = repo.getCurrentGroup();
+            runOnUiThread(() -> {
+                if (result instanceof Result.Success && ((Result.Success<GroupDetailsResponse>) result).data != null) {
+                    GroupDetailsResponse data = ((Result.Success<GroupDetailsResponse>) result).data;
+                    if (data.name != null && !data.name.trim().isEmpty()) {
+                        groupVm.setGroup(data.name.trim());
+                        return;
+                    }
+                }
+                groupVm.clearGroup();
+            });
+        }).start();
     }
 }
