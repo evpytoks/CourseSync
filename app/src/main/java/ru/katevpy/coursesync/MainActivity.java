@@ -15,6 +15,7 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import ru.katevpy.coursesync.shared.GroupState;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
 import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.repository.GroupRepository;
@@ -24,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
     private TextView tvGroupIndicator;
+    private Button btnCreateCourse;
     private Button btnCreateGroup;
     private Button btnJoinGroup;
     private NavController navController;
@@ -42,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tvGroupIndicator = findViewById(R.id.tvGroupIndicator);
+        btnCreateCourse = findViewById(R.id.btnCreateCourse);
         btnCreateGroup = findViewById(R.id.btnCreateGroup);
         btnJoinGroup = findViewById(R.id.btnJoinGroup);
 
@@ -49,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
 
         navController = navHostFragment.getNavController();
 
+        btnCreateCourse.setOnClickListener(v ->
+                navController.navigate(R.id.action_coursesFragment_to_createCourseFragment));
         btnCreateGroup.setOnClickListener(v ->
                 navController.navigate(R.id.action_groupsFragment_to_createGroupFragment));
         btnJoinGroup.setOnClickListener(v ->
@@ -67,13 +72,18 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 tvGroupIndicator.setText("Нет группы");
             }
+
+            if (btnCreateCourse != null && navController.getCurrentDestination() != null
+                    && navController.getCurrentDestination().getId() == R.id.coursesFragment) {
+                btnCreateCourse.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+            }
         });
 
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             int id = destination.getId();
 
             boolean isLogin = (id == R.id.loginFragment);
-            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment);
+            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.createCourseFragment);
 
             bottomNav.setVisibility((isLogin || isCreateOrJoinGroup) ? View.GONE : View.VISIBLE);
 
@@ -88,7 +98,16 @@ public class MainActivity extends AppCompatActivity {
             }
 
             boolean isGroupsScreen = (id == R.id.groupsFragment);
+            boolean isCoursesScreen = (id == R.id.coursesFragment);
 
+            if (btnCreateCourse != null) {
+                if (isCoursesScreen) {
+                    GroupState state = groupVm.getGroupState().getValue();
+                    btnCreateCourse.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+                } else {
+                    btnCreateCourse.setVisibility(View.GONE);
+                }
+            }
             if (btnCreateGroup != null) {
                 btnCreateGroup.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
             }

@@ -15,17 +15,20 @@ public final class NetworkModule {
     public static final class Deps {
         public final AuthApi authApi;
         public final GroupApi groupApi;
+        public final CourseApi courseApi;
         public final TokenStorage tokenStorage;
         public final PendingLoginStorage pendingLoginStorage;
 
         Deps(
                 AuthApi authApi,
                 GroupApi groupApi,
+                CourseApi courseApi,
                 TokenStorage tokenStorage,
                 PendingLoginStorage pendingLoginStorage
         ) {
             this.authApi = authApi;
             this.groupApi = groupApi;
+            this.courseApi = courseApi;
             this.tokenStorage = tokenStorage;
             this.pendingLoginStorage = pendingLoginStorage;
         }
@@ -62,7 +65,8 @@ public final class NetworkModule {
                 .build();
 
         GroupApi groupApi = retrofit.create(GroupApi.class);
+        CourseApi courseApi = retrofit.create(CourseApi.class);
 
-        return new Deps(authApi, groupApi, tokenStorage, pendingLoginStorage);
+        return new Deps(authApi, groupApi, courseApi, tokenStorage, pendingLoginStorage);
     }
 }

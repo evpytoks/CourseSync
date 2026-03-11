@@ -32,6 +32,18 @@
                 android:minHeight="?attr/actionBarSize">
 
                 <Button
+                    android:id="@+id/btnCreateCourse"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?attr/actionBarSize"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/create_course"
+                    android:textColor="@android:color/white"
+                    android:background="@drawable/bg_toolbar_button"
+                    android:visibility="gone"/>
+
+                <Button
                     android:id="@+id/btnCreateGroup"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

@@ -48,9 +48,19 @@
         android:label="Редактировать группу" />
 
     <fragment
+        android:id="@+id/createCourseFragment"
+        android:name="ru.katevpy.coursesync.courses.CreateCourseFragment"
+        android:label="Создать курс" />
+
+    <fragment
         android:id="@+id/coursesFragment"
         android:name="ru.katevpy.coursesync.courses.CoursesFragment"
-        android:label="Курсы" />
+        android:label="Курсы">
+
+        <action
+            android:id="@+id/action_coursesFragment_to_createCourseFragment"
+            app:destination="@id/createCourseFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/calendarFragment"
