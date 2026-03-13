@@ -193,11 +193,11 @@ public sealed class GroupService
         return (true, groupId, member.Group!.Name);
     }
 
-    public async Task<(bool Ok, Guid Id, string Name, string Role, string? GroupCode)> GetGroupDetailsAsync(Guid userId, CancellationToken ct)
+    public async Task<(bool Ok, Guid Id, string Name, string Role, string? GroupCode, string? ErrorCode)> GetGroupDetailsAsync(Guid userId, CancellationToken ct)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user is null || user.CurrentGroupId is null)
-            return (false, Guid.Empty, "", "", null);
+            return (false, Guid.Empty, "", "", null, "no_group_selected");
 
         var groupId = user.CurrentGroupId.Value;
 
@@ -205,14 +205,14 @@ public sealed class GroupService
             .Include(m => m.Group)
             .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
         if (member is null || member.Group is null)
-            return (false, Guid.Empty, "", "", null);
+            return (false, Guid.Empty, "", "", null, "forbidden");
 
         var role = member.Role == GroupRole.Owner ? "owner" : "participant";
         string? codeStr = null;
         if (member.Role == GroupRole.Owner)
             codeStr = await GetOrRefreshCodeAsync(member.Group, ct);
 
-        return (true, member.Group.Id, member.Group.Name, role, codeStr);
+        return (true, member.Group.Id, member.Group.Name, role, codeStr, null);
     }
 
     private static bool IsUniqueCodeViolation(DbUpdateException ex)

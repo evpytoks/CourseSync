@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using CourseSync.Api.Services;
 using CourseSync.Api.Infrastructure.Email;
 using CourseSync.Api.Infrastructure;
+using CourseSync.Api.Infrastructure.Push;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
@@ -47,6 +48,7 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(cs));
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<TokenVersionJwtBearerEvents>();
 builder.Services.AddHostedService<AuthCleanupHostedService>();
+builder.Services.AddHostedService<NotificationDispatcherHostedService>();
 
 builder.Services
     .AddOptions<AuthCodeOptions>()
@@ -78,6 +80,10 @@ builder.Services.AddScoped<AuthLoginCodeService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<CourseService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<CalendarService>();
+builder.Services.AddScoped<UserDeviceService>();
+builder.Services.AddSingleton<IPushSender, NoopPushSender>();
 builder.Services.AddSingleton<JwtTokenService>();
 
 builder.Services

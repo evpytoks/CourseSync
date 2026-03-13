@@ -12,6 +12,9 @@ public sealed class AppDbContext : DbContext
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<Course> Courses => Set<Course>();
+    public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<UserDevice> UserDevices => Set<UserDevice>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -162,6 +165,75 @@ public sealed class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(x => x.GroupId);
+        });
+
+        b.Entity<CalendarEvent>(e =>
+        {
+            e.ToTable("calendar_events");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
+            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(20);
+            e.Property(x => x.Date).HasColumnName("date").IsRequired();
+            e.Property(x => x.Description).HasColumnName("description").IsRequired().HasMaxLength(2000);
+
+            e.HasOne<Group>()
+                .WithMany()
+                .HasForeignKey(x => x.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.GroupId);
+            e.HasIndex(x => x.Date);
+        });
+
+        b.Entity<Notification>(e =>
+        {
+            e.ToTable("notifications");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
+            e.Property(x => x.Type).HasColumnName("type").IsRequired().HasMaxLength(100);
+            e.Property(x => x.Title).HasColumnName("title").IsRequired().HasMaxLength(200);
+            e.Property(x => x.Body).HasColumnName("body").IsRequired().HasMaxLength(2000);
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            e.Property(x => x.SentAt).HasColumnName("sent_at");
+            e.Property(x => x.SendAttempts).HasColumnName("send_attempts").IsRequired().HasDefaultValue(0);
+
+            e.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne<Group>()
+                .WithMany()
+                .HasForeignKey(x => x.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.GroupId);
+            e.HasIndex(x => x.CreatedAt);
+        });
+
+        b.Entity<UserDevice>(e =>
+        {
+            e.ToTable("user_devices");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.Platform).HasColumnName("platform").IsRequired();
+            e.Property(x => x.Token).HasColumnName("token").IsRequired().HasMaxLength(512);
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            e.Property(x => x.LastUsedAt).HasColumnName("last_used_at");
+            e.Property(x => x.IsActive).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+
+            e.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => new { x.UserId, x.IsActive });
+            e.HasIndex(x => x.Token).IsUnique();
         });
     }
 }

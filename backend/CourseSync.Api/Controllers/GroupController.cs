@@ -103,9 +103,13 @@ public sealed class GroupController : ControllerBase
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        var (ok, groupId, name, role, groupCode) = await _groupService.GetGroupDetailsAsync(userId.Value, ct);
+        var (ok, groupId, name, role, groupCode, errorCode) = await _groupService.GetGroupDetailsAsync(userId.Value, ct);
         if (!ok)
+        {
+            if (errorCode == "no_group_selected")
+                return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
             return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+        }
 
         return Ok(new GroupDetailsResponse(groupId, name, role, groupCode));
     }
