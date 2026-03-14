@@ -34,4 +34,10 @@
     <string name="enter_useful_links">Введите полезные ссылки…</string>
     <string name="useful_links_max_length">Длина не более 1000 символов</string>
     <string name="create_course_server_error">Не удалось создать курс. Попробуйте позже</string>
+    <string name="notifications_label">Включить уведомления</string>
+    <string name="dark_theme_label">Тёмная тема</string>
+    <string name="logout">Выйти из аккаунта</string>
+    <string name="settings_load_error">Не удалось загрузить настройки. Попробуйте позже</string>
+    <string name="settings_save_error">Не удалось изменить настройки. Попробуйте позже</string>
+    <string name="logout_error">Не удалось выйти из аккаунта. Попробуйте позже</string>
 </resources>

@@ -9,9 +9,9 @@
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
+        android:background="@color/cs_toolbar_background"
         app:title="CourseSync"
-        app:titleTextColor="@android:color/white"
+        app:titleTextColor="@color/cs_toolbar_on_background"
         app:contentInsetStart="0dp"
         app:contentInsetStartWithNavigation="0dp"
         app:layout_constraintTop_toTopOf="parent"
@@ -39,21 +39,52 @@
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
                     android:text="@string/create_course"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/cs_toolbar_on_background"
                     android:background="@drawable/bg_toolbar_button"
+                    app:backgroundTint="@null"
                     android:visibility="gone"/>
 
-                <Button
-                    android:id="@+id/btnCreateGroup"
+                <LinearLayout
+                    android:id="@+id/toolbarGroupButtonsWrap"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:minHeight="?attr/actionBarSize"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:text="@string/create_group"
-                    android:textColor="@android:color/white"
-                    android:background="@drawable/bg_toolbar_button"
-                    android:visibility="gone"/>
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp">
+
+                    <Button
+                        android:id="@+id/btnCreateGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="28dp"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:textSize="12sp"
+                        android:text="@string/create_group"
+                        android:textColor="@color/cs_toolbar_on_background"
+                        android:background="@drawable/bg_toolbar_button"
+                        app:backgroundTint="@null"/>
+
+                    <Button
+                        android:id="@+id/btnJoinGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="24dp"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:textSize="12sp"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="4dp"
+                        android:text="@string/join_group"
+                        android:textColor="@color/cs_toolbar_on_background"
+                        android:background="@drawable/bg_toolbar_button"
+                        app:backgroundTint="@null"/>
+                </LinearLayout>
 
                 <View
                     android:layout_width="0dp"
@@ -67,25 +98,11 @@
                     android:paddingEnd="16dp"
                     android:paddingStart="16dp"
                     android:text="нет группы"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/cs_toolbar_on_background"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"/>
             </LinearLayout>
-
-            <Button
-                android:id="@+id/btnJoinGroup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minHeight="48dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:layout_marginStart="0dp"
-                android:layout_marginBottom="8dp"
-                android:text="@string/join_group"
-                android:textColor="@android:color/white"
-                android:background="@drawable/bg_toolbar_button"
-                android:visibility="gone"/>
         </LinearLayout>
 
     </com.google.android.material.appbar.MaterialToolbar>

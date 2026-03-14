@@ -133,4 +133,22 @@ public final class AuthRepository {
     public boolean isPendingExpired() {
         return pending.isExpired();
     }
+
+    public Result<Void> logout() {
+        String refresh = tokens.getRefresh();
+        if (refresh == null || refresh.trim().isEmpty()) {
+            tokens.clear();
+            return Result.success(null);
+        }
+        try {
+            Response<Void> r = api.logout(new RefreshRequest(refresh)).execute();
+            if (r.isSuccessful() || r.code() == 401) {
+                tokens.clear();
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
 }
