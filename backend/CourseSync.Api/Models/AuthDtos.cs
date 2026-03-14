@@ -57,3 +57,47 @@ public sealed record AddCourseResponse(
     string Name,
     [property: JsonPropertyName("general_info")] string GeneralInfo,
     [property: JsonPropertyName("useful_links")] string UsefulLinks);
+
+public sealed record CalendarListItem(
+    Guid Id,
+    string Name,
+    DateTime Date);
+public sealed record CalendarListResponse(IReadOnlyList<CalendarListItem> Events);
+
+public sealed record AddCalendarEventRequest(
+    string Name,
+    DateTime Date,
+    [property: JsonPropertyName("description")] string? Description);
+
+public sealed record CalendarEventDetailsResponse(
+    string Name,
+    DateTime Date,
+    string Description);
+
+public sealed record UpdateCalendarEventRequest(
+    string Name,
+    DateTime Date,
+    [property: JsonPropertyName("description")] string? Description);
+
+public sealed record RegisterDeviceRequest(
+    string Platform,
+    string Token);
+
+public sealed record UnregisterDeviceRequest(
+    string Token);
+
+public sealed record NewsListItem(
+    Guid Id,
+    string Name,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+public sealed record NewsListResponse(IReadOnlyList<NewsListItem> News);
+
+public sealed record NewsDetailsResponse(
+    Guid Id,
+    string Name,
+    string Description,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+
+public sealed record AddNewsRequest(
+    string Name,
+    string? Description);

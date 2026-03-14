@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using CourseSync.Api.Services;
 using CourseSync.Api.Infrastructure.Email;
 using CourseSync.Api.Infrastructure;
+using CourseSync.Api.Infrastructure.Push;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
@@ -47,6 +48,7 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(cs));
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<TokenVersionJwtBearerEvents>();
 builder.Services.AddHostedService<AuthCleanupHostedService>();
+builder.Services.AddHostedService<NotificationDispatcherHostedService>();
 
 builder.Services
     .AddOptions<AuthCodeOptions>()
@@ -72,12 +74,22 @@ builder.Services
                && !string.IsNullOrWhiteSpace(o.FromEmail);
     }, "Invalid SMTP configuration");
 
+builder.Services
+    .AddOptions<FcmOptions>()
+    .Bind(builder.Configuration.GetSection(FcmOptions.SectionName));
+
 builder.Services.AddSingleton<IEmailSender, MailKitEmailSender>();
 
 builder.Services.AddScoped<AuthLoginCodeService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<CourseService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<CalendarService>();
+builder.Services.AddScoped<NewsService>();
+builder.Services.AddScoped<UserDeviceService>();
+builder.Services.AddHttpClient<FcmPushSender>();
+builder.Services.AddSingleton<IPushSender>(sp => sp.GetRequiredService<FcmPushSender>());
 builder.Services.AddSingleton<JwtTokenService>();
 
 builder.Services
