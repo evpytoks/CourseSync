@@ -37,8 +37,6 @@ public sealed class NotificationDispatcherHostedService : BackgroundService
 
                 if (pending.Count > 0)
                 {
-                    var notificationIds = pending.Select(n => n.Id).ToList();
-
                     var devices = await db.UserDevices
                         .Where(d => d.IsActive && pending.Select(n => n.UserId).Contains(d.UserId))
                         .ToListAsync(stoppingToken);

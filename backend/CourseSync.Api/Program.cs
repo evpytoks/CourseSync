@@ -74,6 +74,10 @@ builder.Services
                && !string.IsNullOrWhiteSpace(o.FromEmail);
     }, "Invalid SMTP configuration");
 
+builder.Services
+    .AddOptions<FcmOptions>()
+    .Bind(builder.Configuration.GetSection(FcmOptions.SectionName));
+
 builder.Services.AddSingleton<IEmailSender, MailKitEmailSender>();
 
 builder.Services.AddScoped<AuthLoginCodeService>();
@@ -82,8 +86,10 @@ builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<CalendarService>();
+builder.Services.AddScoped<NewsService>();
 builder.Services.AddScoped<UserDeviceService>();
-builder.Services.AddSingleton<IPushSender, NoopPushSender>();
+builder.Services.AddHttpClient<FcmPushSender>();
+builder.Services.AddSingleton<IPushSender>(sp => sp.GetRequiredService<FcmPushSender>());
 builder.Services.AddSingleton<JwtTokenService>();
 
 builder.Services

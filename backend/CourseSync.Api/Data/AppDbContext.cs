@@ -15,6 +15,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<UserDevice> UserDevices => Set<UserDevice>();
+    public DbSet<News> News => Set<News>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -234,6 +235,26 @@ public sealed class AppDbContext : DbContext
 
             e.HasIndex(x => new { x.UserId, x.IsActive });
             e.HasIndex(x => x.Token).IsUnique();
+        });
+
+        b.Entity<News>(e =>
+        {
+            e.ToTable("news");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
+            e.Property(x => x.Title).HasColumnName("title").IsRequired().HasMaxLength(20);
+            e.Property(x => x.Description).HasColumnName("description").IsRequired().HasMaxLength(2000);
+            e.Property(x => x.Type).HasColumnName("type").IsRequired().HasMaxLength(100);
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+
+            e.HasOne<Group>()
+                .WithMany()
+                .HasForeignKey(x => x.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.GroupId);
+            e.HasIndex(x => x.CreatedAt);
         });
     }
 }

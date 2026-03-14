@@ -22,6 +22,8 @@ Thumbs.db
 *.jks
 *.keystore
 
+app/google-services.json
+
 # External native build folder
 .externalNativeBuild/
 .cxx/

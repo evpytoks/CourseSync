@@ -47,6 +47,12 @@ public sealed class CalendarService
         return (true, null);
     }
 
+    internal static string FormatCalendarEventDescription(string name, DateTime date, string description)
+    {
+        var text = $"Название: {name}\nДата: {date:yyyy-MM-dd HH:mm}\nОписание: {description}";
+        return text.Length > 2000 ? text[..2000] : text;
+    }
+
     public async Task<(bool Ok, List<CalendarEventListDto>? Events, string? ErrorCode)> GetEventsAsync(
         Guid userId,
         Guid groupId,
@@ -96,11 +102,12 @@ public sealed class CalendarService
         _db.CalendarEvents.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        await _notifications.CreateCalendarEventNotificationForGroupAsync(
+        await _notifications.CreateNewsAndPushAsync(
             "calendar_event_created",
             userId,
             groupId,
-            entity,
+            "Календарь: новое событие",
+            FormatCalendarEventDescription(entity.Name, entity.Date, entity.Description ?? ""),
             ct);
 
         return (true, entity.Id, null);
@@ -156,11 +163,12 @@ public sealed class CalendarService
 
         await _db.SaveChangesAsync(ct);
 
-        await _notifications.CreateCalendarEventNotificationForGroupAsync(
+        await _notifications.CreateNewsAndPushAsync(
             "calendar_event_updated",
             userId,
             groupId,
-            entity,
+            "Календарь: изменение события",
+            FormatCalendarEventDescription(entity.Name, entity.Date, entity.Description ?? ""),
             ct);
 
         return (true, null);
@@ -187,11 +195,12 @@ public sealed class CalendarService
         _db.CalendarEvents.Remove(entity);
         await _db.SaveChangesAsync(ct);
 
-        await _notifications.CreateCalendarEventNotificationForGroupAsync(
+        await _notifications.CreateNewsAndPushAsync(
             "calendar_event_deleted",
             userId,
             groupId,
-            entity,
+            "Календарь: удаление события",
+            FormatCalendarEventDescription(entity.Name, entity.Date, entity.Description ?? ""),
             ct);
 
         return (true, null);

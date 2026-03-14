@@ -9,24 +9,36 @@ public sealed class NotificationService
 
     public NotificationService(AppDbContext db) => _db = db;
 
-    public async Task CreateCalendarEventNotificationForGroupAsync(
+    public async Task CreateNewsAndPushAsync(
         string type,
         Guid actorUserId,
         Guid groupId,
-        CalendarEvent calendarEvent,
+        string title,
+        string description,
         CancellationToken ct)
     {
+        var now = DateTimeOffset.UtcNow;
+        var titleTrimmed = title.Length > 20 ? title[..20] : title;
+        var descriptionTrimmed = description.Length > 2000 ? description[..2000] : description;
+
+        var news = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = groupId,
+            Title = titleTrimmed,
+            Description = descriptionTrimmed,
+            Type = type,
+            CreatedAt = now
+        };
+        _db.News.Add(news);
+
         var memberUserIds = await _db.GroupMembers
             .Where(m => m.GroupId == groupId && m.Role != GroupRole.Owner)
             .Select(m => m.UserId)
             .ToListAsync(ct);
 
-        if (memberUserIds.Count == 0)
-            return;
-
-        var now = DateTimeOffset.UtcNow;
-        var title = calendarEvent.Name;
-        var body = $"Event \"{calendarEvent.Name}\" on {calendarEvent.Date:O}";
+        var body = string.IsNullOrEmpty(descriptionTrimmed) ? titleTrimmed : descriptionTrimmed;
+        if (body.Length > 2000) body = body[..2000];
 
         foreach (var userId in memberUserIds)
         {
@@ -39,7 +51,7 @@ public sealed class NotificationService
                 UserId = userId,
                 GroupId = groupId,
                 Type = type,
-                Title = title,
+                Title = titleTrimmed.Length > 200 ? titleTrimmed[..200] : titleTrimmed,
                 Body = body,
                 CreatedAt = now
             });

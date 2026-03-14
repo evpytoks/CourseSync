@@ -85,3 +85,19 @@ public sealed record RegisterDeviceRequest(
 
 public sealed record UnregisterDeviceRequest(
     string Token);
+
+public sealed record NewsListItem(
+    Guid Id,
+    string Name,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+public sealed record NewsListResponse(IReadOnlyList<NewsListItem> News);
+
+public sealed record NewsDetailsResponse(
+    Guid Id,
+    string Name,
+    string Description,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+
+public sealed record AddNewsRequest(
+    string Name,
+    string? Description);
