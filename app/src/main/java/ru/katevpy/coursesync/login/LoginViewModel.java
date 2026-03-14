@@ -5,6 +5,9 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.net.NoRouteToHostException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,6 +27,7 @@ public class LoginViewModel extends ViewModel {
 
     private final AuthRepository repo;
     private final String internalErrorMessage;
+    private final String networkErrorMessage;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     private final MutableLiveData<LoginUiState> ui = new MutableLiveData<>(LoginUiState.initial());
@@ -32,9 +36,10 @@ public class LoginViewModel extends ViewModel {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private @Nullable ScheduledFuture<?> expiryTask = null;
 
-    public LoginViewModel(AuthRepository repo, String internalErrorMessage) {
+    public LoginViewModel(AuthRepository repo, String internalErrorMessage, String networkErrorMessage) {
         this.repo = repo;
         this.internalErrorMessage = internalErrorMessage;
+        this.networkErrorMessage = networkErrorMessage;
 
         if (repo.hasPending()) {
             ui.setValue(new LoginUiState(Step.ENTER_CODE, false, null, null, null, false));
@@ -216,7 +221,14 @@ public class LoginViewModel extends ViewModel {
                 return;
             }
 
-            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, "Проблема с сетью", false));
+            if (r instanceof Result.NetworkError) {
+                Throwable t = ((Result.NetworkError<SendCodeResponse>) r).t;
+                String msg = isNoInternet(t) ? networkErrorMessage : internalErrorMessage;
+                ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, msg, false));
+                return;
+            }
+
+            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, internalErrorMessage, false));
         });
     }
 
@@ -273,9 +285,34 @@ public class LoginViewModel extends ViewModel {
                 return;
             }
 
+            if (r instanceof Result.NetworkError) {
+                inFlight = false;
+                Throwable t = ((Result.NetworkError<LoginResponse>) r).t;
+                String msg = isNoInternet(t) ? networkErrorMessage : internalErrorMessage;
+                ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, msg, false));
+                return;
+            }
+
             inFlight = false;
-            ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, "Проблема с сетью", false));
+            ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, internalErrorMessage, false));
         });
+    }
+
+    private static boolean isNoInternet(Throwable t) {
+        Throwable x = t;
+        while (x != null) {
+            if (x instanceof UnknownHostException || x instanceof NoRouteToHostException) {
+                return true;
+            }
+            if (x instanceof SocketException) {
+                String m = x.getMessage();
+                if (m != null && (m.contains("Network is unreachable") || m.contains("No route to host"))) {
+                    return true;
+                }
+            }
+            x = x.getCause();
+        }
+        return false;
     }
 
     private void postSendCodeHttpError(int http, @Nullable ApiError apiError) {

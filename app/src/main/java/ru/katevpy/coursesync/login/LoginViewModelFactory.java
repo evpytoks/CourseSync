@@ -22,6 +22,7 @@ public final class LoginViewModelFactory implements ViewModelProvider.Factory {
         ru.katevpy.coursesync.shared.network.NetworkModule.Deps deps = App.getDeps();
         AuthRepository repo = new AuthRepository(deps.authApi, deps.pendingLoginStorage, deps.tokenStorage);
         String internalError = appContext.getString(ru.katevpy.coursesync.R.string.internal_error);
-        return (T) new LoginViewModel(repo, internalError);
+        String networkError = appContext.getString(ru.katevpy.coursesync.R.string.network_error);
+        return (T) new LoginViewModel(repo, internalError, networkError);
     }
 }

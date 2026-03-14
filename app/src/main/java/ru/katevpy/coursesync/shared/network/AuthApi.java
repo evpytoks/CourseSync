@@ -19,4 +19,7 @@ public interface AuthApi {
 
     @POST("/auth/refresh")
     Call<RefreshResponse> refresh(@Body RefreshRequest body);
+
+    @POST("/auth/logout")
+    Call<Void> logout(@Body RefreshRequest body);
 }

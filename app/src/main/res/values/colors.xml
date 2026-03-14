@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="cs_primary">#1565C0</color>
+    <color name="cs_on_primary">#FFFFFF</color>
+    <color name="cs_primary_container">#E3F2FD</color>
+    <color name="cs_on_primary_container">#0D47A1</color>
+
+    <color name="cs_background">#FFFFFF</color>
+    <color name="cs_on_background">#121212</color>
+
+    <color name="cs_surface">#FFFFFF</color>
+    <color name="cs_on_surface">#121212</color>
+
+    <color name="cs_toolbar_background">#1565C0</color>
+    <color name="cs_toolbar_on_background">#FFFFFF</color>
+
+    <color name="cs_toolbar_button_stroke">#FFFFFF</color>
+    <color name="cs_toolbar_button_fill">#33FFFFFF</color>
 </resources>
+

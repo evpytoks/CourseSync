@@ -7,6 +7,7 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -18,7 +19,9 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import ru.katevpy.coursesync.shared.GroupState;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
 import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.UserSettingsResponse;
 import ru.katevpy.coursesync.shared.repository.GroupRepository;
+import ru.katevpy.coursesync.shared.repository.SettingsRepository;
 import ru.katevpy.coursesync.shared.util.Result;
 
 public class MainActivity extends AppCompatActivity {
@@ -26,10 +29,12 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNav;
     private TextView tvGroupIndicator;
     private Button btnCreateCourse;
+    private View toolbarGroupButtonsWrap;
     private Button btnCreateGroup;
     private Button btnJoinGroup;
     private NavController navController;
     private SharedGroupViewModel groupVm;
+    private boolean appliedThemeFromServer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
         tvGroupIndicator = findViewById(R.id.tvGroupIndicator);
         btnCreateCourse = findViewById(R.id.btnCreateCourse);
+        toolbarGroupButtonsWrap = findViewById(R.id.toolbarGroupButtonsWrap);
         btnCreateGroup = findViewById(R.id.btnCreateGroup);
         btnJoinGroup = findViewById(R.id.btnJoinGroup);
 
@@ -84,17 +90,26 @@ public class MainActivity extends AppCompatActivity {
 
             boolean isLogin = (id == R.id.loginFragment);
             boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.createCourseFragment);
+            boolean hideGroupIndicator = isLogin || isCreateOrJoinGroup || id == R.id.settingsFragment;
+
+            if (isLogin) {
+                appliedThemeFromServer = false;
+            }
 
             bottomNav.setVisibility((isLogin || isCreateOrJoinGroup) ? View.GONE : View.VISIBLE);
 
             if (tvGroupIndicator != null) {
-                tvGroupIndicator.setVisibility((isLogin || isCreateOrJoinGroup) ? View.GONE : View.VISIBLE);
+                tvGroupIndicator.setVisibility(hideGroupIndicator ? View.GONE : View.VISIBLE);
             }
 
             boolean isMainScreen = (id == R.id.groupsFragment || id == R.id.coursesFragment
                     || id == R.id.calendarFragment || id == R.id.settingsFragment);
             if (isMainScreen) {
                 refreshCurrentGroup();
+                if (!appliedThemeFromServer && App.getDeps().tokenStorage.getAccess() != null) {
+                    appliedThemeFromServer = true;
+                    refreshSettingsAndApplyTheme();
+                }
             }
 
             boolean isGroupsScreen = (id == R.id.groupsFragment);
@@ -108,11 +123,8 @@ public class MainActivity extends AppCompatActivity {
                     btnCreateCourse.setVisibility(View.GONE);
                 }
             }
-            if (btnCreateGroup != null) {
-                btnCreateGroup.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
-            }
-            if (btnJoinGroup != null) {
-                btnJoinGroup.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
+            if (toolbarGroupButtonsWrap != null) {
+                toolbarGroupButtonsWrap.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
             }
 
             if (toolbar != null && getSupportActionBar() != null) {
@@ -142,6 +154,23 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 groupVm.clearGroup();
+            });
+        }).start();
+    }
+
+    private void refreshSettingsAndApplyTheme() {
+        SettingsRepository repo = new SettingsRepository(App.getDeps().settingsApi);
+        new Thread(() -> {
+            Result<UserSettingsResponse> result = repo.getSettings();
+            runOnUiThread(() -> {
+                if (result instanceof Result.Success && ((Result.Success<UserSettingsResponse>) result).data != null) {
+                    UserSettingsResponse data = ((Result.Success<UserSettingsResponse>) result).data;
+                    AppCompatDelegate.setDefaultNightMode(
+                            data.darkThemeOn ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
+                    );
+                } else {
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                }
             });
         }).start();
     }
