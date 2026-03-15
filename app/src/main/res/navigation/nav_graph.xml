@@ -53,6 +53,33 @@
         android:label="Создать курс" />
 
     <fragment
+        android:id="@+id/newsFragment"
+        android:name="ru.katevpy.coursesync.news.NewsFragment"
+        android:label="Новости">
+
+        <action
+            android:id="@+id/action_newsFragment_to_createNewsFragment"
+            app:destination="@id/createNewsFragment" />
+        <action
+            android:id="@+id/action_newsFragment_to_newsDetailFragment"
+            app:destination="@id/newsDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/newsDetailFragment"
+        android:name="ru.katevpy.coursesync.news.NewsDetailFragment"
+        android:label="Новость">
+        <argument
+            android:name="newsId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createNewsFragment"
+        android:name="ru.katevpy.coursesync.news.CreateNewsFragment"
+        android:label="Добавить новость" />
+
+    <fragment
         android:id="@+id/coursesFragment"
         android:name="ru.katevpy.coursesync.courses.CoursesFragment"
         android:label="Курсы">

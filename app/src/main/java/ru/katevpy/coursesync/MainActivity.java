@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
     private TextView tvGroupIndicator;
+    private Button btnAddNews;
     private Button btnAddEvent;
     private Button btnCreateCourse;
     private View toolbarGroupButtonsWrap;
@@ -62,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tvGroupIndicator = findViewById(R.id.tvGroupIndicator);
+        btnAddNews = findViewById(R.id.btnAddNews);
         btnAddEvent = findViewById(R.id.btnAddEvent);
         btnCreateCourse = findViewById(R.id.btnCreateCourse);
         toolbarGroupButtonsWrap = findViewById(R.id.toolbarGroupButtonsWrap);
@@ -78,6 +80,8 @@ public class MainActivity extends AppCompatActivity {
         eventDetailToolbarVm = new ViewModelProvider(this, new EventDetailToolbarViewModelFactory()).get(EventDetailToolbarViewModel.class);
         eventDetailToolbarVm.getDeleteResult().observe(this, this::onEventDeleteResult);
 
+        btnAddNews.setOnClickListener(v ->
+                navController.navigate(R.id.action_newsFragment_to_createNewsFragment));
         btnAddEvent.setOnClickListener(v ->
                 navController.navigate(R.id.action_calendarFragment_to_createCalendarEventFragment));
         btnCreateCourse.setOnClickListener(v ->
@@ -137,15 +141,20 @@ public class MainActivity extends AppCompatActivity {
                     && navController.getCurrentDestination().getId() == R.id.calendarFragment) {
                 btnAddEvent.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
             }
+            if (btnAddNews != null && navController.getCurrentDestination() != null
+                    && navController.getCurrentDestination().getId() == R.id.newsFragment) {
+                btnAddNews.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+            }
         });
 
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             int id = destination.getId();
 
             boolean isLogin = (id == R.id.loginFragment);
-            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.createCourseFragment || id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment);
+            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.createCourseFragment || id == R.id.createNewsFragment || id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment || id == R.id.newsDetailFragment);
             boolean isEventScreen = (id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment);
-            boolean hideGroupIndicator = isLogin || id == R.id.settingsFragment || (isCreateOrJoinGroup && !isEventScreen);
+            boolean isNewsScreenWithGroup = (id == R.id.newsDetailFragment || id == R.id.createNewsFragment);
+            boolean hideGroupIndicator = isLogin || id == R.id.settingsFragment || (isCreateOrJoinGroup && !isEventScreen && !isNewsScreenWithGroup);
 
             if (isLogin) {
                 appliedThemeFromServer = false;
@@ -157,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
                 tvGroupIndicator.setVisibility(hideGroupIndicator ? View.GONE : View.VISIBLE);
             }
 
-            boolean isMainScreen = (id == R.id.groupsFragment || id == R.id.coursesFragment
+            boolean isMainScreen = (id == R.id.groupsFragment || id == R.id.newsFragment || id == R.id.coursesFragment
                     || id == R.id.calendarFragment || id == R.id.settingsFragment);
             if (isMainScreen) {
                 refreshCurrentGroup();
@@ -170,6 +179,7 @@ public class MainActivity extends AppCompatActivity {
             boolean isGroupsScreen = (id == R.id.groupsFragment);
             boolean isCoursesScreen = (id == R.id.coursesFragment);
             boolean isCalendarScreen = (id == R.id.calendarFragment);
+            boolean isNewsScreen = (id == R.id.newsFragment);
 
             if (btnCreateCourse != null) {
                 if (isCoursesScreen) {
@@ -185,6 +195,14 @@ public class MainActivity extends AppCompatActivity {
                     btnAddEvent.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
                 } else {
                     btnAddEvent.setVisibility(View.GONE);
+                }
+            }
+            if (btnAddNews != null) {
+                if (isNewsScreen) {
+                    GroupState state = groupVm.getGroupState().getValue();
+                    btnAddNews.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+                } else {
+                    btnAddNews.setVisibility(View.GONE);
                 }
             }
             if (toolbarGroupButtonsWrap != null) {

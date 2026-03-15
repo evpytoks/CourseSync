@@ -62,4 +62,12 @@
     <string name="event_delete_confirm">Удалить событие?</string>
     <string name="update_event_server_error">Не удалось изменить событие. Попробуйте позже</string>
     <string name="delete_event_server_error">Не удалось удалить событие. Попробуйте позже</string>
+    <string name="news_load_error">Не удалось загрузить новости. Уже работаем над этим.</string>
+    <string name="add_news">Добавить новость</string>
+    <string name="news_name_hint">Название новости</string>
+    <string name="news_description_hint">Описание</string>
+    <string name="enter_news_name">Введите название новости…</string>
+    <string name="news_name_max_length">Длина не более 20 символов</string>
+    <string name="news_description_max_length">Длина не более 2000 символов</string>
+    <string name="create_news_server_error">Не удалось создать новость. Попробуйте позже</string>
 </resources>
