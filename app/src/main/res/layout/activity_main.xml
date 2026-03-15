@@ -32,6 +32,61 @@
                 android:minHeight="?attr/actionBarSize">
 
                 <Button
+                    android:id="@+id/btnAddEvent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?attr/actionBarSize"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/add_event"
+                    android:textColor="@color/cs_toolbar_on_background"
+                    android:background="@drawable/bg_toolbar_button"
+                    app:backgroundTint="@null"
+                    android:visibility="gone"/>
+
+                <LinearLayout
+                    android:id="@+id/toolbarEventDetailButtonsWrap"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp">
+
+                    <Button
+                        android:id="@+id/btnEditEvent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="28dp"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:textSize="12sp"
+                        android:text="@string/event_edit"
+                        android:textColor="@color/cs_toolbar_on_background"
+                        android:background="@drawable/bg_toolbar_button"
+                        app:backgroundTint="@null"/>
+
+                    <Button
+                        android:id="@+id/btnDeleteEvent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="24dp"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:textSize="12sp"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="4dp"
+                        android:text="@string/event_delete"
+                        android:textColor="@color/cs_toolbar_on_background"
+                        android:background="@drawable/bg_toolbar_button"
+                        app:backgroundTint="@null"/>
+                </LinearLayout>
+
+                <Button
                     android:id="@+id/btnCreateCourse"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

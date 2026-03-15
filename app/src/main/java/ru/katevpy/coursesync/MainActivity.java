@@ -2,10 +2,13 @@ package ru.katevpy.coursesync;
 
 import android.os.Bundle;
 import android.view.View;
+
+import androidx.annotation.Nullable;
 import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.lifecycle.ViewModelProvider;
@@ -15,25 +18,35 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.snackbar.Snackbar;
 
+import java.util.UUID;
+
+import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModel;
+import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModelFactory;
 import ru.katevpy.coursesync.shared.GroupState;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
 import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
+import ru.katevpy.coursesync.shared.util.Result;
 import ru.katevpy.coursesync.shared.dto.UserSettingsResponse;
 import ru.katevpy.coursesync.shared.repository.GroupRepository;
 import ru.katevpy.coursesync.shared.repository.SettingsRepository;
-import ru.katevpy.coursesync.shared.util.Result;
 
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
     private TextView tvGroupIndicator;
+    private Button btnAddEvent;
     private Button btnCreateCourse;
     private View toolbarGroupButtonsWrap;
+    private View toolbarEventDetailButtonsWrap;
     private Button btnCreateGroup;
     private Button btnJoinGroup;
+    private Button btnEditEvent;
+    private Button btnDeleteEvent;
     private NavController navController;
     private SharedGroupViewModel groupVm;
+    private EventDetailToolbarViewModel eventDetailToolbarVm;
     private boolean appliedThemeFromServer;
 
     @Override
@@ -49,21 +62,58 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tvGroupIndicator = findViewById(R.id.tvGroupIndicator);
+        btnAddEvent = findViewById(R.id.btnAddEvent);
         btnCreateCourse = findViewById(R.id.btnCreateCourse);
         toolbarGroupButtonsWrap = findViewById(R.id.toolbarGroupButtonsWrap);
+        toolbarEventDetailButtonsWrap = findViewById(R.id.toolbarEventDetailButtonsWrap);
         btnCreateGroup = findViewById(R.id.btnCreateGroup);
         btnJoinGroup = findViewById(R.id.btnJoinGroup);
+        btnEditEvent = findViewById(R.id.btnEditEvent);
+        btnDeleteEvent = findViewById(R.id.btnDeleteEvent);
 
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
 
         navController = navHostFragment.getNavController();
 
+        eventDetailToolbarVm = new ViewModelProvider(this, new EventDetailToolbarViewModelFactory()).get(EventDetailToolbarViewModel.class);
+        eventDetailToolbarVm.getDeleteResult().observe(this, this::onEventDeleteResult);
+
+        btnAddEvent.setOnClickListener(v ->
+                navController.navigate(R.id.action_calendarFragment_to_createCalendarEventFragment));
         btnCreateCourse.setOnClickListener(v ->
                 navController.navigate(R.id.action_coursesFragment_to_createCourseFragment));
         btnCreateGroup.setOnClickListener(v ->
                 navController.navigate(R.id.action_groupsFragment_to_createGroupFragment));
         btnJoinGroup.setOnClickListener(v ->
                 navController.navigate(R.id.action_groupsFragment_to_joinGroupFragment));
+
+        btnEditEvent.setOnClickListener(v -> {
+            if (navController.getCurrentBackStackEntry() != null && navController.getCurrentBackStackEntry().getArguments() != null) {
+                String eventId = navController.getCurrentBackStackEntry().getArguments().getString("eventId");
+                if (eventId != null && !eventId.isEmpty()) {
+                    Bundle args = new Bundle();
+                    args.putString("eventId", eventId);
+                    navController.navigate(R.id.action_calendarEventDetailFragment_to_editCalendarEventFragment, args);
+                }
+            }
+        });
+
+        btnDeleteEvent.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setMessage(R.string.event_delete_confirm)
+                .setPositiveButton(R.string.event_yes, (dialog, which) -> {
+                    if (navController.getCurrentBackStackEntry() != null && navController.getCurrentBackStackEntry().getArguments() != null) {
+                        String idStr = navController.getCurrentBackStackEntry().getArguments().getString("eventId");
+                        if (idStr != null && !idStr.isEmpty()) {
+                            try {
+                                UUID eventId = UUID.fromString(idStr);
+                                eventDetailToolbarVm.deleteEvent(eventId);
+                            } catch (IllegalArgumentException ignored) {
+                            }
+                        }
+                    }
+                })
+                .setNegativeButton(R.string.event_no, null)
+                .show());
 
         bottomNav = findViewById(R.id.bottom_nav);
         NavigationUI.setupWithNavController(bottomNav, navController);
@@ -83,14 +133,19 @@ public class MainActivity extends AppCompatActivity {
                     && navController.getCurrentDestination().getId() == R.id.coursesFragment) {
                 btnCreateCourse.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
             }
+            if (btnAddEvent != null && navController.getCurrentDestination() != null
+                    && navController.getCurrentDestination().getId() == R.id.calendarFragment) {
+                btnAddEvent.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+            }
         });
 
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             int id = destination.getId();
 
             boolean isLogin = (id == R.id.loginFragment);
-            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.createCourseFragment);
-            boolean hideGroupIndicator = isLogin || isCreateOrJoinGroup || id == R.id.settingsFragment;
+            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.createCourseFragment || id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment);
+            boolean isEventScreen = (id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment);
+            boolean hideGroupIndicator = isLogin || id == R.id.settingsFragment || (isCreateOrJoinGroup && !isEventScreen);
 
             if (isLogin) {
                 appliedThemeFromServer = false;
@@ -114,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
 
             boolean isGroupsScreen = (id == R.id.groupsFragment);
             boolean isCoursesScreen = (id == R.id.coursesFragment);
+            boolean isCalendarScreen = (id == R.id.calendarFragment);
 
             if (btnCreateCourse != null) {
                 if (isCoursesScreen) {
@@ -123,8 +179,20 @@ public class MainActivity extends AppCompatActivity {
                     btnCreateCourse.setVisibility(View.GONE);
                 }
             }
+            if (btnAddEvent != null) {
+                if (isCalendarScreen) {
+                    GroupState state = groupVm.getGroupState().getValue();
+                    btnAddEvent.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+                } else {
+                    btnAddEvent.setVisibility(View.GONE);
+                }
+            }
             if (toolbarGroupButtonsWrap != null) {
                 toolbarGroupButtonsWrap.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
+            }
+            boolean isEventDetailScreen = (id == R.id.calendarEventDetailFragment);
+            if (toolbarEventDetailButtonsWrap != null) {
+                toolbarEventDetailButtonsWrap.setVisibility(isEventDetailScreen ? View.VISIBLE : View.GONE);
             }
 
             if (toolbar != null && getSupportActionBar() != null) {
@@ -156,6 +224,27 @@ public class MainActivity extends AppCompatActivity {
                 groupVm.clearGroup();
             });
         }).start();
+    }
+
+    private void onEventDeleteResult(@Nullable Result<Void> result) {
+        if (result == null) return;
+        if (result instanceof Result.Success) {
+            navController.navigateUp();
+            return;
+        }
+        if (result instanceof Result.HttpError) {
+            int code = ((Result.HttpError<Void>) result).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                navController.navigate(R.id.loginFragment);
+                return;
+            }
+            if (code == 500) {
+                Snackbar.make(findViewById(android.R.id.content), R.string.delete_event_server_error, Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        Snackbar.make(findViewById(android.R.id.content), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
     }
 
     private void refreshSettingsAndApplyTheme() {

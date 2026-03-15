@@ -32,12 +32,14 @@ android {
         }
     }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation(libs.fragment)
     implementation(libs.appcompat)
     implementation(libs.material)
@@ -52,5 +54,7 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
+    implementation("com.kizitonwose.calendar:view:2.7.0")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
 
 }
