@@ -5,6 +5,10 @@
         android:title="Группы" />
 
     <item
+        android:id="@+id/newsFragment"
+        android:title="Новости" />
+
+    <item
         android:id="@+id/coursesFragment"
         android:title="Курсы" />
 
