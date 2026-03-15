@@ -40,4 +40,26 @@
     <string name="settings_load_error">Не удалось загрузить настройки. Попробуйте позже</string>
     <string name="settings_save_error">Не удалось изменить настройки. Попробуйте позже</string>
     <string name="logout_error">Не удалось выйти из аккаунта. Попробуйте позже</string>
+    <string name="calendar_no_group">Упс…\nВыберите хотя бы одну группу…</string>
+    <string name="calendar_load_error">Не удалось загрузить календарь. Уже работаем над этим.</string>
+    <string name="calendar_events_title">События месяца</string>
+    <string name="calendar_prev_month">Предыдущий месяц</string>
+    <string name="calendar_next_month">Следующий месяц</string>
+    <string name="add_event">Добавить событие</string>
+    <string name="event_name_hint">Название события</string>
+    <string name="event_date_hint">Дата и время</string>
+    <string name="event_description_hint">Описание</string>
+    <string name="enter_event_name">Введите название события…</string>
+    <string name="event_name_max_length">Длина не более 20 символов</string>
+    <string name="enter_event_date">Укажите дату и время</string>
+    <string name="event_description_max_length">Длина не более 2000 символов</string>
+    <string name="create_event_server_error">Не удалось создать событие. Попробуйте позже</string>
+    <string name="event_ask_time">Указать время?</string>
+    <string name="event_yes">Да</string>
+    <string name="event_no">Нет</string>
+    <string name="event_edit">Изменить</string>
+    <string name="event_delete">Удалить</string>
+    <string name="event_delete_confirm">Удалить событие?</string>
+    <string name="update_event_server_error">Не удалось изменить событие. Попробуйте позже</string>
+    <string name="delete_event_server_error">Не удалось удалить событие. Попробуйте позже</string>
 </resources>

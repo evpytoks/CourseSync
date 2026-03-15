@@ -65,7 +65,41 @@
     <fragment
         android:id="@+id/calendarFragment"
         android:name="ru.katevpy.coursesync.calendar.CalendarFragment"
-        android:label="Календарь" />
+        android:label="Календарь">
+
+        <action
+            android:id="@+id/action_calendarFragment_to_createCalendarEventFragment"
+            app:destination="@id/createCalendarEventFragment" />
+        <action
+            android:id="@+id/action_calendarFragment_to_calendarEventDetailFragment"
+            app:destination="@id/calendarEventDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/calendarEventDetailFragment"
+        android:name="ru.katevpy.coursesync.calendar.CalendarEventDetailFragment"
+        android:label="Событие">
+        <argument
+            android:name="eventId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_calendarEventDetailFragment_to_editCalendarEventFragment"
+            app:destination="@id/editCalendarEventFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editCalendarEventFragment"
+        android:name="ru.katevpy.coursesync.calendar.EditCalendarEventFragment"
+        android:label="Изменить событие">
+        <argument
+            android:name="eventId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createCalendarEventFragment"
+        android:name="ru.katevpy.coursesync.calendar.CreateCalendarEventFragment"
+        android:label="Добавить событие" />
 
     <fragment
         android:id="@+id/settingsFragment"
