@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -56,5 +57,8 @@ dependencies {
     implementation(libs.navigation.ui)
     implementation("com.kizitonwose.calendar:view:2.7.0")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
+    implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("androidx.core:core:1.15.0")
 
 }

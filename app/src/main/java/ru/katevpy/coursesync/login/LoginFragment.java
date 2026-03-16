@@ -1,5 +1,6 @@
 package ru.katevpy.coursesync.login;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 
@@ -14,6 +15,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.databinding.FragmentLoginBinding;
+import ru.katevpy.coursesync.push.CourseSyncFirebaseMessagingService;
 
 public class LoginFragment extends Fragment {
 
@@ -97,6 +99,10 @@ public class LoginFragment extends Fragment {
             }
 
             if (state.navigateToApp) {
+                Context appContext = getContext();
+                if (appContext != null) {
+                    CourseSyncFirebaseMessagingService.registerDeviceAfterLogin(appContext.getApplicationContext());
+                }
                 NavController navController = NavHostFragment.findNavController(this);
                 navController.navigate(R.id.action_loginFragment_to_groupsFragment);
             }
