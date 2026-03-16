@@ -38,3 +38,5 @@ captures/
 **/bin/
 **/obj/
 **/packages.lock.json
+
+**/google-services.json

@@ -19,6 +19,7 @@ public final class NetworkModule {
         public final SettingsApi settingsApi;
         public final CalendarApi calendarApi;
         public final NewsApi newsApi;
+        public final DeviceApi deviceApi;
         public final TokenStorage tokenStorage;
         public final PendingLoginStorage pendingLoginStorage;
 
@@ -29,6 +30,7 @@ public final class NetworkModule {
                 SettingsApi settingsApi,
                 CalendarApi calendarApi,
                 NewsApi newsApi,
+                DeviceApi deviceApi,
                 TokenStorage tokenStorage,
                 PendingLoginStorage pendingLoginStorage
         ) {
@@ -38,6 +40,7 @@ public final class NetworkModule {
             this.settingsApi = settingsApi;
             this.calendarApi = calendarApi;
             this.newsApi = newsApi;
+            this.deviceApi = deviceApi;
             this.tokenStorage = tokenStorage;
             this.pendingLoginStorage = pendingLoginStorage;
         }
@@ -78,7 +81,8 @@ public final class NetworkModule {
         SettingsApi settingsApi = retrofit.create(SettingsApi.class);
         CalendarApi calendarApi = retrofit.create(CalendarApi.class);
         NewsApi newsApi = retrofit.create(NewsApi.class);
+        DeviceApi deviceApi = retrofit.create(DeviceApi.class);
 
-        return new Deps(authApi, groupApi, courseApi, settingsApi, calendarApi, newsApi, tokenStorage, pendingLoginStorage);
+        return new Deps(authApi, groupApi, courseApi, settingsApi, calendarApi, newsApi, deviceApi, tokenStorage, pendingLoginStorage);
     }
 }
