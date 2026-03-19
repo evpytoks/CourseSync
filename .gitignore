@@ -5,6 +5,8 @@ build/
 # Local configuration file
 local.properties
 
+*.env
+
 # Android Studio / IntelliJ
 .idea/
 *.iml
