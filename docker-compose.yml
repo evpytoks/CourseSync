@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/CourseSync.Api/Dockerfile
+    container_name: coursesync-api
+    restart: always
+    network_mode: "host"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://127.0.0.1:8080"
+      ConnectionStrings__AppDb: "Host=127.0.0.1;Port=5432;Database=coursesync;Username=coursesync_user;Password=${DB_PASSWORD}"
+      Jwt__Issuer: "CourseSync"
+      Jwt__Audience: "CourseSyncMobile"
+      Jwt__Key: "${JWT_KEY}"
+      AuthCode__HashKey: "${AUTHCODE_HASH_KEY}"
+      AuthTokens__RefreshTokenHashKey: "${REFRESH_HASH_KEY}"
+      Fcm__ProjectId: "coursesync-b553f"
+      Fcm__CredentialsPath: "/app/secrets/firebase-admin.json"
+      Smtp__Username: "${SMTP_USERNAME}"
+      Smtp__Security: "${SMTP_SECURITY}"
+      Smtp__Port: "${SMTP_PORT}"
+      Smtp__Password: "${SMTP_PASSWORD}"
+      Smtp__Host: "${SMTP_HOST}"
+      Smtp__FromName: "${SMTP_FROM_NAME}"
+      Smtp__FromEmail: "${SMTP_FROM_EMAIL}"
+      Smtp__Enabled: "${SMTP_ENABLED}"
+    volumes:
+      - /root/coursesync-secrets/firebase-admin.json:/app/secrets/firebase-admin.json:ro
