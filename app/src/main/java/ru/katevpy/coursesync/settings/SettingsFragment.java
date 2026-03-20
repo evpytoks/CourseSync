@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,6 +28,9 @@ public class SettingsFragment extends Fragment {
     private CheckBox notificationsCheckBox;
     private CheckBox darkThemeCheckBox;
     private boolean isUpdating;
+    private boolean isLoaded;
+    private CompoundButton.OnCheckedChangeListener notificationsListener;
+    private CompoundButton.OnCheckedChangeListener darkThemeListener;
 
     public SettingsFragment() {
         super(R.layout.fragment_settings);
@@ -45,14 +49,15 @@ public class SettingsFragment extends Fragment {
                 new SettingsViewModelFactory(requireContext().getApplicationContext())
         ).get(SettingsViewModel.class);
 
-        notificationsCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isUpdating) return;
+        notificationsListener = (buttonView, isChecked) -> {
+            if (isUpdating || !isLoaded) return;
             applySettingsChange();
-        });
-        darkThemeCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isUpdating) return;
+        };
+        darkThemeListener = (buttonView, isChecked) -> {
+            if (isUpdating || !isLoaded) return;
             applySettingsChange();
-        });
+        };
+        bindCheckListeners();
 
         btnLogout.setOnClickListener(v -> performLogout());
 
@@ -65,8 +70,18 @@ public class SettingsFragment extends Fragment {
     private void applySettingsChange() {
         boolean notificationsOn = notificationsCheckBox.isChecked();
         boolean darkThemeOn = darkThemeCheckBox.isChecked();
+        applyNightModeIfChanged(darkThemeOn);
         isUpdating = true;
+        notificationsCheckBox.setEnabled(false);
+        darkThemeCheckBox.setEnabled(false);
         viewModel.updateSettings(notificationsOn, darkThemeOn);
+    }
+
+    private void applyNightModeIfChanged(boolean darkThemeOn) {
+        int targetMode = darkThemeOn ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
+        if (AppCompatDelegate.getDefaultNightMode() != targetMode) {
+            AppCompatDelegate.setDefaultNightMode(targetMode);
+        }
     }
 
     private void onLoadResult(@Nullable Result<UserSettingsResponse> result) {
@@ -77,21 +92,21 @@ public class SettingsFragment extends Fragment {
         if (result instanceof Result.Success) {
             UserSettingsResponse data = ((Result.Success<UserSettingsResponse>) result).data;
             if (data != null) {
-                isUpdating = true;
+                unbindCheckListeners();
                 notificationsCheckBox.setChecked(data.notificationsOn);
                 darkThemeCheckBox.setChecked(data.darkThemeOn);
-                isUpdating = false;
-                AppCompatDelegate.setDefaultNightMode(
-                        data.darkThemeOn ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
-                );
+                bindCheckListeners();
+                isLoaded = true;
             }
+            isUpdating = false;
+            notificationsCheckBox.setEnabled(true);
+            darkThemeCheckBox.setEnabled(true);
             return;
         }
 
         if (result instanceof Result.HttpError) {
             int code = ((Result.HttpError<UserSettingsResponse>) result).httpCode;
             if (code == 401) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
                 App.getDeps().tokenStorage.clear();
                 NavOptions opts = new NavOptions.Builder()
                         .setPopUpTo(R.id.groupsFragment, true)
@@ -100,27 +115,38 @@ public class SettingsFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
                 Snackbar.make(requireView(), R.string.settings_load_error, Snackbar.LENGTH_LONG).show();
+                isUpdating = false;
+                notificationsCheckBox.setEnabled(true);
+                darkThemeCheckBox.setEnabled(true);
                 return;
             }
         }
 
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        isUpdating = false;
+        notificationsCheckBox.setEnabled(true);
+        darkThemeCheckBox.setEnabled(true);
     }
 
     private void onUpdateResult(@Nullable Result<Void> result) {
-        isUpdating = false;
         if (result == null) {
+            isUpdating = false;
+            notificationsCheckBox.setEnabled(true);
+            darkThemeCheckBox.setEnabled(true);
             return;
         }
 
         if (result instanceof Result.Success) {
-            viewModel.loadSettings();
+            isUpdating = false;
+            notificationsCheckBox.setEnabled(true);
+            darkThemeCheckBox.setEnabled(true);
             return;
         }
 
+        isUpdating = false;
+        notificationsCheckBox.setEnabled(true);
+        darkThemeCheckBox.setEnabled(true);
         if (result instanceof Result.HttpError) {
             int code = ((Result.HttpError<Void>) result).httpCode;
             if (code == 401) {
@@ -133,11 +159,13 @@ public class SettingsFragment extends Fragment {
             }
             if (code == 500) {
                 Snackbar.make(requireView(), R.string.settings_save_error, Snackbar.LENGTH_LONG).show();
+                viewModel.loadSettings();
                 return;
             }
         }
 
         Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        viewModel.loadSettings();
     }
 
     private void performLogout() {
@@ -178,5 +206,15 @@ public class SettingsFragment extends Fragment {
         }
 
         Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+    }
+
+    private void bindCheckListeners() {
+        notificationsCheckBox.setOnCheckedChangeListener(notificationsListener);
+        darkThemeCheckBox.setOnCheckedChangeListener(darkThemeListener);
+    }
+
+    private void unbindCheckListeners() {
+        notificationsCheckBox.setOnCheckedChangeListener(null);
+        darkThemeCheckBox.setOnCheckedChangeListener(null);
     }
 }
