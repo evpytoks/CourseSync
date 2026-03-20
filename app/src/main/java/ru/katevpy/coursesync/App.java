@@ -8,7 +8,7 @@ import ru.katevpy.coursesync.shared.network.NetworkModule;
 
 public class App extends Application {
 
-    private static final String BASE_URL = "http://10.0.2.2:5065/";
+    private static final String BASE_URL = "http://62.217.176.79/";
 
     private static NetworkModule.Deps deps;
 

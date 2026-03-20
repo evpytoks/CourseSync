@@ -50,9 +50,9 @@
     <string name="event_date_hint">Дата и время</string>
     <string name="event_description_hint">Описание</string>
     <string name="enter_event_name">Введите название события…</string>
-    <string name="event_name_max_length">Длина не более 20 символов</string>
+    <string name="event_name_max_length">Длина не более 50 символов</string>
     <string name="enter_event_date">Укажите дату и время</string>
-    <string name="event_description_max_length">Длина не более 2000 символов</string>
+    <string name="event_description_max_length">Длина не более 1000 символов</string>
     <string name="create_event_server_error">Не удалось создать событие. Попробуйте позже</string>
     <string name="event_ask_time">Указать время?</string>
     <string name="event_yes">Да</string>
@@ -67,7 +67,7 @@
     <string name="news_name_hint">Название новости</string>
     <string name="news_description_hint">Описание</string>
     <string name="enter_news_name">Введите название новости…</string>
-    <string name="news_name_max_length">Длина не более 20 символов</string>
-    <string name="news_description_max_length">Длина не более 2000 символов</string>
+    <string name="news_name_max_length">Длина не более 50 символов</string>
+    <string name="news_description_max_length">Длина не более 3000 символов</string>
     <string name="create_news_server_error">Не удалось создать новость. Попробуйте позже</string>
 </resources>

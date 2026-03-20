@@ -34,8 +34,8 @@ public class CreateNewsFragment extends Fragment {
         newsNameLayout = view.findViewById(R.id.newsNameLayout);
         newsDescriptionLayout = view.findViewById(R.id.newsDescriptionLayout);
 
-        int maxName = getResources().getInteger(R.integer.max_event_name_length);
-        int maxDesc = getResources().getInteger(R.integer.max_event_description_length);
+        int maxName = getResources().getInteger(R.integer.max_news_name_length);
+        int maxDesc = getResources().getInteger(R.integer.max_news_description_length);
         if (newsNameLayout.getEditText() != null) {
             newsNameLayout.getEditText().setFilters(new InputFilter[]{new InputFilter.LengthFilter(maxName)});
         }
@@ -57,8 +57,8 @@ public class CreateNewsFragment extends Fragment {
         newsNameLayout.setError(null);
         newsDescriptionLayout.setError(null);
 
-        int maxName = getResources().getInteger(R.integer.max_event_name_length);
-        int maxDesc = getResources().getInteger(R.integer.max_event_description_length);
+        int maxName = getResources().getInteger(R.integer.max_news_name_length);
+        int maxDesc = getResources().getInteger(R.integer.max_news_description_length);
 
         if (name.isEmpty()) {
             newsNameLayout.setError(getString(R.string.enter_news_name));
