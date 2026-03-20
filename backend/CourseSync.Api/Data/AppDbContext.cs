@@ -157,7 +157,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
             e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(20);
             e.Property(x => x.GeneralInfo).HasColumnName("general_info").IsRequired().HasMaxLength(2000);
-            e.Property(x => x.UsefulLinks).HasColumnName("useful_links").IsRequired().HasMaxLength(2000);
+            e.Property(x => x.UsefulLinks).HasColumnName("useful_links").IsRequired().HasMaxLength(1000);
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
             e.HasOne<Group>()
@@ -174,9 +174,9 @@ public sealed class AppDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
-            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(20);
+            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
             e.Property(x => x.Date).HasColumnName("date").IsRequired();
-            e.Property(x => x.Description).HasColumnName("description").IsRequired().HasMaxLength(2000);
+            e.Property(x => x.Description).HasColumnName("description").IsRequired().HasMaxLength(1000);
 
             e.HasOne<Group>()
                 .WithMany()
@@ -195,8 +195,8 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
             e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
             e.Property(x => x.Type).HasColumnName("type").IsRequired().HasMaxLength(100);
-            e.Property(x => x.Title).HasColumnName("title").IsRequired().HasMaxLength(200);
-            e.Property(x => x.Body).HasColumnName("body").IsRequired().HasMaxLength(2000);
+            e.Property(x => x.Title).HasColumnName("title").IsRequired().HasMaxLength(50);
+            e.Property(x => x.Body).HasColumnName("body").IsRequired().HasMaxLength(3000);
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
             e.Property(x => x.SentAt).HasColumnName("sent_at");
             e.Property(x => x.SendAttempts).HasColumnName("send_attempts").IsRequired().HasDefaultValue(0);
@@ -243,8 +243,8 @@ public sealed class AppDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
-            e.Property(x => x.Title).HasColumnName("title").IsRequired().HasMaxLength(20);
-            e.Property(x => x.Description).HasColumnName("description").IsRequired().HasMaxLength(2000);
+            e.Property(x => x.Title).HasColumnName("title").IsRequired().HasMaxLength(50);
+            e.Property(x => x.Description).HasColumnName("description").IsRequired().HasMaxLength(3000);
             e.Property(x => x.Type).HasColumnName("type").IsRequired().HasMaxLength(100);
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 

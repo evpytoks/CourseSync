@@ -118,6 +118,27 @@ public sealed class AuthControllerValidationTests
     }
 
     [Fact]
+    public async Task SendCode_test_email_skips_email_and_allows_login_with_111111()
+    {
+        await using var tdb = new TestDb();
+        var (controller, emailSender) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 0, MaxAttempts = 3 });
+
+        var email = "test-user@edu.hse.ru";
+        var send = await controller.SendCode(new SendCodeRequest(email), CancellationToken.None);
+        var sendOk = Assert.IsType<OkObjectResult>(send.Result);
+        var sendPayload = Assert.IsType<SendCodeResponse>(sendOk.Value);
+
+        Assert.Equal(0, emailSender.CallCount);
+
+        var login = await controller.Login(new LoginRequest(email, sendPayload.RequestId, "111111"), CancellationToken.None);
+        var loginOk = Assert.IsType<OkObjectResult>(login.Result);
+        var loginPayload = Assert.IsType<LoginResponse>(loginOk.Value);
+
+        Assert.False(string.IsNullOrWhiteSpace(loginPayload.Token));
+        Assert.False(string.IsNullOrWhiteSpace(loginPayload.RefreshToken));
+    }
+
+    [Fact]
     public async Task Login_requires_request_id_and_code()
     {
         await using var tdb = new TestDb();

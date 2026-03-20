@@ -5,7 +5,9 @@ namespace CourseSync.Api.Services;
 
 public sealed class CalendarService
 {
-    private const int DescriptionMaxLength = 2000;
+    private const int NameMaxLength = 50;
+    private const int DescriptionMaxLength = 1000;
+    private const int NotificationBodyMaxLength = 3000;
 
     private readonly AppDbContext _db;
     private readonly NotificationService _notifications;
@@ -23,7 +25,7 @@ public sealed class CalendarService
         name = name.Trim();
         if (name.Length < 1)
             return (false, "calendar_name_too_short");
-        if (name.Length > 20)
+        if (name.Length > NameMaxLength)
             return (false, "calendar_name_too_long");
         return (true, null);
     }
@@ -50,7 +52,10 @@ public sealed class CalendarService
     internal static string FormatCalendarEventDescription(string name, DateTime date, string description)
     {
         var text = $"Название: {name}\nДата: {date:yyyy-MM-dd HH:mm}\nОписание: {description}";
-        return text.Length > 2000 ? text[..2000] : text;
+        if (text.Length > NotificationBodyMaxLength)
+            throw new ArgumentException($"Formatted calendar event text length must be <= {NotificationBodyMaxLength}.", nameof(description));
+
+        return text;
     }
 
     public async Task<(bool Ok, List<CalendarEventListDto>? Events, string? ErrorCode)> GetEventsAsync(

@@ -35,12 +35,12 @@ public sealed class AuthLoginCodeServiceTests
 
         var svc = CreateService(db);
 
-        var first = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 60, CancellationToken.None);
+        var first = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 60, plainCodeOverride: null, CancellationToken.None);
         Assert.Equal(CreateAuthCodeStatus.Ok, first.status);
 
         await svc.MarkCodeSentAsync(user.Id, CancellationToken.None);
 
-        var second = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 60, CancellationToken.None);
+        var second = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 60, plainCodeOverride: null, CancellationToken.None);
         Assert.Equal(CreateAuthCodeStatus.RateLimited, second.status);
     }
 
@@ -56,7 +56,7 @@ public sealed class AuthLoginCodeServiceTests
 
         var svc = CreateService(db);
 
-        var (status, requestId, _, correctCode) = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 0, CancellationToken.None);
+        var (status, requestId, _, correctCode) = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 0, plainCodeOverride: null, CancellationToken.None);
         Assert.Equal(CreateAuthCodeStatus.Ok, status);
 
         var r1 = await svc.VerifyAsync(user.Email, requestId, "000000", maxAttempts: 3, CancellationToken.None);
@@ -88,7 +88,7 @@ public sealed class AuthLoginCodeServiceTests
         var svc = CreateService(db);
 
         var ttl = 300;
-        var (status, requestId, _, _) = await svc.CreateAsync(user, ttlSeconds: ttl, cooldownSeconds: 0, CancellationToken.None);
+        var (status, requestId, _, _) = await svc.CreateAsync(user, ttlSeconds: ttl, cooldownSeconds: 0, plainCodeOverride: null, CancellationToken.None);
         Assert.Equal(CreateAuthCodeStatus.Ok, status);
 
         var rec = await db.AuthLoginRequests.SingleAsync(x => x.RequestId == requestId);
@@ -136,7 +136,7 @@ public sealed class AuthLoginCodeServiceTests
         await db.SaveChangesAsync();
 
         var svc = CreateService(db);
-        var (status, requestId, _, correctCode) = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 0, CancellationToken.None);
+        var (status, requestId, _, correctCode) = await svc.CreateAsync(user, ttlSeconds: 300, cooldownSeconds: 0, plainCodeOverride: null, CancellationToken.None);
         Assert.Equal(CreateAuthCodeStatus.Ok, status);
 
         var result = await svc.VerifyAsync("other@edu.hse.ru", requestId, correctCode, maxAttempts: 3, CancellationToken.None);

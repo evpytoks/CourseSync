@@ -35,6 +35,7 @@ public sealed class AuthLoginCodeService
         User user,
         int ttlSeconds,
         int cooldownSeconds,
+        string? plainCodeOverride,
         CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
@@ -57,7 +58,9 @@ public sealed class AuthLoginCodeService
             ct);
 
         var requestId = "req_" + Base64Url(RandomNumberGenerator.GetBytes(16));
-        var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+        var code = string.IsNullOrWhiteSpace(plainCodeOverride)
+            ? RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6")
+            : plainCodeOverride.Trim();
 
         var rec = new AuthLoginRequest
         {
