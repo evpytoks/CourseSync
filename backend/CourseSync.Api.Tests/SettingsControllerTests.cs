@@ -81,7 +81,7 @@ public sealed class SettingsControllerTests
         var users = new UserService(tdb.Db);
         var controller = CreateController(users, user.Id);
 
-        var req = new UpdateUserSettingsRequest(notificationsOn: true, darkThemeOn: null);
+        var req = new UpdateUserSettingsRequest(NotificationsOn: true, DarkThemeOn: null);
         var res = await controller.Update(req, CancellationToken.None);
         Assert.IsType<OkResult>(res);
 

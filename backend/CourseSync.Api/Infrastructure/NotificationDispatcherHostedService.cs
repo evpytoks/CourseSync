@@ -37,12 +37,23 @@ public sealed class NotificationDispatcherHostedService : BackgroundService
 
                 if (pending.Count > 0)
                 {
+                    var notificationsEnabledByUser = await db.Users
+                        .Where(u => pending.Select(n => n.UserId).Contains(u.Id))
+                        .Select(u => new { u.Id, u.NotificationsOn })
+                        .ToDictionaryAsync(x => x.Id, x => x.NotificationsOn, stoppingToken);
+
                     var devices = await db.UserDevices
                         .Where(d => d.IsActive && pending.Select(n => n.UserId).Contains(d.UserId))
                         .ToListAsync(stoppingToken);
 
                     foreach (var notification in pending)
                     {
+                        if (!notificationsEnabledByUser.TryGetValue(notification.UserId, out var notificationsOn) || !notificationsOn)
+                        {
+                            notification.SentAt = DateTimeOffset.UtcNow;
+                            continue;
+                        }
+
                         var userDevices = devices.Where(d => d.UserId == notification.UserId).ToList();
                         if (userDevices.Count == 0)
                         {
