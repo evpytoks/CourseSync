@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             boolean isMainScreen = (id == R.id.groupsFragment || id == R.id.newsFragment || id == R.id.coursesFragment
-                    || id == R.id.calendarFragment || id == R.id.settingsFragment);
+                    || id == R.id.calendarFragment);
             if (isMainScreen) {
                 refreshCurrentGroup();
                 if (!appliedThemeFromServer && App.getDeps().tokenStorage.getAccess() != null) {
@@ -283,11 +283,10 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (result instanceof Result.Success && ((Result.Success<UserSettingsResponse>) result).data != null) {
                     UserSettingsResponse data = ((Result.Success<UserSettingsResponse>) result).data;
-                    AppCompatDelegate.setDefaultNightMode(
-                            data.darkThemeOn ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
-                    );
-                } else {
-                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                    int targetMode = data.darkThemeOn ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
+                    if (AppCompatDelegate.getDefaultNightMode() != targetMode) {
+                        AppCompatDelegate.setDefaultNightMode(targetMode);
+                    }
                 }
             });
         }).start();
