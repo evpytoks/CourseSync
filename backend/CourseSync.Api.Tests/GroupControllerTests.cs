@@ -34,7 +34,7 @@ public sealed class GroupControllerTests
         await using var tdb = new TestDb();
         var controller = CreateController(new GroupService(tdb.Db), null);
         var res = await controller.Create(new CreateGroupRequest("Valid"), CancellationToken.None);
-        var unauth = Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        var unauth = Assert.IsType<UnauthorizedObjectResult>(res);
         Assert.Equal("unauthorized", Assert.IsType<ErrorEnvelope>(unauth.Value).Error.Code);
     }
 
@@ -47,7 +47,7 @@ public sealed class GroupControllerTests
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db), user.Id);
         var res = await controller.Create(new CreateGroupRequest(""), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        var bad = Assert.IsType<BadRequestObjectResult>(res);
         Assert.Equal("group_name_required", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -60,7 +60,7 @@ public sealed class GroupControllerTests
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db), user.Id);
         var res = await controller.Create(new CreateGroupRequest("MyGroup"), CancellationToken.None);
-        Assert.IsType<OkResult>(res.Result);
+        Assert.IsType<OkResult>(res);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public sealed class GroupControllerTests
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db), user.Id);
         var res = await controller.Join(new GroupJoinRequest("123"), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        var bad = Assert.IsType<BadRequestObjectResult>(res);
         Assert.Equal("invalid_code_format", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -112,7 +112,7 @@ public sealed class GroupControllerTests
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db), user.Id);
         var res = await controller.Join(new GroupJoinRequest("ABCDEF"), CancellationToken.None);
-        var notFound = Assert.IsType<NotFoundObjectResult>(res.Result);
+        var notFound = Assert.IsType<NotFoundObjectResult>(res);
         Assert.Equal("group_not_found", Assert.IsType<ErrorEnvelope>(notFound.Value).Error.Code);
     }
 
@@ -129,7 +129,7 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, joiner.Id);
         var res = await controller.Join(new GroupJoinRequest(create.Value.Code), CancellationToken.None);
-        Assert.IsType<OkResult>(res.Result);
+        Assert.IsType<OkResult>(res);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public sealed class GroupControllerTests
         await svc.JoinByCodeAsync(other.Id, create.Value.Code, CancellationToken.None);
         var controller = CreateController(svc, other.Id);
         var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("Hacked"), CancellationToken.None);
-        var forbidden = Assert.IsType<ObjectResult>(res.Result);
+        var forbidden = Assert.IsType<ObjectResult>(res);
         Assert.Equal(403, forbidden.StatusCode);
     }
 
@@ -162,7 +162,7 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("ThisNameIsWayTooLongForLimit"), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        var bad = Assert.IsType<BadRequestObjectResult>(res);
         Assert.Equal("group_name_too_long", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -178,7 +178,7 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("NewName"), CancellationToken.None);
-        Assert.IsType<OkResult>(res.Result);
+        Assert.IsType<OkResult>(res);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Choose(create.Value.GroupId, CancellationToken.None);
-        Assert.Equal(403, Assert.IsType<ObjectResult>(res.Result).StatusCode);
+        Assert.Equal(403, Assert.IsType<ObjectResult>(res).StatusCode);
     }
 
     [Fact]
@@ -209,11 +209,11 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Choose(create.Value.GroupId, CancellationToken.None);
-        Assert.IsType<OkResult>(res.Result);
+        Assert.IsType<OkResult>(res);
     }
 
     [Fact]
-    public async Task GetCurrent_forbidden_when_not_member_returns_403()
+    public async Task GetCurrent_without_chosen_group_returns_400_no_group_selected()
     {
         await using var tdb = new TestDb();
         var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
@@ -225,12 +225,12 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.GetCurrent(CancellationToken.None);
-        var forbidden = Assert.IsType<ObjectResult>(res.Result);
-        Assert.Equal(403, forbidden.StatusCode);
+        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        Assert.Equal("no_group_selected", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
     [Fact]
-    public async Task GetCurrent_forbidden_when_not_chosen_returns_403()
+    public async Task GetCurrent_when_not_chosen_returns_400_no_group_selected()
     {
         await using var tdb = new TestDb();
         var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
@@ -242,8 +242,8 @@ public sealed class GroupControllerTests
 
         var controller = CreateController(svc, user.Id);
         var res = await controller.GetCurrent(CancellationToken.None);
-        var forbidden = Assert.IsType<ObjectResult>(res.Result);
-        Assert.Equal(403, forbidden.StatusCode);
+        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        Assert.Equal("no_group_selected", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
     [Fact]
