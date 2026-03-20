@@ -5,6 +5,9 @@ namespace CourseSync.Api.Services;
 
 public sealed class NewsService
 {
+    private const int NewsNameMaxLength = 50;
+    private const int NewsDescriptionMaxLength = 3000;
+
     private readonly AppDbContext _db;
     private readonly NotificationService _notificationService;
 
@@ -57,7 +60,7 @@ public sealed class NewsService
         name = name.Trim();
         if (name.Length < 1)
             return (false, "news_name_too_short");
-        if (name.Length > 20)
+        if (name.Length > NewsNameMaxLength)
             return (false, "news_name_too_long");
         return (true, null);
     }
@@ -66,7 +69,7 @@ public sealed class NewsService
     {
         if (description is null)
             return (true, null);
-        if (description.Length > 2000)
+        if (description.Length > NewsDescriptionMaxLength)
             return (false, "news_description_too_long");
         return (true, null);
     }

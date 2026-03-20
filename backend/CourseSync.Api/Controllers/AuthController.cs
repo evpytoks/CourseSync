@@ -13,6 +13,8 @@ namespace CourseSync.Api.Controllers;
 public sealed class AuthController : ControllerBase
 {
     private const string AllowedEmailDomain = "edu.hse.ru";
+    private const string TestEmailPrefix = "test";
+    private const string TestLoginCode = "111111";
 
     private readonly AuthLoginCodeService _codes;
     private readonly JwtTokenService _jwt;
@@ -55,29 +57,34 @@ public sealed class AuthController : ControllerBase
         var user = await _userService.GetOrCreateByEmailAsync(email, ct);
 
         var ttl = _authOpt.CodeTtlSeconds;
-        var (status, requestId, expiresAt, code) = await _codes.CreateAsync(user, ttl, _authOpt.SendCooldownSeconds, ct);
+        var isTestEmail = IsTestEmail(email);
+        var codeOverride = isTestEmail ? TestLoginCode : null;
+        var (status, requestId, expiresAt, code) = await _codes.CreateAsync(user, ttl, _authOpt.SendCooldownSeconds, codeOverride, ct);
 
         if (status == CreateAuthCodeStatus.RateLimited)
             return StatusCode(429, new ErrorEnvelope(new ApiError("rate_limited")));
 
-        try
+        if (!isTestEmail)
         {
-            await _email.SendAuthCodeAsync(user.Email, code, ttl, ct);
-        }
-        catch (Exception ex)
-        {
-            await _codes.InvalidateAsync(requestId, ct);
+            try
+            {
+                await _email.SendAuthCodeAsync(user.Email, code, ttl, ct);
+            }
+            catch (Exception ex)
+            {
+                await _codes.InvalidateAsync(requestId, ct);
 
-            _log.LogError(ex,
-                "Failed to send auth email. smtpEnabled={Enabled} host={Host} port={Port} security={Security} from={From} to={To}",
-                _cfg.GetValue<bool>("Smtp:Enabled"),
-                _cfg["Smtp:Host"],
-                _cfg["Smtp:Port"],
-                _cfg["Smtp:Security"],
-                _cfg["Smtp:FromEmail"],
-                email);
+                _log.LogError(ex,
+                    "Failed to send auth email. smtpEnabled={Enabled} host={Host} port={Port} security={Security} from={From} to={To}",
+                    _cfg.GetValue<bool>("Smtp:Enabled"),
+                    _cfg["Smtp:Host"],
+                    _cfg["Smtp:Port"],
+                    _cfg["Smtp:Security"],
+                    _cfg["Smtp:FromEmail"],
+                    email);
 
-            return StatusCode(500, new ErrorEnvelope(new ApiError("email_send_failed")));
+                return StatusCode(500, new ErrorEnvelope(new ApiError("email_send_failed")));
+            }
         }
 
         await _codes.MarkCodeSentAsync(user.Id, ct);
@@ -170,5 +177,11 @@ public sealed class AuthController : ControllerBase
             return new ErrorEnvelope(new ApiError("not_hse_email"));
 
         return null;
+    }
+
+    private static bool IsTestEmail(string email)
+    {
+        var normalized = (email ?? "").Trim();
+        return normalized.StartsWith(TestEmailPrefix, StringComparison.OrdinalIgnoreCase);
     }
 }

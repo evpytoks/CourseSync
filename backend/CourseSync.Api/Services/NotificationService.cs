@@ -5,6 +5,10 @@ namespace CourseSync.Api.Services;
 
 public sealed class NotificationService
 {
+    private const int NotificationTitleMinLength = 1;
+    private const int NotificationTitleMaxLength = 50;
+    private const int NotificationBodyMaxLength = 3000;
+
     private readonly AppDbContext _db;
 
     public NotificationService(AppDbContext db) => _db = db;
@@ -18,15 +22,20 @@ public sealed class NotificationService
         CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
-        var titleTrimmed = title.Length > 20 ? title[..20] : title;
-        var descriptionTrimmed = description.Length > 2000 ? description[..2000] : description;
+        var titleValue = (title ?? "").Trim();
+        var descriptionValue = description;
+
+        if (titleValue.Length < NotificationTitleMinLength || titleValue.Length > NotificationTitleMaxLength)
+            throw new ArgumentException(
+                $"Notification title length must be between {NotificationTitleMinLength} and {NotificationTitleMaxLength}.",
+                nameof(title));
 
         var news = new News
         {
             Id = Guid.NewGuid(),
             GroupId = groupId,
-            Title = titleTrimmed,
-            Description = descriptionTrimmed,
+            Title = titleValue,
+            Description = descriptionValue,
             Type = type,
             CreatedAt = now
         };
@@ -37,8 +46,9 @@ public sealed class NotificationService
             .Select(m => m.UserId)
             .ToListAsync(ct);
 
-        var body = string.IsNullOrEmpty(descriptionTrimmed) ? titleTrimmed : descriptionTrimmed;
-        if (body.Length > 2000) body = body[..2000];
+        var body = string.IsNullOrEmpty(descriptionValue) ? titleValue : descriptionValue;
+        if (body.Length > NotificationBodyMaxLength)
+            throw new ArgumentException($"Notification body length must be <= {NotificationBodyMaxLength}.", nameof(description));
 
         foreach (var userId in memberUserIds)
         {
@@ -51,7 +61,7 @@ public sealed class NotificationService
                 UserId = userId,
                 GroupId = groupId,
                 Type = type,
-                Title = titleTrimmed.Length > 200 ? titleTrimmed[..200] : titleTrimmed,
+                Title = titleValue,
                 Body = body,
                 CreatedAt = now
             });
