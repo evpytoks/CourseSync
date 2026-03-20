@@ -31,8 +31,13 @@ public sealed class FcmPushSender : IPushSender
         }
 
         GoogleCredential credential;
-        if (!string.IsNullOrWhiteSpace(_options.CredentialsPath) && File.Exists(_options.CredentialsPath))
+        if (!string.IsNullOrWhiteSpace(_options.CredentialsPath))
         {
+            if (!File.Exists(_options.CredentialsPath))
+            {
+                throw new FileNotFoundException($"FCM credentials file not found: {_options.CredentialsPath}");
+            }
+
             await using var stream = File.OpenRead(_options.CredentialsPath);
             credential = GoogleCredential.FromStream(stream).CreateScoped(FirebaseMessagingScope);
         }

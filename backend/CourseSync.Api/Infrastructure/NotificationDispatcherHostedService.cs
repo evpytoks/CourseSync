@@ -61,22 +61,27 @@ public sealed class NotificationDispatcherHostedService : BackgroundService
                             continue;
                         }
 
+                        var delivered = false;
                         foreach (var device in userDevices)
                         {
                             try
                             {
                                 await pushSender.SendAsync(device, notification, stoppingToken);
+                                delivered = true;
                             }
                             catch (Exception ex)
                             {
                                 _log.LogError(ex, "Failed to send push to device {DeviceId} for notification {NotificationId}", device.Id, notification.Id);
-                                notification.SendAttempts++;
                             }
                         }
 
-                        if (notification.SendAttempts < MaxAttempts)
+                        if (delivered)
                         {
                             notification.SentAt = DateTimeOffset.UtcNow;
+                        }
+                        else
+                        {
+                            notification.SendAttempts++;
                         }
                     }
 
