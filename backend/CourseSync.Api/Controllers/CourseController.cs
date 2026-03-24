@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CourseSync.Api.Infrastructure;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -201,7 +202,7 @@ public sealed class CourseController : ControllerBase
 
     [HttpPost("{id:guid}/general_materials/add")]
     [Consumes("multipart/form-data")]
-    [RequestSizeLimit(32 * 1024 * 1024)]
+    [RequestSizeLimit(CourseMaterialUploadLimits.MaxMultipartRequestBytes)]
     public async Task<IActionResult> AddGeneralMaterial(Guid id, IFormFile? file, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -265,7 +266,7 @@ public sealed class CourseController : ControllerBase
 
     [HttpPost("{id:guid}/personal_materials/add")]
     [Consumes("multipart/form-data")]
-    [RequestSizeLimit(32 * 1024 * 1024)]
+    [RequestSizeLimit(CourseMaterialUploadLimits.MaxMultipartRequestBytes)]
     public async Task<IActionResult> AddPersonalMaterial(Guid id, IFormFile? file, CancellationToken ct)
     {
         var userId = GetCurrentUserId();

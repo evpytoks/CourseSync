@@ -1,4 +1,5 @@
 using CourseSync.Api.Data;
+using CourseSync.Api.Infrastructure;
 using CourseSync.Api.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,7 +7,7 @@ namespace CourseSync.Api.Services;
 
 public sealed class CourseMaterialService
 {
-    private const long MaxPdfBytes = 30 * 1024 * 1024;
+    private const long MaxPdfBytes = CourseMaterialUploadLimits.MaxPdfBytes;
 
     private readonly AppDbContext _db;
     private readonly ICourseMaterialBlobStorage _blob;
