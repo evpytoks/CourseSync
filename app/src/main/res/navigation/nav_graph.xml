@@ -87,6 +87,54 @@
         <action
             android:id="@+id/action_coursesFragment_to_createCourseFragment"
             app:destination="@id/createCourseFragment" />
+        <action
+            android:id="@+id/action_coursesFragment_to_courseDetailFragment"
+            app:destination="@id/courseDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/courseDetailFragment"
+        android:name="ru.katevpy.coursesync.courses.CourseDetailFragment"
+        android:label="Курс">
+        <argument
+            android:name="courseId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_courseDetailFragment_to_editCourseFragment"
+            app:destination="@id/editCourseFragment" />
+        <action
+            android:id="@+id/action_courseDetailFragment_to_courseSharedMaterialsFragment"
+            app:destination="@id/courseSharedMaterialsFragment" />
+        <action
+            android:id="@+id/action_courseDetailFragment_to_coursePersonalMaterialsFragment"
+            app:destination="@id/coursePersonalMaterialsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/courseSharedMaterialsFragment"
+        android:name="ru.katevpy.coursesync.courses.CourseSharedMaterialsFragment"
+        android:label="@string/course_materials_shared">
+        <argument
+            android:name="courseId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/coursePersonalMaterialsFragment"
+        android:name="ru.katevpy.coursesync.courses.CoursePersonalMaterialsFragment"
+        android:label="@string/course_materials_personal">
+        <argument
+            android:name="courseId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editCourseFragment"
+        android:name="ru.katevpy.coursesync.courses.EditCourseFragment"
+        android:label="@string/edit_course">
+        <argument
+            android:name="courseId"
+            app:argType="string" />
     </fragment>
 
     <fragment

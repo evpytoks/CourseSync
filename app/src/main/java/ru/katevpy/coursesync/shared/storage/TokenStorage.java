@@ -15,7 +15,7 @@ public final class TokenStorage {
         sp.edit()
                 .putString(KEY_ACCESS, accessToken)
                 .putString(KEY_REFRESH, refreshToken)
-                .commit();
+                .apply();
     }
 
     @Nullable public String getAccess() { return sp.getString(KEY_ACCESS, null); }
