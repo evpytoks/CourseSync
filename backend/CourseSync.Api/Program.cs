@@ -3,18 +3,38 @@ using System.Threading.RateLimiting;
 using CourseSync.Api.Services;
 using CourseSync.Api.Infrastructure.Email;
 using CourseSync.Api.Infrastructure;
+using CourseSync.Api.Infrastructure.Json;
 using CourseSync.Api.Infrastructure.Push;
+using CourseSync.Api.Infrastructure.Storage;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using CourseSync.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const long maxMultipartBodyBytes = 32 * 1024 * 1024;
+
+builder.Services.Configure<FormOptions>(o =>
+{
+    o.MultipartBodyLengthLimit = maxMultipartBodyBytes;
+});
+
+builder.WebHost.ConfigureKestrel(o =>
+{
+    o.Limits.MaxRequestBodySize = maxMultipartBodyBytes;
+});
+
 builder.Services.AddControllers()
-    .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        o.JsonSerializerOptions.Converters.Add(new UtcIsoDateTimeConverter());
+        o.JsonSerializerOptions.Converters.Add(new UtcIsoDateTimeOffsetConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o =>
 {
@@ -84,6 +104,8 @@ builder.Services.AddScoped<AuthLoginCodeService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<CourseService>();
+builder.Services.AddCourseMaterialBlobStorage(builder.Configuration);
+builder.Services.AddScoped<CourseMaterialService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<CalendarService>();
 builder.Services.AddScoped<NewsService>();

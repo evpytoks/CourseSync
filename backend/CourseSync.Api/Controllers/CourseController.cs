@@ -13,11 +13,16 @@ namespace CourseSync.Api.Controllers;
 public sealed class CourseController : ControllerBase
 {
     private readonly CourseService _courseService;
+    private readonly CourseMaterialService _courseMaterialService;
     private readonly UserService _userService;
 
-    public CourseController(CourseService courseService, UserService userService)
+    public CourseController(
+        CourseService courseService,
+        CourseMaterialService courseMaterialService,
+        UserService userService)
     {
         _courseService = courseService;
+        _courseMaterialService = courseMaterialService;
         _userService = userService;
     }
 
@@ -82,6 +87,294 @@ public sealed class CourseController : ControllerBase
         }
 
         return Ok();
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<CourseDetailsResponse>> GetById(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, data, errorCode) = await _courseService.GetCourseByIdAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            ct);
+
+        if (!ok)
+        {
+            if (errorCode == "forbidden")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
+        }
+
+        return Ok(new CourseDetailsResponse(
+            data!.Id,
+            data.Name,
+            data.GeneralInfo,
+            data.UsefulLinks));
+    }
+
+    [HttpPut("{id:guid}/change")]
+    public async Task<IActionResult> Change(Guid id, [FromBody] ChangeCourseRequest req, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var nameValidation = CourseService.ValidateCourseName(req.Name);
+        if (!nameValidation.Valid)
+            return BadRequest(new ErrorEnvelope(new ApiError(nameValidation.ErrorCode!)));
+
+        var generalInfoValidation = CourseService.ValidateGeneralInfo(req.GeneralInfo);
+        if (!generalInfoValidation.Valid)
+            return BadRequest(new ErrorEnvelope(new ApiError(generalInfoValidation.ErrorCode!)));
+
+        var usefulLinksValidation = CourseService.ValidateUsefulLinks(req.UsefulLinks);
+        if (!usefulLinksValidation.Valid)
+            return BadRequest(new ErrorEnvelope(new ApiError(usefulLinksValidation.ErrorCode!)));
+
+        var (ok, errorCode) = await _courseService.UpdateCourseAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            req.Name!.Trim(),
+            req.GeneralInfo ?? "",
+            req.UsefulLinks ?? "",
+            ct);
+
+        if (!ok)
+        {
+            if (errorCode == "forbidden")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
+        }
+
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/general_materials")]
+    public async Task<IActionResult> ListGeneralMaterials(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, items, errorCode) = await _courseMaterialService.ListGeneralAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            ct);
+
+        if (!ok)
+            return MaterialAccessError(errorCode!);
+
+        var list = items!.Select(m => new CourseMaterialListItem(
+            m.Id,
+            m.Name,
+            m.AuthorEmail,
+            m.CreatedAt)).ToList();
+        return Ok(new CourseMaterialListResponse(list));
+    }
+
+    [HttpPost("{id:guid}/general_materials/add")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(32 * 1024 * 1024)]
+    public async Task<IActionResult> AddGeneralMaterial(Guid id, IFormFile? file, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        if (file is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("file_required")));
+
+        var (ok, errorCode) = await _courseMaterialService.AddGeneralAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            user.Email,
+            file,
+            ct);
+
+        if (!ok)
+            return AddMaterialError(errorCode!);
+
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/personal_materials")]
+    public async Task<IActionResult> ListPersonalMaterials(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, items, errorCode) = await _courseMaterialService.ListPersonalAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            ct);
+
+        if (!ok)
+            return MaterialAccessError(errorCode!);
+
+        var list = items!.Select(m => new CourseMaterialListItem(
+            m.Id,
+            m.Name,
+            m.AuthorEmail,
+            m.CreatedAt)).ToList();
+        return Ok(new CourseMaterialListResponse(list));
+    }
+
+    [HttpPost("{id:guid}/personal_materials/add")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(32 * 1024 * 1024)]
+    public async Task<IActionResult> AddPersonalMaterial(Guid id, IFormFile? file, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        if (file is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("file_required")));
+
+        var (ok, errorCode) = await _courseMaterialService.AddPersonalAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            user.Email,
+            file,
+            ct);
+
+        if (!ok)
+            return AddMaterialError(errorCode!);
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/general_materials/{materialId:guid}")]
+    public async Task<IActionResult> DeleteGeneralMaterial(Guid id, Guid materialId, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, errorCode) = await _courseMaterialService.DeleteGeneralAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            materialId,
+            ct);
+
+        if (!ok)
+            return DeleteMaterialError(errorCode!);
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/personal_materials/{materialId:guid}")]
+    public async Task<IActionResult> DeletePersonalMaterial(Guid id, Guid materialId, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, errorCode) = await _courseMaterialService.DeletePersonalAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            materialId,
+            ct);
+
+        if (!ok)
+            return DeleteMaterialError(errorCode!);
+
+        return NoContent();
+    }
+
+    private IActionResult MaterialAccessError(string errorCode)
+    {
+        if (errorCode == "forbidden")
+            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+        return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
+    }
+
+    private IActionResult AddMaterialError(string errorCode)
+    {
+        if (errorCode == "forbidden")
+            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+        if (errorCode == "course_not_in_group")
+            return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
+        return BadRequest(new ErrorEnvelope(new ApiError(errorCode)));
+    }
+
+    private IActionResult DeleteMaterialError(string errorCode)
+    {
+        if (errorCode == "forbidden")
+            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+        if (errorCode == "course_not_in_group")
+            return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
+        if (errorCode == "material_not_found")
+            return NotFound(new ErrorEnvelope(new ApiError("material_not_found")));
+        return BadRequest(new ErrorEnvelope(new ApiError(errorCode)));
     }
 
     private Guid? GetCurrentUserId()

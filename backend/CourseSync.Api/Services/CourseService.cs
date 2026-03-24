@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using CourseSync.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,7 +5,8 @@ namespace CourseSync.Api.Services;
 
 public sealed class CourseService
 {
-    private static readonly Regex CourseNameRegex = new(@"^[a-zA-Zа-яА-ЯёЁ0-9]{1,20}$", RegexOptions.Compiled);
+    public const int CourseNameMaxLength = 50;
+
     private const int GeneralInfoMaxLength = 2000;
     private const int UsefulLinksMaxLength = 1000;
 
@@ -19,10 +19,8 @@ public sealed class CourseService
         if (string.IsNullOrWhiteSpace(name))
             return (false, "course_name_required");
         name = name.Trim();
-        if (name.Length > 20)
+        if (name.Length > CourseNameMaxLength)
             return (false, "course_name_too_long");
-        if (!CourseNameRegex.IsMatch(name))
-            return (false, "course_name_invalid");
         return (true, null);
     }
 
@@ -80,4 +78,58 @@ public sealed class CourseService
     }
 
     public sealed record CourseListDto(Guid Id, string Name);
+
+    public sealed record CourseDetailDto(
+        Guid Id,
+        string Name,
+        string GeneralInfo,
+        string UsefulLinks);
+
+    public async Task<(bool Ok, CourseDetailDto? Data, string? ErrorCode)> GetCourseByIdAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        CancellationToken ct)
+    {
+        var isMember = await _db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (!isMember)
+            return (false, null, "forbidden");
+
+        var course = await _db.Courses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == courseId && c.GroupId == groupId, ct);
+        if (course is null)
+            return (false, null, "course_not_in_group");
+
+        return (true, new CourseDetailDto(course.Id, course.Name, course.GeneralInfo, course.UsefulLinks), null);
+    }
+
+    public async Task<(bool Ok, string? ErrorCode)> UpdateCourseAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        string name,
+        string generalInfo,
+        string usefulLinks,
+        CancellationToken ct)
+    {
+        var member = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (member is null)
+            return (false, "forbidden");
+
+        var course = await _db.Courses
+            .FirstOrDefaultAsync(c => c.Id == courseId && c.GroupId == groupId, ct);
+        if (course is null)
+            return (false, "course_not_in_group");
+
+        if (member.Role != GroupRole.Owner)
+            return (false, "forbidden");
+
+        course.Name = name.Trim();
+        course.GeneralInfo = generalInfo ?? "";
+        course.UsefulLinks = usefulLinks ?? "";
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
 }
