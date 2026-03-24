@@ -146,15 +146,19 @@ public class MainActivity extends AppCompatActivity {
 
             if (btnCreateCourse != null && navController.getCurrentDestination() != null
                     && navController.getCurrentDestination().getId() == R.id.coursesFragment) {
-                btnCreateCourse.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+                btnCreateCourse.setVisibility(showOwnerToolbarActions(state) ? View.VISIBLE : View.GONE);
             }
             if (btnAddEvent != null && navController.getCurrentDestination() != null
                     && navController.getCurrentDestination().getId() == R.id.calendarFragment) {
-                btnAddEvent.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+                btnAddEvent.setVisibility(showOwnerToolbarActions(state) ? View.VISIBLE : View.GONE);
             }
             if (btnAddNews != null && navController.getCurrentDestination() != null
                     && navController.getCurrentDestination().getId() == R.id.newsFragment) {
-                btnAddNews.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+                btnAddNews.setVisibility(showOwnerToolbarActions(state) ? View.VISIBLE : View.GONE);
+            }
+            if (toolbarEventDetailButtonsWrap != null && navController.getCurrentDestination() != null
+                    && navController.getCurrentDestination().getId() == R.id.calendarEventDetailFragment) {
+                toolbarEventDetailButtonsWrap.setVisibility(showOwnerToolbarActions(state) ? View.VISIBLE : View.GONE);
             }
         });
 
@@ -192,26 +196,24 @@ public class MainActivity extends AppCompatActivity {
             boolean isCalendarScreen = (id == R.id.calendarFragment);
             boolean isNewsScreen = (id == R.id.newsFragment);
 
+            GroupState groupState = groupVm.getGroupState().getValue();
             if (btnCreateCourse != null) {
                 if (isCoursesScreen) {
-                    GroupState state = groupVm.getGroupState().getValue();
-                    btnCreateCourse.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+                    btnCreateCourse.setVisibility(showOwnerToolbarActions(groupState) ? View.VISIBLE : View.GONE);
                 } else {
                     btnCreateCourse.setVisibility(View.GONE);
                 }
             }
             if (btnAddEvent != null) {
                 if (isCalendarScreen) {
-                    GroupState state = groupVm.getGroupState().getValue();
-                    btnAddEvent.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+                    btnAddEvent.setVisibility(showOwnerToolbarActions(groupState) ? View.VISIBLE : View.GONE);
                 } else {
                     btnAddEvent.setVisibility(View.GONE);
                 }
             }
             if (btnAddNews != null) {
                 if (isNewsScreen) {
-                    GroupState state = groupVm.getGroupState().getValue();
-                    btnAddNews.setVisibility(state != null && state.hasGroup() ? View.VISIBLE : View.GONE);
+                    btnAddNews.setVisibility(showOwnerToolbarActions(groupState) ? View.VISIBLE : View.GONE);
                 } else {
                     btnAddNews.setVisibility(View.GONE);
                 }
@@ -221,7 +223,8 @@ public class MainActivity extends AppCompatActivity {
             }
             boolean isEventDetailScreen = (id == R.id.calendarEventDetailFragment);
             if (toolbarEventDetailButtonsWrap != null) {
-                toolbarEventDetailButtonsWrap.setVisibility(isEventDetailScreen ? View.VISIBLE : View.GONE);
+                toolbarEventDetailButtonsWrap.setVisibility(
+                        isEventDetailScreen && showOwnerToolbarActions(groupState) ? View.VISIBLE : View.GONE);
             }
 
             if (toolbar != null && getSupportActionBar() != null) {
@@ -232,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void setCurrentGroupName(String name) {
         if (name != null && !name.trim().isEmpty()) {
-            groupVm.setGroup(name.trim());
+            groupVm.setGroup(name.trim(), null);
         } else {
             groupVm.clearGroup();
         }
@@ -246,13 +249,17 @@ public class MainActivity extends AppCompatActivity {
                 if (result instanceof Result.Success && ((Result.Success<GroupDetailsResponse>) result).data != null) {
                     GroupDetailsResponse data = ((Result.Success<GroupDetailsResponse>) result).data;
                     if (data.name != null && !data.name.trim().isEmpty()) {
-                        groupVm.setGroup(data.name.trim());
+                        groupVm.setGroup(data.name.trim(), data.role);
                         return;
                     }
                 }
                 groupVm.clearGroup();
             });
         }).start();
+    }
+
+    private static boolean showOwnerToolbarActions(@Nullable GroupState state) {
+        return state != null && state.hasGroup() && state.isGroupOwner();
     }
 
     private void onEventDeleteResult(@Nullable Result<Void> result) {
