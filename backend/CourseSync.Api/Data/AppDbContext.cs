@@ -12,6 +12,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<Course> Courses => Set<Course>();
+    public DbSet<CourseGeneralMaterial> CourseGeneralMaterials => Set<CourseGeneralMaterial>();
+    public DbSet<CoursePersonalMaterial> CoursePersonalMaterials => Set<CoursePersonalMaterial>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<UserDevice> UserDevices => Set<UserDevice>();
@@ -155,7 +157,7 @@ public sealed class AppDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
-            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(20);
+            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
             e.Property(x => x.GeneralInfo).HasColumnName("general_info").IsRequired().HasMaxLength(2000);
             e.Property(x => x.UsefulLinks).HasColumnName("useful_links").IsRequired().HasMaxLength(1000);
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
@@ -166,6 +168,60 @@ public sealed class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(x => x.GroupId);
+        });
+
+        b.Entity<CourseGeneralMaterial>(e =>
+        {
+            e.ToTable("course_general_materials");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.CourseId).HasColumnName("course_id").IsRequired();
+            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(255);
+            e.Property(x => x.AuthorUserId).HasColumnName("author_user_id").IsRequired();
+            e.Property(x => x.AuthorEmail).HasColumnName("author_email").IsRequired().HasMaxLength(320);
+            e.Property(x => x.StoragePath).HasColumnName("storage_path").IsRequired().HasMaxLength(512);
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+
+            e.HasOne(x => x.Course)
+                .WithMany()
+                .HasForeignKey(x => x.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.AuthorUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.CourseId);
+            e.HasIndex(x => x.CreatedAt);
+        });
+
+        b.Entity<CoursePersonalMaterial>(e =>
+        {
+            e.ToTable("course_personal_materials");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.CourseId).HasColumnName("course_id").IsRequired();
+            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(255);
+            e.Property(x => x.AuthorUserId).HasColumnName("author_user_id").IsRequired();
+            e.Property(x => x.AuthorEmail).HasColumnName("author_email").IsRequired().HasMaxLength(320);
+            e.Property(x => x.StoragePath).HasColumnName("storage_path").IsRequired().HasMaxLength(512);
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+
+            e.HasOne(x => x.Course)
+                .WithMany()
+                .HasForeignKey(x => x.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.AuthorUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.CourseId);
+            e.HasIndex(x => x.CreatedAt);
         });
 
         b.Entity<CalendarEvent>(e =>

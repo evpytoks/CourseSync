@@ -45,18 +45,38 @@ public sealed record UpdateUserSettingsRequest(
 
 public sealed record CourseListItem(
     Guid Id,
-    string Name);
+    [property: JsonPropertyName("name")] string Name);
 public sealed record CourseListResponse(IReadOnlyList<CourseListItem> Courses);
 
 public sealed record AddCourseRequest(
-    string Name,
+    [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string? GeneralInfo,
     [property: JsonPropertyName("useful_links")] string? UsefulLinks);
 public sealed record AddCourseResponse(
     Guid Id,
-    string Name,
+    [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string GeneralInfo,
     [property: JsonPropertyName("useful_links")] string UsefulLinks);
+
+public sealed record CourseDetailsResponse(
+    Guid Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("general_info")] string GeneralInfo,
+    [property: JsonPropertyName("useful_links")] string UsefulLinks);
+
+public sealed record ChangeCourseRequest(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("general_info")] string? GeneralInfo,
+    [property: JsonPropertyName("useful_links")] string? UsefulLinks);
+
+public sealed record CourseMaterialListItem(
+    Guid Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("author_email")] string AuthorEmail,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+
+public sealed record CourseMaterialListResponse(
+    [property: JsonPropertyName("materials")] IReadOnlyList<CourseMaterialListItem> Materials);
 
 public sealed record CalendarListItem(
     Guid Id,
