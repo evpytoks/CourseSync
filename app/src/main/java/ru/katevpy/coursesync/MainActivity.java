@@ -10,6 +10,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -41,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
     private TextView tvGroupIndicator;
+    private ImageButton btnEditCourse;
     private Button btnAddNews;
     private Button btnAddEvent;
     private Button btnCreateCourse;
@@ -74,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tvGroupIndicator = findViewById(R.id.tvGroupIndicator);
+        btnEditCourse = findViewById(R.id.btnEditCourse);
         btnAddNews = findViewById(R.id.btnAddNews);
         btnAddEvent = findViewById(R.id.btnAddEvent);
         btnCreateCourse = findViewById(R.id.btnCreateCourse);
@@ -101,6 +104,20 @@ public class MainActivity extends AppCompatActivity {
                 navController.navigate(R.id.action_groupsFragment_to_createGroupFragment));
         btnJoinGroup.setOnClickListener(v ->
                 navController.navigate(R.id.action_groupsFragment_to_joinGroupFragment));
+
+        btnEditCourse.setOnClickListener(v -> {
+            if (navController.getCurrentDestination() != null
+                    && navController.getCurrentDestination().getId() == R.id.courseDetailFragment
+                    && navController.getCurrentBackStackEntry() != null
+                    && navController.getCurrentBackStackEntry().getArguments() != null) {
+                String courseId = navController.getCurrentBackStackEntry().getArguments().getString("courseId");
+                if (courseId != null && !courseId.isEmpty()) {
+                    Bundle args = new Bundle();
+                    args.putString("courseId", courseId);
+                    navController.navigate(R.id.action_courseDetailFragment_to_editCourseFragment, args);
+                }
+            }
+        });
 
         btnEditEvent.setOnClickListener(v -> {
             if (navController.getCurrentBackStackEntry() != null && navController.getCurrentBackStackEntry().getArguments() != null) {
@@ -162,10 +179,11 @@ public class MainActivity extends AppCompatActivity {
             int id = destination.getId();
 
             boolean isLogin = (id == R.id.loginFragment);
-            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.createCourseFragment || id == R.id.createNewsFragment || id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment || id == R.id.newsDetailFragment);
+            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.createCourseFragment || id == R.id.createNewsFragment || id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment || id == R.id.newsDetailFragment || id == R.id.courseDetailFragment || id == R.id.editCourseFragment);
             boolean isEventScreen = (id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment);
             boolean isNewsScreenWithGroup = (id == R.id.newsDetailFragment || id == R.id.createNewsFragment);
-            boolean hideGroupIndicator = isLogin || id == R.id.settingsFragment || (isCreateOrJoinGroup && !isEventScreen && !isNewsScreenWithGroup);
+            boolean isCourseScreenWithGroup = (id == R.id.courseDetailFragment || id == R.id.editCourseFragment);
+            boolean hideGroupIndicator = isLogin || id == R.id.settingsFragment || (isCreateOrJoinGroup && !isEventScreen && !isNewsScreenWithGroup && !isCourseScreenWithGroup);
 
             if (isLogin) {
                 appliedThemeFromServer = false;
@@ -215,6 +233,9 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     btnAddNews.setVisibility(View.GONE);
                 }
+            }
+            if (btnEditCourse != null) {
+                btnEditCourse.setVisibility(id == R.id.courseDetailFragment ? View.VISIBLE : View.GONE);
             }
             if (toolbarGroupButtonsWrap != null) {
                 toolbarGroupButtonsWrap.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);

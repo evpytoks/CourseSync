@@ -96,6 +96,14 @@ public class CoursesFragment extends Fragment {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             lp.bottomMargin = marginBottom;
             btn.setLayoutParams(lp);
+            if (item.id != null) {
+                btn.setOnClickListener(v -> {
+                    Bundle args = new Bundle();
+                    args.putString("courseId", item.id.toString());
+                    NavHostFragment.findNavController(CoursesFragment.this)
+                            .navigate(R.id.action_coursesFragment_to_courseDetailFragment, args);
+                });
+            }
             coursesContainer.addView(btn);
         }
     }

@@ -31,6 +31,18 @@
                 android:gravity="center_vertical"
                 android:minHeight="?attr/actionBarSize">
 
+                <ImageButton
+                    android:id="@+id/btnEditCourse"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/event_edit"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_edit"
+                    android:visibility="gone"
+                    app:tint="@color/cs_toolbar_on_background" />
+
                 <Button
                     android:id="@+id/btnAddNews"
                     android:layout_width="wrap_content"
