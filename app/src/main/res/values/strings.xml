@@ -41,6 +41,8 @@
     <string name="course_materials_personal">Индивидуальные материалы</string>
     <string name="shared_materials_load_error">Не удалось загрузить материалы. Попробуйте позже</string>
     <string name="shared_materials_empty">Пока нет общих материалов</string>
+    <string name="personal_materials_load_error">Не удалось загрузить индивидуальные материалы. Попробуйте позже</string>
+    <string name="personal_materials_empty">Пока нет индивидуальных материалов</string>
     <string name="add_document">Добавить документ</string>
     <string name="material_upload_not_pdf">Нужен файл в формате PDF</string>
     <string name="material_upload_too_large">Размер файла не более 30 МБ</string>

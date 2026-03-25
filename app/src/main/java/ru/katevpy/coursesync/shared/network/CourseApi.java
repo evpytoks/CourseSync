@@ -32,6 +32,13 @@ public interface CourseApi {
     @POST("course/{id}/general_materials/add")
     Call<Void> addGeneralMaterial(@Path("id") UUID id, @Part MultipartBody.Part file);
 
+    @GET("course/{id}/personal_materials")
+    Call<CourseMaterialListResponse> listPersonalMaterials(@Path("id") UUID id);
+
+    @Multipart
+    @POST("course/{id}/personal_materials/add")
+    Call<Void> addPersonalMaterial(@Path("id") UUID id, @Part MultipartBody.Part file);
+
     @POST("course/add")
     Call<Void> addCourse(@Body AddCourseRequest request);
 
