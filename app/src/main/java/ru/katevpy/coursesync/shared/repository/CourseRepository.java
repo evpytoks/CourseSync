@@ -98,6 +98,37 @@ public class CourseRepository {
         }
     }
 
+    public Result<List<CourseMaterialListItem>> listPersonalMaterials(UUID courseId) {
+        try {
+            Response<CourseMaterialListResponse> r = api.listPersonalMaterials(courseId).execute();
+            if (r.isSuccessful() && r.body() != null) {
+                List<CourseMaterialListItem> list = r.body().materials;
+                return Result.success(list != null ? list : Collections.emptyList());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<Void> addPersonalMaterial(UUID courseId, byte[] fileBytes, String fileName) {
+        String name = (fileName != null && !fileName.isEmpty()) ? fileName : "document.pdf";
+        RequestBody body = RequestBody.create(fileBytes, MediaType.parse("application/pdf"));
+        MultipartBody.Part part = MultipartBody.Part.createFormData("file", name, body);
+        try {
+            Response<Void> r = api.addPersonalMaterial(courseId, part).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
+            return Result.networkError(e);
+        }
+    }
+
     public Result<Void> updateCourse(UUID courseId, String name, String generalInfo, String usefulLinks) {
         try {
             AddCourseRequest req = new AddCourseRequest(

@@ -13,3 +13,4 @@ public sealed class Notification
     public int SendAttempts { get; set; }
 }
 
+
