@@ -1,6 +1,7 @@
 package ru.katevpy.coursesync;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,6 +39,8 @@ import ru.katevpy.coursesync.shared.repository.GroupRepository;
 import ru.katevpy.coursesync.shared.repository.SettingsRepository;
 
 public class MainActivity extends AppCompatActivity {
+
+    public static final String EXTRA_OPEN_NEWS_FROM_PUSH = "coursesync_open_news_list";
 
     private BottomNavigationView bottomNav;
     private TextView tvGroupIndicator;
@@ -231,6 +234,52 @@ public class MainActivity extends AppCompatActivity {
                 getSupportActionBar().setDisplayHomeAsUpEnabled(false);
             }
         });
+
+        if (savedInstanceState == null) {
+            handleNotificationIntent(getIntent());
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleNotificationIntent(intent);
+    }
+
+    private void handleNotificationIntent(Intent intent) {
+        if (intent == null || !shouldOpenNewsListFromNotification(intent)) return;
+        View decor = getWindow() != null ? getWindow().getDecorView() : null;
+        if (decor != null) {
+            decor.post(this::openNewsListFromPush);
+        }
+    }
+
+    private static boolean shouldOpenNewsListFromNotification(Intent intent) {
+        if (intent.getBooleanExtra(EXTRA_OPEN_NEWS_FROM_PUSH, false)) {
+            return true;
+        }
+        String type = intent.getStringExtra("type");
+        return type != null && !type.isEmpty();
+    }
+
+    private void openNewsListFromPush() {
+        if (navController == null) return;
+        String token = App.getDeps().tokenStorage.getAccess();
+        if (token == null || token.isEmpty()) {
+            ((App) getApplication()).pendingOpenNewsListFromNotification = true;
+            return;
+        }
+        if (navController.getCurrentDestination() != null
+                && navController.getCurrentDestination().getId() == R.id.loginFragment) {
+            navController.navigate(R.id.action_loginFragment_to_groupsFragment);
+        }
+        scheduleOpenNewsTab();
+    }
+
+    public void scheduleOpenNewsTab() {
+        if (bottomNav == null) return;
+        bottomNav.post(() -> bottomNav.setSelectedItemId(R.id.newsFragment));
     }
 
     public void setCurrentGroupName(String name) {
