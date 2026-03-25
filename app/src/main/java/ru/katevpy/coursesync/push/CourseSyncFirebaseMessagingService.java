@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -75,10 +76,11 @@ public class CourseSyncFirebaseMessagingService extends FirebaseMessagingService
         }
         if (title == null) title = getString(R.string.app_name);
         if (body == null) body = "";
-        showNotification(title, body);
+        Map<String, String> data = remoteMessage.getData();
+        showNotification(title, body, data != null && !data.isEmpty() ? data : null);
     }
 
-    private void showNotification(String title, String body) {
+    private void showNotification(String title, String body, @Nullable Map<String, String> data) {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -86,8 +88,21 @@ public class CourseSyncFirebaseMessagingService extends FirebaseMessagingService
             nm.createNotificationChannel(channel);
         }
         Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        intent.setFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (data != null) {
+            for (Map.Entry<String, String> e : data.entrySet()) {
+                if (e.getKey() != null && e.getValue() != null) {
+                    intent.putExtra(e.getKey(), e.getValue());
+                }
+            }
+        }
+        intent.putExtra(MainActivity.EXTRA_OPEN_NEWS_FROM_PUSH, true);
+        int requestCode = (int) (System.currentTimeMillis() & 0x7fff_ffff);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(title)

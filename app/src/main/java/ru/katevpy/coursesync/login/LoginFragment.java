@@ -13,6 +13,8 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.activity.OnBackPressedCallback;
 import com.google.android.material.snackbar.Snackbar;
 
+import ru.katevpy.coursesync.App;
+import ru.katevpy.coursesync.MainActivity;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.databinding.FragmentLoginBinding;
 import ru.katevpy.coursesync.push.CourseSyncFirebaseMessagingService;
@@ -105,6 +107,15 @@ public class LoginFragment extends Fragment {
                 }
                 NavController navController = NavHostFragment.findNavController(this);
                 navController.navigate(R.id.action_loginFragment_to_groupsFragment);
+                if (appContext != null) {
+                    App app = (App) appContext.getApplicationContext();
+                    if (app.pendingOpenNewsListFromNotification) {
+                        app.pendingOpenNewsListFromNotification = false;
+                        if (getActivity() instanceof MainActivity) {
+                            ((MainActivity) getActivity()).scheduleOpenNewsTab();
+                        }
+                    }
+                }
             }
         });
     }
