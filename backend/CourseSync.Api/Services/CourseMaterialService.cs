@@ -25,6 +25,7 @@ public sealed class CourseMaterialService
         string Name,
         string AuthorEmail,
         DateTimeOffset CreatedAt);
+    public sealed record MaterialFileDto(Stream Content, string FileName);
 
     public async Task<(bool Ok, List<MaterialListItemDto>? Items, string? ErrorCode)> ListGeneralAsync(
         Guid userId,
@@ -310,6 +311,54 @@ public sealed class CourseMaterialService
             ct);
 
         return (true, null);
+    }
+
+    public async Task<(bool Ok, MaterialFileDto? File, string? ErrorCode)> OpenGeneralPdfAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        Guid materialId,
+        CancellationToken ct)
+    {
+        var access = await CheckCourseAccessAsync(userId, groupId, courseId, ct);
+        if (!access.Ok)
+            return (false, null, access.ErrorCode);
+
+        var entity = await _db.CourseGeneralMaterials
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == materialId && m.CourseId == courseId, ct);
+        if (entity is null)
+            return (false, null, "material_not_found");
+
+        var stream = await _blob.OpenReadAsync(entity.StoragePath, ct);
+        if (stream is null)
+            return (false, null, "material_not_found");
+
+        return (true, new MaterialFileDto(stream, entity.Name), null);
+    }
+
+    public async Task<(bool Ok, MaterialFileDto? File, string? ErrorCode)> OpenPersonalPdfAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        Guid materialId,
+        CancellationToken ct)
+    {
+        var access = await CheckCourseAccessAsync(userId, groupId, courseId, ct);
+        if (!access.Ok)
+            return (false, null, access.ErrorCode);
+
+        var entity = await _db.CoursePersonalMaterials
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == materialId && m.CourseId == courseId, ct);
+        if (entity is null)
+            return (false, null, "material_not_found");
+
+        var stream = await _blob.OpenReadAsync(entity.StoragePath, ct);
+        if (stream is null)
+            return (false, null, "material_not_found");
+
+        return (true, new MaterialFileDto(stream, entity.Name), null);
     }
 
     private async Task<(bool Ok, string? ErrorCode)> CheckCourseAccessAsync(

@@ -14,11 +14,11 @@ public sealed class CourseServiceTests
     public async Task DeleteCourseAsync_owner_removes_course_and_material_rows()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "MathGroup2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -27,9 +27,9 @@ public sealed class CourseServiceTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "C",
-            GeneralInfo = "x",
-            UsefulLinks = "y",
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -46,7 +46,7 @@ public sealed class CourseServiceTests
         {
             Id = Guid.NewGuid(),
             CourseId = course.Id,
-            Name = "m.pdf",
+            Name = "lecture-notes.pdf",
             AuthorUserId = owner.Id,
             AuthorEmail = owner.Email,
             StoragePath = "path/gen",
@@ -66,12 +66,12 @@ public sealed class CourseServiceTests
     public async Task DeleteCourseAsync_participant_forbidden()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var participant = new User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "MathGroup2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -80,9 +80,9 @@ public sealed class CourseServiceTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "C",
-            GeneralInfo = "x",
-            UsefulLinks = "y",
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.AddRange(owner, participant);
@@ -116,11 +116,11 @@ public sealed class CourseServiceTests
     public async Task DeleteCourseAsync_wrong_course_id_returns_course_not_in_group()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "MathGroup2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow

@@ -354,6 +354,33 @@ public sealed class CourseController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("{id:guid}/general_materials/{materialId:guid}/pdf")]
+    public async Task<IActionResult> OpenGeneralMaterialPdf(Guid id, Guid materialId, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, file, errorCode) = await _courseMaterialService.OpenGeneralPdfAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            materialId,
+            ct);
+
+        if (!ok)
+            return DownloadMaterialError(errorCode!);
+
+        return File(file!.Content, "application/pdf", file.FileName, enableRangeProcessing: true);
+    }
+
     [HttpDelete("{id:guid}/personal_materials/{materialId:guid}")]
     public async Task<IActionResult> DeletePersonalMaterial(Guid id, Guid materialId, CancellationToken ct)
     {
@@ -381,6 +408,33 @@ public sealed class CourseController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("{id:guid}/personal_materials/{materialId:guid}/pdf")]
+    public async Task<IActionResult> OpenPersonalMaterialPdf(Guid id, Guid materialId, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, file, errorCode) = await _courseMaterialService.OpenPersonalPdfAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            materialId,
+            ct);
+
+        if (!ok)
+            return DownloadMaterialError(errorCode!);
+
+        return File(file!.Content, "application/pdf", file.FileName, enableRangeProcessing: true);
+    }
+
     private IActionResult MaterialAccessError(string errorCode)
     {
         if (errorCode == "forbidden")
@@ -398,6 +452,17 @@ public sealed class CourseController : ControllerBase
     }
 
     private IActionResult DeleteMaterialError(string errorCode)
+    {
+        if (errorCode == "forbidden")
+            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+        if (errorCode == "course_not_in_group")
+            return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
+        if (errorCode == "material_not_found")
+            return NotFound(new ErrorEnvelope(new ApiError("material_not_found")));
+        return BadRequest(new ErrorEnvelope(new ApiError(errorCode)));
+    }
+
+    private IActionResult DownloadMaterialError(string errorCode)
     {
         if (errorCode == "forbidden")
             return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));

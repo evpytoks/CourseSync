@@ -32,4 +32,23 @@ public sealed class S3CourseMaterialBlobStorage : ICourseMaterialBlobStorage
 
     public Task DeleteAsync(string objectKey, CancellationToken ct) =>
         _s3.DeleteObjectAsync(_bucket, objectKey, ct);
+
+    public async Task<Stream?> OpenReadAsync(string objectKey, CancellationToken ct)
+    {
+        try
+        {
+            var resp = await _s3.GetObjectAsync(_bucket, objectKey, ct);
+            using (resp)
+            {
+                var ms = new MemoryStream();
+                await resp.ResponseStream.CopyToAsync(ms, ct);
+                ms.Position = 0;
+                return ms;
+            }
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
 }

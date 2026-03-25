@@ -13,6 +13,13 @@ public sealed class NotificationService
 
     public NotificationService(AppDbContext db) => _db = db;
 
+    private static string NotificationTitleFromGroupName(string groupName)
+    {
+        var g = (groupName ?? "").Trim();
+        if (g.Length <= NotificationTitleMaxLength) return g;
+        return g[..NotificationTitleMaxLength];
+    }
+
     public Task CreateNewsAndPushAsync(
         string type,
         Guid actorUserId,
@@ -76,6 +83,10 @@ public sealed class NotificationService
                 $"Notification title length must be between {NotificationTitleMinLength} and {NotificationTitleMaxLength}.",
                 nameof(title));
 
+        var group = await _db.Groups.AsNoTracking().FirstOrDefaultAsync(g => g.Id == groupId, ct);
+        if (group is null)
+            throw new InvalidOperationException($"Group {groupId} not found.");
+
         var news = new News
         {
             Id = Guid.NewGuid(),
@@ -87,9 +98,11 @@ public sealed class NotificationService
         };
         _db.News.Add(news);
 
-        var body = string.IsNullOrEmpty(descriptionValue) ? titleValue : descriptionValue;
-        if (body.Length > NotificationBodyMaxLength)
-            throw new ArgumentException($"Notification body length must be <= {NotificationBodyMaxLength}.", nameof(description));
+        if (descriptionValue.Length > NotificationBodyMaxLength)
+            throw new ArgumentException($"News description length must be <= {NotificationBodyMaxLength}.", nameof(description));
+
+        var notificationTitle = NotificationTitleFromGroupName(group.Name);
+        var notificationBody = titleValue;
 
         var memberUserIds = await resolveRecipients(ct);
 
@@ -101,8 +114,8 @@ public sealed class NotificationService
                 UserId = userId,
                 GroupId = groupId,
                 Type = type,
-                Title = titleValue,
-                Body = body,
+                Title = notificationTitle,
+                Body = notificationBody,
                 CreatedAt = now
             });
         }

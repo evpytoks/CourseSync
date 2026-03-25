@@ -47,7 +47,7 @@ public sealed class CourseControllerTests
     public async Task Delete_no_current_group_returns_400()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "student@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
 
@@ -61,11 +61,11 @@ public sealed class CourseControllerTests
     public async Task Delete_owner_returns_204()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "MathGroup2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -74,9 +74,9 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "C",
-            GeneralInfo = "x",
-            UsefulLinks = "y",
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -101,12 +101,12 @@ public sealed class CourseControllerTests
     public async Task Delete_participant_returns_403()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var participant = new User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "MathGroup2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -115,9 +115,9 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "C",
-            GeneralInfo = "x",
-            UsefulLinks = "y",
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.AddRange(owner, participant);
@@ -151,11 +151,11 @@ public sealed class CourseControllerTests
     public async Task Delete_unknown_course_returns_400()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "MathGroup2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -176,5 +176,98 @@ public sealed class CourseControllerTests
         var res = await controller.Delete(Guid.NewGuid(), CancellationToken.None);
         var bad = Assert.IsType<BadRequestObjectResult>(res);
         Assert.Equal("course_not_in_group", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
+    }
+
+    [Fact]
+    public async Task OpenGeneralPdf_owner_returns_file()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "MathGroup2026",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var materialId = Guid.NewGuid();
+        tdb.Db.Users.Add(owner);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = owner.Id,
+            Role = GroupRole.Owner,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.Courses.Add(course);
+        tdb.Db.CourseGeneralMaterials.Add(new CourseGeneralMaterial
+        {
+            Id = materialId,
+            CourseId = course.Id,
+            Name = "lecture-notes.pdf",
+            AuthorUserId = owner.Id,
+            AuthorEmail = owner.Email,
+            StoragePath = "general/path",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        owner.CurrentGroupId = group.Id;
+        await tdb.Db.SaveChangesAsync();
+
+        var controller = CreateController(tdb, owner.Id);
+        var res = await controller.OpenGeneralMaterialPdf(course.Id, materialId, CancellationToken.None);
+        var file = Assert.IsType<FileStreamResult>(res);
+        Assert.Equal("application/pdf", file.ContentType);
+        Assert.Equal("lecture-notes.pdf", file.FileDownloadName);
+    }
+
+    [Fact]
+    public async Task OpenPersonalPdf_unknown_material_returns_404()
+    {
+        await using var tdb = new TestDb();
+        var user = new User { Id = Guid.NewGuid(), Email = "student@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "MathGroup2026",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        tdb.Db.Users.Add(user);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = user.Id,
+            Role = GroupRole.Participant,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.Courses.Add(course);
+        user.CurrentGroupId = group.Id;
+        await tdb.Db.SaveChangesAsync();
+
+        var controller = CreateController(tdb, user.Id);
+        var res = await controller.OpenPersonalMaterialPdf(course.Id, Guid.NewGuid(), CancellationToken.None);
+        Assert.IsType<NotFoundObjectResult>(res);
     }
 }
