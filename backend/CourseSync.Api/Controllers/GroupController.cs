@@ -82,6 +82,26 @@ public sealed class GroupController : ControllerBase
         return Ok();
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var (ok, errorCode) = await _groupService.DeleteGroupAsync(userId.Value, id, ct);
+        if (!ok)
+        {
+            if (errorCode == "forbidden")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            if (errorCode == "group_not_found")
+                return NotFound(new ErrorEnvelope(new ApiError("group_not_found")));
+            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
+        }
+
+        return NoContent();
+    }
+
     [HttpPost("{id:guid}/choose")]
     public async Task<IActionResult> Choose(Guid id, CancellationToken ct)
     {

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using CourseSync.Api.Data;
+using CourseSync.Api.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using Npgsql;
@@ -15,8 +16,15 @@ public sealed class GroupService
     private const int CodeCollisionRetryCount = 5;
 
     private readonly AppDbContext _db;
+    private readonly NotificationService _notifications;
+    private readonly ICourseMaterialBlobStorage _materialBlobs;
 
-    public GroupService(AppDbContext db) => _db = db;
+    public GroupService(AppDbContext db, NotificationService notifications, ICourseMaterialBlobStorage materialBlobs)
+    {
+        _db = db;
+        _notifications = notifications;
+        _materialBlobs = materialBlobs;
+    }
 
     public static (bool Valid, string? ErrorCode) ValidateGroupName(string? name)
     {
@@ -175,6 +183,15 @@ public sealed class GroupService
         if (group is null) return (false, "forbidden");
         group.Name = name.Trim();
         await _db.SaveChangesAsync(ct);
+
+        await _notifications.CreateNewsAndPushAsync(
+            "group_renamed",
+            userId,
+            groupId,
+            "Группа переименована",
+            $"Новое название: {group.Name}",
+            ct);
+
         return (true, null);
     }
 
@@ -191,6 +208,46 @@ public sealed class GroupService
         user.CurrentGroupId = groupId;
         await _db.SaveChangesAsync(ct);
         return (true, groupId, member.Group!.Name);
+    }
+
+    public async Task<(bool Ok, string? ErrorCode)> DeleteGroupAsync(Guid userId, Guid groupId, CancellationToken ct)
+    {
+        var groupExists = await _db.Groups.AnyAsync(g => g.Id == groupId, ct);
+        if (!groupExists)
+            return (false, "group_not_found");
+
+        var member = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (member is null || member.Role != GroupRole.Owner)
+            return (false, "forbidden");
+
+        var courseIds = await _db.Courses.Where(c => c.GroupId == groupId).Select(c => c.Id).ToListAsync(ct);
+        if (courseIds.Count > 0)
+        {
+            var genPaths = await _db.CourseGeneralMaterials
+                .Where(m => courseIds.Contains(m.CourseId))
+                .Select(m => m.StoragePath)
+                .ToListAsync(ct);
+            var perPaths = await _db.CoursePersonalMaterials
+                .Where(m => courseIds.Contains(m.CourseId))
+                .Select(m => m.StoragePath)
+                .ToListAsync(ct);
+            foreach (var path in genPaths.Concat(perPaths).Distinct())
+            {
+                try
+                {
+                    await _materialBlobs.DeleteAsync(path, ct);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        var group = await _db.Groups.FirstAsync(g => g.Id == groupId, ct);
+        _db.Groups.Remove(group);
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
     }
 
     public async Task<(bool Ok, Guid Id, string Name, string Role, string? GroupCode, string? ErrorCode)> GetGroupDetailsAsync(Guid userId, CancellationToken ct)

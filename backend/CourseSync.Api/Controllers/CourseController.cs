@@ -169,6 +169,36 @@ public sealed class CourseController : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, errorCode) = await _courseService.DeleteCourseAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            ct);
+
+        if (!ok)
+        {
+            if (errorCode == "forbidden")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
+        }
+
+        return NoContent();
+    }
+
     [HttpGet("{id:guid}/general_materials")]
     public async Task<IActionResult> ListGeneralMaterials(Guid id, CancellationToken ct)
     {

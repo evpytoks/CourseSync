@@ -11,11 +11,13 @@ public sealed class CourseMaterialService
 
     private readonly AppDbContext _db;
     private readonly ICourseMaterialBlobStorage _blob;
+    private readonly NotificationService _notifications;
 
-    public CourseMaterialService(AppDbContext db, ICourseMaterialBlobStorage blob)
+    public CourseMaterialService(AppDbContext db, ICourseMaterialBlobStorage blob, NotificationService notifications)
     {
         _db = db;
         _blob = blob;
+        _notifications = notifications;
     }
 
     public sealed record MaterialListItemDto(
@@ -121,6 +123,19 @@ public sealed class CourseMaterialService
             throw;
         }
 
+        {
+            var course = await _db.Courses.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == courseId, ct);
+            var courseLabel = course?.Name ?? "";
+            await _notifications.CreateNewsAndPushAsync(
+                "general_material_added",
+                userId,
+                groupId,
+                "Общий материал",
+                $"Курс: {courseLabel}\nФайл: {name}",
+                ct);
+        }
+
         return (true, null);
     }
 
@@ -180,6 +195,19 @@ public sealed class CourseMaterialService
             throw;
         }
 
+        {
+            var course = await _db.Courses.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == courseId, ct);
+            var courseLabel = course?.Name ?? "";
+            await _notifications.CreateNewsAndPushToAllMembersExceptAsync(
+                "personal_material_added",
+                groupId,
+                "Индивидуальный материал",
+                $"Курс: {courseLabel}\nФайл: {name}",
+                userId,
+                ct);
+        }
+
         return (true, null);
     }
 
@@ -207,6 +235,11 @@ public sealed class CourseMaterialService
         if (entity is null)
             return (false, "material_not_found");
 
+        var course = await _db.Courses.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == courseId, ct);
+        var courseLabel = course?.Name ?? "";
+        var materialLabel = entity.Name;
+
         _db.CourseGeneralMaterials.Remove(entity);
         await _db.SaveChangesAsync(ct);
         try
@@ -216,6 +249,14 @@ public sealed class CourseMaterialService
         catch
         {
         }
+
+        await _notifications.CreateNewsAndPushAsync(
+            "general_material_deleted",
+            userId,
+            groupId,
+            "Общий материал удалён",
+            $"Курс: {courseLabel}\nФайл: {materialLabel}",
+            ct);
 
         return (true, null);
     }
@@ -245,6 +286,11 @@ public sealed class CourseMaterialService
         if (!canDelete)
             return (false, "forbidden");
 
+        var course = await _db.Courses.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == courseId, ct);
+        var courseLabel = course?.Name ?? "";
+        var materialLabel = entity.Name;
+
         _db.CoursePersonalMaterials.Remove(entity);
         await _db.SaveChangesAsync(ct);
         try
@@ -254,6 +300,14 @@ public sealed class CourseMaterialService
         catch
         {
         }
+
+        await _notifications.CreateNewsAndPushToAllMembersExceptAsync(
+            "personal_material_deleted",
+            groupId,
+            "Индивидуальный материал удалён",
+            $"Курс: {courseLabel}\nФайл: {materialLabel}",
+            userId,
+            ct);
 
         return (true, null);
     }

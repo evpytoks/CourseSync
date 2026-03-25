@@ -1,0 +1,10 @@
+using CourseSync.Api.Infrastructure.Storage;
+
+namespace CourseSync.Api.Tests;
+
+internal sealed class NoOpCourseMaterialBlobStorage : ICourseMaterialBlobStorage
+{
+    public Task UploadAsync(Stream content, string objectKey, CancellationToken ct) => Task.CompletedTask;
+
+    public Task DeleteAsync(string objectKey, CancellationToken ct) => Task.CompletedTask;
+}
