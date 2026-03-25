@@ -1,4 +1,5 @@
 using CourseSync.Api.Data;
+using CourseSync.Api.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseSync.Api.Services;
@@ -11,8 +12,15 @@ public sealed class CourseService
     private const int UsefulLinksMaxLength = 1000;
 
     private readonly AppDbContext _db;
+    private readonly NotificationService _notifications;
+    private readonly ICourseMaterialBlobStorage _materialBlobs;
 
-    public CourseService(AppDbContext db) => _db = db;
+    public CourseService(AppDbContext db, NotificationService notifications, ICourseMaterialBlobStorage materialBlobs)
+    {
+        _db = db;
+        _notifications = notifications;
+        _materialBlobs = materialBlobs;
+    }
 
     public static (bool Valid, string? ErrorCode) ValidateCourseName(string? name)
     {
@@ -64,6 +72,15 @@ public sealed class CourseService
         };
         _db.Courses.Add(course);
         await _db.SaveChangesAsync(ct);
+
+        await _notifications.CreateNewsAndPushAsync(
+            "course_created",
+            userId,
+            groupId,
+            "Новый курс",
+            $"Добавлен курс: {course.Name}",
+            ct);
+
         return (true, course.Id, course.Name, course.GeneralInfo, course.UsefulLinks, null);
     }
 
@@ -130,6 +147,68 @@ public sealed class CourseService
         course.GeneralInfo = generalInfo ?? "";
         course.UsefulLinks = usefulLinks ?? "";
         await _db.SaveChangesAsync(ct);
+
+        await _notifications.CreateNewsAndPushAsync(
+            "course_updated",
+            userId,
+            groupId,
+            "Курс обновлён",
+            $"Курс: {course.Name}",
+            ct);
+
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? ErrorCode)> DeleteCourseAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        CancellationToken ct)
+    {
+        var member = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (member is null)
+            return (false, "forbidden");
+
+        var course = await _db.Courses
+            .FirstOrDefaultAsync(c => c.Id == courseId && c.GroupId == groupId, ct);
+        if (course is null)
+            return (false, "course_not_in_group");
+
+        if (member.Role != GroupRole.Owner)
+            return (false, "forbidden");
+
+        var genPaths = await _db.CourseGeneralMaterials
+            .Where(m => m.CourseId == courseId)
+            .Select(m => m.StoragePath)
+            .ToListAsync(ct);
+        var perPaths = await _db.CoursePersonalMaterials
+            .Where(m => m.CourseId == courseId)
+            .Select(m => m.StoragePath)
+            .ToListAsync(ct);
+        foreach (var path in genPaths.Concat(perPaths).Distinct())
+        {
+            try
+            {
+                await _materialBlobs.DeleteAsync(path, ct);
+            }
+            catch
+            {
+            }
+        }
+
+        var courseName = course.Name;
+        _db.Courses.Remove(course);
+        await _db.SaveChangesAsync(ct);
+
+        await _notifications.CreateNewsAndPushAsync(
+            "course_deleted",
+            userId,
+            groupId,
+            "Курс удалён",
+            $"Удалён курс: {courseName}",
+            ct);
+
         return (true, null);
     }
 }

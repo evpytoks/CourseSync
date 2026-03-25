@@ -16,7 +16,7 @@ using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
-const long maxMultipartBodyBytes = 32 * 1024 * 1024;
+const long maxMultipartBodyBytes = CourseMaterialUploadLimits.MaxMultipartRequestBytes;
 
 builder.Services.Configure<FormOptions>(o =>
 {

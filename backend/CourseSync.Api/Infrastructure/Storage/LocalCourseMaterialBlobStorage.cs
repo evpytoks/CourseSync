@@ -26,6 +26,15 @@ public sealed class LocalCourseMaterialBlobStorage : ICourseMaterialBlobStorage
         return Task.CompletedTask;
     }
 
+    public Task<Stream?> OpenReadAsync(string objectKey, CancellationToken ct)
+    {
+        var fullPath = Path.Combine(StorageRoot, objectKey.Replace('/', Path.DirectorySeparatorChar));
+        if (!File.Exists(fullPath))
+            return Task.FromResult<Stream?>(null);
+        Stream stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Task.FromResult<Stream?>(stream);
+    }
+
     private static void TryDeleteFile(string fullPath)
     {
         try
