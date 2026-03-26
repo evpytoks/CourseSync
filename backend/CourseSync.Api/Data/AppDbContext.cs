@@ -12,6 +12,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<Course> Courses => Set<Course>();
+    public DbSet<CourseGradingElement> CourseGradingElements => Set<CourseGradingElement>();
     public DbSet<CourseGeneralMaterial> CourseGeneralMaterials => Set<CourseGeneralMaterial>();
     public DbSet<CoursePersonalMaterial> CoursePersonalMaterials => Set<CoursePersonalMaterial>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
@@ -160,6 +161,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
             e.Property(x => x.GeneralInfo).HasColumnName("general_info").IsRequired().HasMaxLength(2000);
             e.Property(x => x.UsefulLinks).HasColumnName("useful_links").IsRequired().HasMaxLength(1000);
+            e.Property(x => x.GradingText).HasColumnName("grading_text").IsRequired().HasMaxLength(3000).HasDefaultValue("");
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
             e.HasOne<Group>()
@@ -168,6 +170,27 @@ public sealed class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(x => x.GroupId);
+        });
+
+        b.Entity<CourseGradingElement>(e =>
+        {
+            e.ToTable("course_grading_elements");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.CourseId).HasColumnName("course_id").IsRequired();
+            e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
+            e.Property(x => x.Coefficient).HasColumnName("coefficient").HasColumnType("numeric(5,4)").IsRequired();
+            e.Property(x => x.Position).HasColumnName("position").IsRequired();
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+
+            e.HasOne(x => x.Course)
+                .WithMany()
+                .HasForeignKey(x => x.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.CourseId);
+            e.HasIndex(x => new { x.CourseId, x.Position });
         });
 
         b.Entity<CourseGeneralMaterial>(e =>

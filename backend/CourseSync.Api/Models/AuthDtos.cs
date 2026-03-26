@@ -78,6 +78,36 @@ public sealed record CourseMaterialListItem(
 public sealed record CourseMaterialListResponse(
     [property: JsonPropertyName("materials")] IReadOnlyList<CourseMaterialListItem> Materials);
 
+public sealed record CoursePersonalMaterialListItem(
+    Guid Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("author_email")] string AuthorEmail,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("is_creator")] bool IsCreator);
+
+public sealed record CoursePersonalMaterialListResponse(
+    [property: JsonPropertyName("materials")] IReadOnlyList<CoursePersonalMaterialListItem> Materials);
+
+public sealed record CourseGradingElementRequest(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("coefficient")] decimal Coefficient);
+
+public sealed record SaveCourseGradingRequest(
+    [property: JsonPropertyName("text")] string? Text,
+    [property: JsonPropertyName("elements")] IReadOnlyList<CourseGradingElementRequest>? Elements);
+
+public sealed record CourseGradingTextResponse(
+    [property: JsonPropertyName("text")] string Text);
+
+public sealed record CourseGradingElementResponse(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("coefficient")] decimal Coefficient,
+    [property: JsonPropertyName("count")] int Count,
+    [property: JsonPropertyName("average_score")] decimal AverageScore);
+
+public sealed record CourseGradingResponse(
+    [property: JsonPropertyName("elements")] IReadOnlyList<CourseGradingElementResponse> Elements);
+
 public sealed record CalendarListItem(
     Guid Id,
     string Name,

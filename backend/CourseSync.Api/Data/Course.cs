@@ -7,5 +7,6 @@ public sealed class Course
     public string Name { get; set; } = null!;
     public string GeneralInfo { get; set; } = "";
     public string UsefulLinks { get; set; } = "";
+    public string GradingText { get; set; } = "";
     public DateTimeOffset CreatedAt { get; set; }
 }

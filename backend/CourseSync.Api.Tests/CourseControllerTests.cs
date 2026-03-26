@@ -270,4 +270,275 @@ public sealed class CourseControllerTests
         var res = await controller.OpenPersonalMaterialPdf(course.Id, Guid.NewGuid(), CancellationToken.None);
         Assert.IsType<NotFoundObjectResult>(res);
     }
+
+    [Fact]
+    public async Task SaveGrading_invalid_coeff_sum_returns_400()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "MathGroup2026",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        tdb.Db.Users.Add(owner);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = owner.Id,
+            Role = GroupRole.Owner,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.Courses.Add(course);
+        owner.CurrentGroupId = group.Id;
+        await tdb.Db.SaveChangesAsync();
+
+        var controller = CreateController(tdb, owner.Id);
+        var req = new SaveCourseGradingRequest(
+            "How final grade is computed",
+            new[]
+            {
+                new CourseGradingElementRequest("Tests", 0.3m),
+                new CourseGradingElementRequest("Exam", 0.5m)
+            });
+
+        var res = await controller.SaveGrading(course.Id, req, CancellationToken.None);
+        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        Assert.Equal("grading_coefficients_sum_must_equal_1", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
+    }
+
+    [Fact]
+    public async Task SaveGrading_empty_elements_is_allowed()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "MathGroup2026",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        tdb.Db.Users.Add(owner);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = owner.Id,
+            Role = GroupRole.Owner,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.Courses.Add(course);
+        owner.CurrentGroupId = group.Id;
+        await tdb.Db.SaveChangesAsync();
+
+        var controller = CreateController(tdb, owner.Id);
+        var req = new SaveCourseGradingRequest("Text only", Array.Empty<CourseGradingElementRequest>());
+        var res = await controller.SaveGrading(course.Id, req, CancellationToken.None);
+        Assert.IsType<NoContentResult>(res);
+    }
+
+    [Fact]
+    public async Task GetGradingText_returns_saved_text()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "MathGroup2026",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
+            GradingText = "Final score is weighted sum.",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        tdb.Db.Users.Add(owner);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = owner.Id,
+            Role = GroupRole.Owner,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.Courses.Add(course);
+        owner.CurrentGroupId = group.Id;
+        await tdb.Db.SaveChangesAsync();
+
+        var controller = CreateController(tdb, owner.Id);
+        var res = await controller.GetGradingText(course.Id, CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(res);
+        var payload = Assert.IsType<CourseGradingTextResponse>(ok.Value);
+        Assert.Equal("Final score is weighted sum.", payload.Text);
+    }
+
+    [Fact]
+    public async Task GetGrading_returns_elements_with_default_count_and_average()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "MathGroup2026",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        tdb.Db.Users.Add(owner);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = owner.Id,
+            Role = GroupRole.Owner,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.Courses.Add(course);
+        tdb.Db.CourseGradingElements.AddRange(
+            new CourseGradingElement
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                Name = "Tests",
+                Coefficient = 0.3m,
+                Position = 0,
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new CourseGradingElement
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                Name = "Homework",
+                Coefficient = 0.2m,
+                Position = 1,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        owner.CurrentGroupId = group.Id;
+        await tdb.Db.SaveChangesAsync();
+
+        var controller = CreateController(tdb, owner.Id);
+        var res = await controller.GetGrading(course.Id, CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(res);
+        var payload = Assert.IsType<CourseGradingResponse>(ok.Value);
+        Assert.Equal(2, payload.Elements.Count);
+        Assert.Equal("Tests", payload.Elements[0].Name);
+        Assert.Equal(1, payload.Elements[0].Count);
+        Assert.Equal(0m, payload.Elements[0].AverageScore);
+    }
+
+    [Fact]
+    public async Task ListPersonalMaterials_includes_is_creator_flag()
+    {
+        await using var tdb = new TestDb();
+        var currentUser = new User { Id = Guid.NewGuid(), Email = "student@edu.hse.ru" };
+        var otherUser = new User { Id = Guid.NewGuid(), Email = "other@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "MathGroup2026",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Linear Algebra",
+            GeneralInfo = "Core linear algebra theory and practice.",
+            UsefulLinks = "https://example.edu/algebra",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        tdb.Db.Users.AddRange(currentUser, otherUser);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.AddRange(
+            new GroupMember
+            {
+                GroupId = group.Id,
+                UserId = currentUser.Id,
+                Role = GroupRole.Participant,
+                JoinedAt = DateTimeOffset.UtcNow
+            },
+            new GroupMember
+            {
+                GroupId = group.Id,
+                UserId = otherUser.Id,
+                Role = GroupRole.Participant,
+                JoinedAt = DateTimeOffset.UtcNow
+            });
+        tdb.Db.Courses.Add(course);
+        tdb.Db.CoursePersonalMaterials.AddRange(
+            new CoursePersonalMaterial
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                Name = "my-solution.pdf",
+                AuthorUserId = currentUser.Id,
+                AuthorEmail = currentUser.Email,
+                StoragePath = "personal/my",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new CoursePersonalMaterial
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                Name = "teammate-solution.pdf",
+                AuthorUserId = otherUser.Id,
+                AuthorEmail = otherUser.Email,
+                StoragePath = "personal/other",
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        currentUser.CurrentGroupId = group.Id;
+        await tdb.Db.SaveChangesAsync();
+
+        var controller = CreateController(tdb, currentUser.Id);
+        var res = await controller.ListPersonalMaterials(course.Id, CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(res);
+        var payload = Assert.IsType<CoursePersonalMaterialListResponse>(ok.Value);
+        Assert.Equal(2, payload.Materials.Count);
+        Assert.Contains(payload.Materials, m => m.Name == "my-solution.pdf" && m.IsCreator);
+        Assert.Contains(payload.Materials, m => m.Name == "teammate-solution.pdf" && !m.IsCreator);
+    }
 }
