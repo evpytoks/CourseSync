@@ -21,7 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import ru.katevpy.coursesync.App;
-import ru.katevpy.coursesync.shared.dto.CourseMaterialListItem;
+import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListItem;
 import ru.katevpy.coursesync.shared.repository.CourseRepository;
 import ru.katevpy.coursesync.shared.util.Result;
 
@@ -31,17 +31,18 @@ public class CoursePersonalMaterialsViewModel extends AndroidViewModel {
 
     private final CourseRepository repo = new CourseRepository(App.getDeps().courseApi);
     private final ExecutorService io = Executors.newSingleThreadExecutor();
-    private final MutableLiveData<Result<List<CourseMaterialListItem>>> loadResult = new MutableLiveData<>();
+    private final MutableLiveData<Result<List<CoursePersonalMaterialListItem>>> loadResult = new MutableLiveData<>();
     private final MutableLiveData<Result<Void>> uploadResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> uploadInProgress = new MutableLiveData<>(false);
     private final MutableLiveData<Result<File>> downloadForViewResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> pdfOpenInProgress = new MutableLiveData<>(false);
+    private final MutableLiveData<Result<Void>> deleteResult = new MutableLiveData<>();
 
     public CoursePersonalMaterialsViewModel(@NonNull Application application) {
         super(application);
     }
 
-    public LiveData<Result<List<CourseMaterialListItem>>> getLoadResult() {
+    public LiveData<Result<List<CoursePersonalMaterialListItem>>> getLoadResult() {
         return loadResult;
     }
 
@@ -63,6 +64,14 @@ public class CoursePersonalMaterialsViewModel extends AndroidViewModel {
 
     public void loadPersonalMaterials(UUID courseId) {
         io.execute(() -> loadResult.postValue(repo.listPersonalMaterials(courseId)));
+    }
+
+    public LiveData<Result<Void>> getDeleteResult() {
+        return deleteResult;
+    }
+
+    public void deletePersonalMaterial(UUID courseId, UUID materialId) {
+        io.execute(() -> deleteResult.postValue(repo.deletePersonalMaterial(courseId, materialId)));
     }
 
     public void uploadPersonalMaterial(UUID courseId, Uri uri) {

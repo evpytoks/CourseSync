@@ -1,5 +1,6 @@
 package ru.katevpy.coursesync.courses;
 
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
@@ -30,7 +31,7 @@ import java.util.UUID;
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.ApiError;
-import ru.katevpy.coursesync.shared.dto.CourseMaterialListItem;
+import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListItem;
 import ru.katevpy.coursesync.shared.util.Result;
 
 public class CoursePersonalMaterialsFragment extends Fragment {
@@ -82,6 +83,7 @@ public class CoursePersonalMaterialsFragment extends Fragment {
         viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
         viewModel.getUploadResult().observe(getViewLifecycleOwner(), this::onUploadResult);
         viewModel.getDownloadForViewResult().observe(getViewLifecycleOwner(), this::onDownloadForViewResult);
+        viewModel.getDeleteResult().observe(getViewLifecycleOwner(), this::onDeleteResult);
         viewModel.getUploadInProgress().observe(getViewLifecycleOwner(), busy -> {
             if (btnAddDocument != null) {
                 btnAddDocument.setEnabled(busy == null || !busy);
@@ -108,15 +110,15 @@ public class CoursePersonalMaterialsFragment extends Fragment {
         viewModel.uploadPersonalMaterial(courseId, uri);
     }
 
-    private void onLoadResult(@Nullable Result<List<CourseMaterialListItem>> result) {
+    private void onLoadResult(@Nullable Result<List<CoursePersonalMaterialListItem>> result) {
         if (result == null) return;
         if (result instanceof Result.Success) {
-            List<CourseMaterialListItem> items = ((Result.Success<List<CourseMaterialListItem>>) result).data;
+            List<CoursePersonalMaterialListItem> items = ((Result.Success<List<CoursePersonalMaterialListItem>>) result).data;
             renderList(items);
             return;
         }
         if (result instanceof Result.HttpError) {
-            int code = ((Result.HttpError<List<CourseMaterialListItem>>) result).httpCode;
+            int code = ((Result.HttpError<List<CoursePersonalMaterialListItem>>) result).httpCode;
             if (code == 401) {
                 App.getDeps().tokenStorage.clear();
                 NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
@@ -133,6 +135,43 @@ public class CoursePersonalMaterialsFragment extends Fragment {
             }
         }
         Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+    }
+
+    private void onDeleteResult(@Nullable Result<Void> result) {
+        if (result == null) return;
+        if (result instanceof Result.Success) {
+            if (courseId != null) {
+                viewModel.loadPersonalMaterials(courseId);
+            }
+            return;
+        }
+        if (result instanceof Result.HttpError) {
+            Result.HttpError<Void> he = (Result.HttpError<Void>) result;
+            if (he.httpCode == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavOptions opts = new NavOptions.Builder()
+                        .setPopUpTo(R.id.groupsFragment, true)
+                        .build();
+                NavHostFragment.findNavController(this).navigate(R.id.loginFragment, null, opts);
+                return;
+            }
+            if (he.httpCode == 500) {
+                Snackbar.make(requireView(), R.string.material_delete_server_error, Snackbar.LENGTH_LONG).show();
+                return;
+            }
+        }
+        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+    }
+
+    private void askDeleteMaterial(@NonNull CoursePersonalMaterialListItem item) {
+        if (courseId == null || item.id == null) return;
+        String name = item.name != null && !item.name.trim().isEmpty() ? item.name.trim() : "документ";
+        new AlertDialog.Builder(requireContext())
+                .setMessage(getString(R.string.delete_material_confirm, name))
+                .setPositiveButton(R.string.event_yes, (d, which) ->
+                        viewModel.deletePersonalMaterial(courseId, item.id))
+                .setNegativeButton(R.string.event_no, null)
+                .show();
     }
 
     private void onDownloadForViewResult(@Nullable Result<File> result) {
@@ -237,7 +276,7 @@ public class CoursePersonalMaterialsFragment extends Fragment {
         }
     }
 
-    private void renderList(@Nullable List<CourseMaterialListItem> items) {
+    private void renderList(@Nullable List<CoursePersonalMaterialListItem> items) {
         materialsList.removeAllViews();
         if (items == null || items.isEmpty()) {
             emptyView.setVisibility(View.VISIBLE);
@@ -247,7 +286,7 @@ public class CoursePersonalMaterialsFragment extends Fragment {
         float density = getResources().getDisplayMetrics().density;
         int marginBottom = (int) (12 * density);
         int cardPadding = (int) (16 * density);
-        for (CourseMaterialListItem item : items) {
+        for (CoursePersonalMaterialListItem item : items) {
             MaterialCardView card = new MaterialCardView(requireContext());
             LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -264,9 +303,19 @@ public class CoursePersonalMaterialsFragment extends Fragment {
                         viewModel.downloadPersonalPdfForView(courseId, materialId));
             }
 
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setPadding(cardPadding, cardPadding, cardPadding, cardPadding);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
             LinearLayout inner = new LinearLayout(requireContext());
             inner.setOrientation(LinearLayout.VERTICAL);
-            inner.setPadding(cardPadding, cardPadding, cardPadding, cardPadding);
+            LinearLayout.LayoutParams innerLp = new LinearLayout.LayoutParams(
+                    0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    1f);
 
             TextView title = new TextView(requireContext());
             title.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleMedium);
@@ -286,7 +335,23 @@ public class CoursePersonalMaterialsFragment extends Fragment {
             if (!metaLine.isEmpty()) {
                 inner.addView(meta);
             }
-            card.addView(inner);
+            inner.setLayoutParams(innerLp);
+            row.addView(inner);
+
+            if (item.isCreator) {
+                MaterialButton deleteBtn = new MaterialButton(
+                        requireContext(),
+                        null,
+                        com.google.android.material.R.attr.materialIconButtonStyle
+                );
+                deleteBtn.setIconResource(android.R.drawable.ic_menu_close_clear_cancel);
+                deleteBtn.setInsetTop(0);
+                deleteBtn.setInsetBottom(0);
+                deleteBtn.setOnClickListener(v -> askDeleteMaterial(item));
+                row.addView(deleteBtn);
+            }
+
+            card.addView(row);
             materialsList.addView(card);
         }
     }

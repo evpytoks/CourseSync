@@ -18,6 +18,7 @@ import retrofit2.http.Streaming;
 import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseListResponse;
+import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListResponse;
 
 public interface CourseApi {
@@ -45,7 +46,7 @@ public interface CourseApi {
     Call<Void> deleteGeneralMaterial(@Path("id") UUID id, @Path("materialId") UUID materialId);
 
     @GET("course/{id}/personal_materials")
-    Call<CourseMaterialListResponse> listPersonalMaterials(@Path("id") UUID id);
+    Call<CoursePersonalMaterialListResponse> listPersonalMaterials(@Path("id") UUID id);
 
     @Streaming
     @GET("course/{courseId}/personal_materials/{materialId}/pdf")
@@ -56,6 +57,9 @@ public interface CourseApi {
     @Multipart
     @POST("course/{id}/personal_materials/add")
     Call<Void> addPersonalMaterial(@Path("id") UUID id, @Part MultipartBody.Part file);
+
+    @DELETE("course/{id}/personal_materials/{materialId}")
+    Call<Void> deletePersonalMaterial(@Path("id") UUID id, @Path("materialId") UUID materialId);
 
     @POST("course/add")
     Call<Void> addCourse(@Body AddCourseRequest request);
