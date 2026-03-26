@@ -70,6 +70,12 @@ public class CourseDetailFragment extends Fragment {
             NavHostFragment.findNavController(CourseDetailFragment.this)
                     .navigate(R.id.action_courseDetailFragment_to_coursePersonalMaterialsFragment, args);
         });
+        view.findViewById(R.id.courseGradingFormula).setOnClickListener(v -> {
+            Bundle args = new Bundle();
+            args.putString("courseId", courseIdStr);
+            NavHostFragment.findNavController(CourseDetailFragment.this)
+                    .navigate(R.id.action_courseDetailFragment_to_courseGradingFormulaFragment, args);
+        });
 
         CourseDetailViewModel viewModel = new ViewModelProvider(this, new CourseDetailViewModelFactory())
                 .get(CourseDetailViewModel.class);

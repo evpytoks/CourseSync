@@ -39,6 +39,7 @@
     <string name="edit_course">Изменить курс</string>
     <string name="course_materials_shared">Общие материалы</string>
     <string name="course_materials_personal">Индивидуальные материалы</string>
+    <string name="grading_formula">Формула оценивания</string>
     <string name="shared_materials_load_error">Не удалось загрузить материалы. Попробуйте позже</string>
     <string name="shared_materials_empty">Пока нет общих материалов</string>
     <string name="personal_materials_load_error">Не удалось загрузить индивидуальные материалы. Попробуйте позже</string>

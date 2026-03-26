@@ -108,6 +108,9 @@
         <action
             android:id="@+id/action_courseDetailFragment_to_coursePersonalMaterialsFragment"
             app:destination="@id/coursePersonalMaterialsFragment" />
+        <action
+            android:id="@+id/action_courseDetailFragment_to_courseGradingFormulaFragment"
+            app:destination="@id/courseGradingFormulaFragment" />
     </fragment>
 
     <fragment
@@ -123,6 +126,15 @@
         android:id="@+id/coursePersonalMaterialsFragment"
         android:name="ru.katevpy.coursesync.courses.CoursePersonalMaterialsFragment"
         android:label="@string/course_materials_personal">
+        <argument
+            android:name="courseId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/courseGradingFormulaFragment"
+        android:name="ru.katevpy.coursesync.courses.CourseGradingFormulaFragment"
+        android:label="@string/grading_formula">
         <argument
             android:name="courseId"
             app:argType="string" />
