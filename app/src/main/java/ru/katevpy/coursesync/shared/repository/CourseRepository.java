@@ -21,6 +21,8 @@ import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseListResponse;
+import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListItem;
+import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListItem;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
@@ -139,15 +141,30 @@ public class CourseRepository {
         }
     }
 
-    public Result<List<CourseMaterialListItem>> listPersonalMaterials(UUID courseId) {
+    public Result<List<CoursePersonalMaterialListItem>> listPersonalMaterials(UUID courseId) {
         try {
-            Response<CourseMaterialListResponse> r = api.listPersonalMaterials(courseId).execute();
+            Response<CoursePersonalMaterialListResponse> r = api.listPersonalMaterials(courseId).execute();
             if (r.isSuccessful() && r.body() != null) {
-                List<CourseMaterialListItem> list = r.body().materials;
+                List<CoursePersonalMaterialListItem> list = r.body().materials;
                 return Result.success(list != null ? list : Collections.emptyList());
             }
             return Result.httpError(r.code(), parseError(r.errorBody()));
         } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<Void> deletePersonalMaterial(UUID courseId, UUID materialId) {
+        try {
+            Response<Void> r = api.deletePersonalMaterial(courseId, materialId).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
             return Result.networkError(e);
         }
     }
