@@ -25,6 +25,12 @@ public sealed class CourseMaterialService
         string Name,
         string AuthorEmail,
         DateTimeOffset CreatedAt);
+    public sealed record PersonalMaterialListItemDto(
+        Guid Id,
+        string Name,
+        string AuthorEmail,
+        DateTimeOffset CreatedAt,
+        bool IsCreator);
     public sealed record MaterialFileDto(Stream Content, string FileName);
 
     public async Task<(bool Ok, List<MaterialListItemDto>? Items, string? ErrorCode)> ListGeneralAsync(
@@ -46,7 +52,7 @@ public sealed class CourseMaterialService
         return (true, items, null);
     }
 
-    public async Task<(bool Ok, List<MaterialListItemDto>? Items, string? ErrorCode)> ListPersonalAsync(
+    public async Task<(bool Ok, List<PersonalMaterialListItemDto>? Items, string? ErrorCode)> ListPersonalAsync(
         Guid userId,
         Guid groupId,
         Guid courseId,
@@ -60,7 +66,7 @@ public sealed class CourseMaterialService
             .AsNoTracking()
             .Where(m => m.CourseId == courseId)
             .OrderByDescending(m => m.CreatedAt)
-            .Select(m => new MaterialListItemDto(m.Id, m.Name, m.AuthorEmail, m.CreatedAt))
+            .Select(m => new PersonalMaterialListItemDto(m.Id, m.Name, m.AuthorEmail, m.CreatedAt, m.AuthorUserId == userId))
             .ToListAsync(ct);
         return (true, items, null);
     }

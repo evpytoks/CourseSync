@@ -4,7 +4,7 @@
     "net8.0": {
       "AWSSDK.S3": {
         "type": "Direct",
-        "requested": "[3.7.400.6, )",
+        "requested": "[3.7.401, )",
         "resolved": "3.7.401",
         "contentHash": "G2fhk2FCOMp5Jv72GnvQMCgIhgNEkZK+yiLpG/ZCxp67wZ8+YDsB5ogc4C4a2olUuiCCRnUWiCFlFHzkpZMvIw==",
         "dependencies": {

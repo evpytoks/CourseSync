@@ -124,6 +124,93 @@ public sealed class CourseController : ControllerBase
             data.UsefulLinks));
     }
 
+    [HttpPost("{id:guid}/grading")]
+    public async Task<IActionResult> SaveGrading(Guid id, [FromBody] SaveCourseGradingRequest req, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var elements = (req.Elements ?? Array.Empty<CourseGradingElementRequest>())
+            .Select(e => (e.Name ?? "", e.Coefficient))
+            .ToList();
+
+        var (ok, errorCode) = await _courseService.SaveGradingAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            req.Text ?? "",
+            elements,
+            ct);
+
+        if (!ok)
+            return GradingError(errorCode!);
+
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/grading/text")]
+    public async Task<IActionResult> GetGradingText(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, text, errorCode) = await _courseService.GetGradingTextAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            ct);
+
+        if (!ok)
+            return GradingError(errorCode!);
+
+        return Ok(new CourseGradingTextResponse(text ?? ""));
+    }
+
+    [HttpGet("{id:guid}/grading")]
+    public async Task<IActionResult> GetGrading(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, elements, errorCode) = await _courseService.GetGradingAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            ct);
+
+        if (!ok)
+            return GradingError(errorCode!);
+
+        var payload = (elements ?? Array.Empty<CourseService.GradingElementDto>())
+            .Select(e => new CourseGradingElementResponse(e.Name, e.Coefficient, e.Count, e.AverageScore))
+            .ToList();
+        return Ok(new CourseGradingResponse(payload));
+    }
+
     [HttpPut("{id:guid}/change")]
     public async Task<IActionResult> Change(Guid id, [FromBody] ChangeCourseRequest req, CancellationToken ct)
     {
@@ -286,12 +373,13 @@ public sealed class CourseController : ControllerBase
         if (!ok)
             return MaterialAccessError(errorCode!);
 
-        var list = items!.Select(m => new CourseMaterialListItem(
+        var list = items!.Select(m => new CoursePersonalMaterialListItem(
             m.Id,
             m.Name,
             m.AuthorEmail,
-            m.CreatedAt)).ToList();
-        return Ok(new CourseMaterialListResponse(list));
+            m.CreatedAt,
+            m.IsCreator)).ToList();
+        return Ok(new CoursePersonalMaterialListResponse(list));
     }
 
     [HttpPost("{id:guid}/personal_materials/add")]
@@ -470,6 +558,15 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
         if (errorCode == "material_not_found")
             return NotFound(new ErrorEnvelope(new ApiError("material_not_found")));
+        return BadRequest(new ErrorEnvelope(new ApiError(errorCode)));
+    }
+
+    private IActionResult GradingError(string errorCode)
+    {
+        if (errorCode == "forbidden")
+            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+        if (errorCode == "course_not_in_group")
+            return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
         return BadRequest(new ErrorEnvelope(new ApiError(errorCode)));
     }
 

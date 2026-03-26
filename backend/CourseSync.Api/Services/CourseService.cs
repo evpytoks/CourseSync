@@ -7,6 +7,8 @@ namespace CourseSync.Api.Services;
 public sealed class CourseService
 {
     public const int CourseNameMaxLength = 50;
+    public const int GradingTextMaxLength = 3000;
+    public const int GradingElementNameMaxLength = 50;
 
     private const int GeneralInfoMaxLength = 2000;
     private const int UsefulLinksMaxLength = 1000;
@@ -101,6 +103,8 @@ public sealed class CourseService
         string Name,
         string GeneralInfo,
         string UsefulLinks);
+
+    public sealed record GradingElementDto(string Name, decimal Coefficient, int Count, decimal AverageScore);
 
     public async Task<(bool Ok, CourseDetailDto? Data, string? ErrorCode)> GetCourseByIdAsync(
         Guid userId,
@@ -210,5 +214,128 @@ public sealed class CourseService
             ct);
 
         return (true, null);
+    }
+
+    public static (bool Valid, string? ErrorCode) ValidateGradingText(string? text)
+    {
+        if ((text ?? "").Length > GradingTextMaxLength)
+            return (false, "grading_text_too_long");
+        return (true, null);
+    }
+
+    public static (bool Valid, string? ErrorCode) ValidateGradingElements(IReadOnlyList<(string Name, decimal Coefficient)> elements)
+    {
+        if (elements.Count == 0)
+            return (true, null);
+
+        decimal sum = 0m;
+        foreach (var element in elements)
+        {
+            var name = (element.Name ?? "").Trim();
+            if (name.Length == 0)
+                return (false, "grading_element_name_required");
+            if (name.Length > GradingElementNameMaxLength)
+                return (false, "grading_element_name_too_long");
+            if (element.Coefficient < 0m || element.Coefficient > 1m)
+                return (false, "grading_coefficient_out_of_range");
+            sum += element.Coefficient;
+        }
+
+        if (Math.Abs(sum - 1m) > 0.0001m)
+            return (false, "grading_coefficients_sum_must_equal_1");
+
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? ErrorCode)> SaveGradingAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        string? text,
+        IReadOnlyList<(string Name, decimal Coefficient)> elements,
+        CancellationToken ct)
+    {
+        var member = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (member is null || member.Role != GroupRole.Owner)
+            return (false, "forbidden");
+
+        var textValidation = ValidateGradingText(text);
+        if (!textValidation.Valid)
+            return (false, textValidation.ErrorCode);
+
+        var elementsValidation = ValidateGradingElements(elements);
+        if (!elementsValidation.Valid)
+            return (false, elementsValidation.ErrorCode);
+
+        var course = await _db.Courses.FirstOrDefaultAsync(c => c.Id == courseId && c.GroupId == groupId, ct);
+        if (course is null)
+            return (false, "course_not_in_group");
+
+        course.GradingText = text ?? "";
+
+        var old = await _db.CourseGradingElements.Where(x => x.CourseId == courseId).ToListAsync(ct);
+        if (old.Count > 0)
+            _db.CourseGradingElements.RemoveRange(old);
+
+        var now = DateTimeOffset.UtcNow;
+        var position = 0;
+        foreach (var element in elements)
+        {
+            _db.CourseGradingElements.Add(new CourseGradingElement
+            {
+                Id = Guid.NewGuid(),
+                CourseId = courseId,
+                Name = element.Name.Trim(),
+                Coefficient = decimal.Round(element.Coefficient, 4, MidpointRounding.AwayFromZero),
+                Position = position++,
+                CreatedAt = now
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? Text, string? ErrorCode)> GetGradingTextAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        CancellationToken ct)
+    {
+        var isMember = await _db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (!isMember)
+            return (false, null, "forbidden");
+
+        var course = await _db.Courses.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == courseId && c.GroupId == groupId, ct);
+        if (course is null)
+            return (false, null, "course_not_in_group");
+
+        return (true, course.GradingText ?? "", null);
+    }
+
+    public async Task<(bool Ok, IReadOnlyList<GradingElementDto>? Elements, string? ErrorCode)> GetGradingAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        CancellationToken ct)
+    {
+        var isMember = await _db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (!isMember)
+            return (false, null, "forbidden");
+
+        var courseOk = await _db.Courses.AnyAsync(c => c.Id == courseId && c.GroupId == groupId, ct);
+        if (!courseOk)
+            return (false, null, "course_not_in_group");
+
+        var elements = await _db.CourseGradingElements
+            .AsNoTracking()
+            .Where(x => x.CourseId == courseId)
+            .OrderBy(x => x.Position)
+            .Select(x => new GradingElementDto(x.Name, x.Coefficient, 1, 0m))
+            .ToListAsync(ct);
+
+        return (true, elements, null);
     }
 }
