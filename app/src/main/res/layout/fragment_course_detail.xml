@@ -59,10 +59,25 @@
             tools:text="Ссылки" />
 
         <TextView
-            android:id="@+id/courseMaterialsShared"
+            android:id="@+id/courseGradingFormula"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:drawablePadding="8dp"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:padding="12dp"
+            android:text="@string/grading_formula"
+            android:textSize="14sp"
+            android:drawableEnd="@drawable/ic_chevron_right" />
+
+        <TextView
+            android:id="@+id/courseMaterialsShared"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:drawablePadding="8dp"
