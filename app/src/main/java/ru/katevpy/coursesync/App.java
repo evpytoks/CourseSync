@@ -12,9 +12,6 @@ public class App extends Application {
 
     private static NetworkModule.Deps deps;
 
-    /**
-     * If user taps a push before login, open the news tab after successful sign-in.
-     */
     public volatile boolean pendingOpenNewsListFromNotification;
 
     public static NetworkModule.Deps getDeps() {

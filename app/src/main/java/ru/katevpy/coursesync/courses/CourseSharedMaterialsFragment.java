@@ -1,5 +1,8 @@
 package ru.katevpy.coursesync.courses;
 
+import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -11,6 +14,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavOptions;
@@ -20,6 +24,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.snackbar.Snackbar;
 
+import java.io.File;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +36,8 @@ import ru.katevpy.coursesync.shared.util.Result;
 
 public class CourseSharedMaterialsFragment extends Fragment {
 
+    private static final String FILE_PROVIDER_AUTHORITY = "ru.katevpy.coursesync.fileprovider";
+
     private final ActivityResultLauncher<String> pickPdfLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), this::onPdfPicked);
 
@@ -39,6 +46,7 @@ public class CourseSharedMaterialsFragment extends Fragment {
     private MaterialButton btnAddDocument;
     private CourseSharedMaterialsViewModel viewModel;
     private UUID courseId;
+    private boolean isOwner;
 
     public CourseSharedMaterialsFragment() {
         super(R.layout.fragment_course_shared_materials);
@@ -75,11 +83,19 @@ public class CourseSharedMaterialsFragment extends Fragment {
 
         viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
         viewModel.getUploadResult().observe(getViewLifecycleOwner(), this::onUploadResult);
+        viewModel.getDownloadForViewResult().observe(getViewLifecycleOwner(), this::onDownloadForViewResult);
+        viewModel.getDeleteResult().observe(getViewLifecycleOwner(), this::onDeleteResult);
+        viewModel.getOwnerState().observe(getViewLifecycleOwner(), owner -> {
+            isOwner = owner != null && owner;
+            viewModel.loadGeneralMaterials(courseId);
+        });
         viewModel.getUploadInProgress().observe(getViewLifecycleOwner(), busy -> {
             if (btnAddDocument != null) {
                 btnAddDocument.setEnabled(busy == null || !busy);
             }
         });
+        viewModel.getPdfOpenInProgress().observe(getViewLifecycleOwner(), busy ->
+                materialsList.setAlpha(busy != null && busy ? 0.6f : 1f));
 
         btnAddDocument.setOnClickListener(v -> pickPdfLauncher.launch("application/pdf"));
     }
@@ -88,6 +104,7 @@ public class CourseSharedMaterialsFragment extends Fragment {
     public void onResume() {
         super.onResume();
         if (courseId != null && viewModel != null) {
+            viewModel.loadOwnerStateFromCurrentGroup();
             viewModel.loadGeneralMaterials(courseId);
         }
     }
@@ -124,6 +141,43 @@ public class CourseSharedMaterialsFragment extends Fragment {
             }
         }
         Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+    }
+
+    private void onDownloadForViewResult(@Nullable Result<File> result) {
+        if (result == null) return;
+        if (result instanceof Result.Success) {
+            File file = ((Result.Success<File>) result).data;
+            if (file == null || !file.exists()) {
+                Snackbar.make(requireView(), R.string.material_pdf_load_error, Snackbar.LENGTH_LONG).show();
+            } else {
+                Uri uri = FileProvider.getUriForFile(requireContext(), FILE_PROVIDER_AUTHORITY, file);
+                Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+                viewIntent.setDataAndType(uri, "application/pdf");
+                viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                try {
+                    startActivity(Intent.createChooser(viewIntent, null));
+                } catch (ActivityNotFoundException e) {
+                    Snackbar.make(requireView(), R.string.material_pdf_open_error, Snackbar.LENGTH_LONG).show();
+                }
+            }
+        } else if (result instanceof Result.HttpError) {
+            int code = ((Result.HttpError<File>) result).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
+            } else if (code == 403 || code == 404) {
+                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+            } else if (code == 500) {
+                Snackbar.make(requireView(), R.string.material_pdf_load_error, Snackbar.LENGTH_LONG).show();
+            } else {
+                Snackbar.make(requireView(), R.string.material_pdf_load_error, Snackbar.LENGTH_LONG).show();
+            }
+        } else if (result instanceof Result.NetworkError) {
+            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_LONG).show();
+        } else {
+            Snackbar.make(requireView(), R.string.material_pdf_load_error, Snackbar.LENGTH_LONG).show();
+        }
+        viewModel.clearDownloadForViewResult();
     }
 
     private void onUploadResult(@Nullable Result<Void> result) {
@@ -176,6 +230,47 @@ public class CourseSharedMaterialsFragment extends Fragment {
         Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
     }
 
+    private void onDeleteResult(@Nullable Result<Void> result) {
+        if (result == null) return;
+        if (result instanceof Result.Success) {
+            if (courseId != null) {
+                viewModel.loadGeneralMaterials(courseId);
+            }
+            return;
+        }
+        if (result instanceof Result.HttpError) {
+            Result.HttpError<Void> he = (Result.HttpError<Void>) result;
+            if (he.httpCode == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavOptions opts = new NavOptions.Builder()
+                        .setPopUpTo(R.id.groupsFragment, true)
+                        .build();
+                NavHostFragment.findNavController(this).navigate(R.id.loginFragment, null, opts);
+                return;
+            }
+            if (he.httpCode == 500) {
+                Snackbar.make(requireView(), R.string.material_delete_server_error, Snackbar.LENGTH_LONG).show();
+                return;
+            }
+        }
+        if (result instanceof Result.NetworkError) {
+            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_LONG).show();
+            return;
+        }
+        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+    }
+
+    private void askDeleteMaterial(@NonNull CourseMaterialListItem item) {
+        if (courseId == null || item.id == null) return;
+        String name = item.name != null && !item.name.trim().isEmpty() ? item.name.trim() : "документ";
+        new AlertDialog.Builder(requireContext())
+                .setMessage(getString(R.string.delete_material_confirm, name))
+                .setPositiveButton(R.string.event_yes, (d, which) ->
+                        viewModel.deleteGeneralMaterial(courseId, item.id))
+                .setNegativeButton(R.string.event_no, null)
+                .show();
+    }
+
     private boolean materialUploadErrorFromApi(@Nullable ApiError error) {
         if (error == null || error.code == null) {
             return false;
@@ -214,9 +309,17 @@ public class CourseSharedMaterialsFragment extends Fragment {
             card.setLayoutParams(cardLp);
             card.setCardElevation(1f * density);
             card.setUseCompatPadding(true);
+            card.setClickable(true);
+            card.setFocusable(true);
+            UUID materialId = item.id;
+            if (materialId != null && courseId != null) {
+                card.setOnClickListener(v ->
+                        viewModel.downloadGeneralPdfForView(courseId, materialId));
+            }
 
             LinearLayout inner = new LinearLayout(requireContext());
             inner.setOrientation(LinearLayout.VERTICAL);
+            inner.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
             inner.setPadding(cardPadding, cardPadding, cardPadding, cardPadding);
 
             TextView title = new TextView(requireContext());
@@ -237,7 +340,28 @@ public class CourseSharedMaterialsFragment extends Fragment {
             if (!metaLine.isEmpty()) {
                 inner.addView(meta);
             }
-            card.addView(inner);
+
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            row.addView(inner);
+
+            if (isOwner) {
+                MaterialButton deleteBtn = new MaterialButton(
+                        requireContext(),
+                        null,
+                        com.google.android.material.R.attr.materialIconButtonStyle
+                );
+                deleteBtn.setIconResource(android.R.drawable.ic_menu_close_clear_cancel);
+                deleteBtn.setInsetTop(0);
+                deleteBtn.setInsetBottom(0);
+                deleteBtn.setOnClickListener(v -> askDeleteMaterial(item));
+                row.addView(deleteBtn);
+            }
+
+            card.addView(row);
             materialsList.addView(card);
         }
     }

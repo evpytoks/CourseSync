@@ -12,6 +12,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -21,7 +22,9 @@ import java.util.concurrent.Executors;
 
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListItem;
+import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.repository.CourseRepository;
+import ru.katevpy.coursesync.shared.repository.GroupRepository;
 import ru.katevpy.coursesync.shared.util.Result;
 
 public class CourseSharedMaterialsViewModel extends AndroidViewModel {
@@ -29,10 +32,15 @@ public class CourseSharedMaterialsViewModel extends AndroidViewModel {
     private static final int MAX_PDF_BYTES = 30 * 1024 * 1024;
 
     private final CourseRepository repo = new CourseRepository(App.getDeps().courseApi);
+    private final GroupRepository groupRepo = new GroupRepository(App.getDeps().groupApi);
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final MutableLiveData<Result<List<CourseMaterialListItem>>> loadResult = new MutableLiveData<>();
     private final MutableLiveData<Result<Void>> uploadResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> uploadInProgress = new MutableLiveData<>(false);
+    private final MutableLiveData<Result<File>> downloadForViewResult = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> pdfOpenInProgress = new MutableLiveData<>(false);
+    private final MutableLiveData<Result<Void>> deleteResult = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> ownerState = new MutableLiveData<>(false);
 
     public CourseSharedMaterialsViewModel(@NonNull Application application) {
         super(application);
@@ -48,6 +56,22 @@ public class CourseSharedMaterialsViewModel extends AndroidViewModel {
 
     public LiveData<Boolean> getUploadInProgress() {
         return uploadInProgress;
+    }
+
+    public LiveData<Result<File>> getDownloadForViewResult() {
+        return downloadForViewResult;
+    }
+
+    public LiveData<Boolean> getPdfOpenInProgress() {
+        return pdfOpenInProgress;
+    }
+
+    public LiveData<Result<Void>> getDeleteResult() {
+        return deleteResult;
+    }
+
+    public LiveData<Boolean> getOwnerState() {
+        return ownerState;
     }
 
     public void loadGeneralMaterials(UUID courseId) {
@@ -86,6 +110,48 @@ public class CourseSharedMaterialsViewModel extends AndroidViewModel {
                 uploadInProgress.postValue(false);
             }
         });
+    }
+
+    public void downloadGeneralPdfForView(UUID courseId, UUID materialId) {
+        io.execute(() -> {
+            pdfOpenInProgress.postValue(true);
+            try {
+                File f = new File(getApplication().getCacheDir(), "general-" + materialId + ".pdf");
+                downloadForViewResult.postValue(repo.downloadGeneralMaterialPdfToFile(courseId, materialId, f));
+            } finally {
+                pdfOpenInProgress.postValue(false);
+            }
+        });
+    }
+
+    public void clearDownloadForViewResult() {
+        downloadForViewResult.postValue(null);
+    }
+
+    public void loadOwnerStateFromCurrentGroup() {
+        io.execute(() -> {
+            Result<GroupDetailsResponse> result = groupRepo.getCurrentGroup();
+            if (result instanceof Result.Success) {
+                GroupDetailsResponse data = ((Result.Success<GroupDetailsResponse>) result).data;
+                boolean isOwner = data != null
+                        && data.role != null
+                        && "owner".equalsIgnoreCase(data.role.trim());
+                ownerState.postValue(isOwner);
+                return;
+            }
+            if (result instanceof Result.HttpError) {
+                int code = ((Result.HttpError<GroupDetailsResponse>) result).httpCode;
+                if (code == 401) {
+                    ownerState.postValue(null);
+                    return;
+                }
+            }
+            ownerState.postValue(false);
+        });
+    }
+
+    public void deleteGeneralMaterial(UUID courseId, UUID materialId) {
+        io.execute(() -> deleteResult.postValue(repo.deleteGeneralMaterial(courseId, materialId)));
     }
 
     private static byte[] readPdfLimited(InputStream in, int maxBytes) throws IOException {
