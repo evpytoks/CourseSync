@@ -3,7 +3,10 @@ package ru.katevpy.coursesync.shared.repository;
 import com.google.gson.Gson;
 
 import java.io.EOFException;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -80,12 +83,50 @@ public class CourseRepository {
         }
     }
 
+    public Result<File> downloadGeneralMaterialPdfToFile(UUID courseId, UUID materialId, File destination) {
+        try {
+            Response<ResponseBody> r = api.downloadGeneralMaterialPdf(courseId, materialId).execute();
+            if (!r.isSuccessful()) {
+                return Result.httpError(r.code(), parseError(r.errorBody()));
+            }
+            ResponseBody body = r.body();
+            if (body == null) {
+                return Result.networkError(new IOException("empty body"));
+            }
+            try (InputStream in = body.byteStream(); FileOutputStream out = new FileOutputStream(destination)) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) != -1) {
+                    out.write(buf, 0, n);
+                }
+            }
+            return Result.success(destination);
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
     public Result<Void> addGeneralMaterial(UUID courseId, byte[] fileBytes, String fileName) {
         String name = (fileName != null && !fileName.isEmpty()) ? fileName : "document.pdf";
         RequestBody body = RequestBody.create(fileBytes, MediaType.parse("application/pdf"));
         MultipartBody.Part part = MultipartBody.Part.createFormData("file", name, body);
         try {
             Response<Void> r = api.addGeneralMaterial(courseId, part).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<Void> deleteGeneralMaterial(UUID courseId, UUID materialId) {
+        try {
+            Response<Void> r = api.deleteGeneralMaterial(courseId, materialId).execute();
             if (r.isSuccessful()) {
                 return Result.success(null);
             }
@@ -106,6 +147,29 @@ public class CourseRepository {
                 return Result.success(list != null ? list : Collections.emptyList());
             }
             return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<File> downloadPersonalMaterialPdfToFile(UUID courseId, UUID materialId, File destination) {
+        try {
+            Response<ResponseBody> r = api.downloadPersonalMaterialPdf(courseId, materialId).execute();
+            if (!r.isSuccessful()) {
+                return Result.httpError(r.code(), parseError(r.errorBody()));
+            }
+            ResponseBody body = r.body();
+            if (body == null) {
+                return Result.networkError(new IOException("empty body"));
+            }
+            try (InputStream in = body.byteStream(); FileOutputStream out = new FileOutputStream(destination)) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) != -1) {
+                    out.write(buf, 0, n);
+                }
+            }
+            return Result.success(destination);
         } catch (IOException e) {
             return Result.networkError(e);
         }

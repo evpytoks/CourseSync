@@ -12,6 +12,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -33,6 +34,8 @@ public class CoursePersonalMaterialsViewModel extends AndroidViewModel {
     private final MutableLiveData<Result<List<CourseMaterialListItem>>> loadResult = new MutableLiveData<>();
     private final MutableLiveData<Result<Void>> uploadResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> uploadInProgress = new MutableLiveData<>(false);
+    private final MutableLiveData<Result<File>> downloadForViewResult = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> pdfOpenInProgress = new MutableLiveData<>(false);
 
     public CoursePersonalMaterialsViewModel(@NonNull Application application) {
         super(application);
@@ -48,6 +51,14 @@ public class CoursePersonalMaterialsViewModel extends AndroidViewModel {
 
     public LiveData<Boolean> getUploadInProgress() {
         return uploadInProgress;
+    }
+
+    public LiveData<Result<File>> getDownloadForViewResult() {
+        return downloadForViewResult;
+    }
+
+    public LiveData<Boolean> getPdfOpenInProgress() {
+        return pdfOpenInProgress;
     }
 
     public void loadPersonalMaterials(UUID courseId) {
@@ -86,6 +97,22 @@ public class CoursePersonalMaterialsViewModel extends AndroidViewModel {
                 uploadInProgress.postValue(false);
             }
         });
+    }
+
+    public void downloadPersonalPdfForView(UUID courseId, UUID materialId) {
+        io.execute(() -> {
+            pdfOpenInProgress.postValue(true);
+            try {
+                File f = new File(getApplication().getCacheDir(), "personal-" + materialId + ".pdf");
+                downloadForViewResult.postValue(repo.downloadPersonalMaterialPdfToFile(courseId, materialId, f));
+            } finally {
+                pdfOpenInProgress.postValue(false);
+            }
+        });
+    }
+
+    public void clearDownloadForViewResult() {
+        downloadForViewResult.postValue(null);
     }
 
     private static byte[] readPdfLimited(InputStream in, int maxBytes) throws IOException {

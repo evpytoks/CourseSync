@@ -48,6 +48,10 @@
     <string name="material_upload_too_large">Размер файла не более 30 МБ</string>
     <string name="material_upload_forbidden">Добавлять общие материалы может только владелец группы</string>
     <string name="material_upload_server_error">Не удалось загрузить файл. Попробуйте позже</string>
+    <string name="material_delete_server_error">Не удалось удалить материал. Попробуйте позже</string>
+    <string name="delete_material_confirm">Вы действительно хотите удалить %1$s?</string>
+    <string name="material_pdf_load_error">Не удалось загрузить документ. Попробуйте позже</string>
+    <string name="material_pdf_open_error">Не удалось открыть PDF. Установите приложение для просмотра PDF</string>
     <string name="notifications_label">Включить уведомления</string>
     <string name="dark_theme_label">Тёмная тема</string>
     <string name="logout">Выйти из аккаунта</string>
