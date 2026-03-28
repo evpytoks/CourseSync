@@ -7,4 +7,5 @@
     <integer name="max_event_description_length">1000</integer>
     <integer name="max_news_name_length">50</integer>
     <integer name="max_news_description_length">3000</integer>
+    <integer name="max_grading_formula_text_length">3000</integer>
 </resources>

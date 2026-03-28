@@ -20,6 +20,9 @@ import retrofit2.Response;
 import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseGradingElementItem;
+import ru.katevpy.coursesync.shared.dto.CourseGradingElementsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseGradingTextResponse;
 import ru.katevpy.coursesync.shared.dto.CourseListResponse;
 import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListItem;
 import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListResponse;
@@ -65,6 +68,31 @@ public class CourseRepository {
             Response<CourseDetailsResponse> r = api.getCourse(courseId).execute();
             if (r.isSuccessful() && r.body() != null) {
                 return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<CourseGradingTextResponse> getGradingText(UUID courseId) {
+        try {
+            Response<CourseGradingTextResponse> r = api.getGradingText(courseId).execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<List<CourseGradingElementItem>> getGradingElements(UUID courseId) {
+        try {
+            Response<CourseGradingElementsResponse> r = api.getGrading(courseId).execute();
+            if (r.isSuccessful() && r.body() != null) {
+                List<CourseGradingElementItem> list = r.body().elements;
+                return Result.success(list != null ? list : Collections.emptyList());
             }
             return Result.httpError(r.code(), parseError(r.errorBody()));
         } catch (IOException e) {

@@ -138,6 +138,18 @@
         <argument
             android:name="courseId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_courseGradingFormulaFragment_to_editCourseGradingFormulaFragment"
+            app:destination="@id/editCourseGradingFormulaFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editCourseGradingFormulaFragment"
+        android:name="ru.katevpy.coursesync.courses.EditCourseGradingFormulaFragment"
+        android:label="@string/grading_formula">
+        <argument
+            android:name="courseId"
+            app:argType="string" />
     </fragment>
 
     <fragment
