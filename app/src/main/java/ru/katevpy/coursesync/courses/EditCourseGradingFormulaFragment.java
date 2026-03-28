@@ -1,23 +1,19 @@
 package ru.katevpy.coursesync.courses;
 
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.NumberFormat;
 import java.util.List;
@@ -30,23 +26,23 @@ import ru.katevpy.coursesync.shared.dto.CourseGradingElementItem;
 import ru.katevpy.coursesync.shared.dto.CourseGradingTextResponse;
 import ru.katevpy.coursesync.shared.util.Result;
 
-public class CourseGradingFormulaFragment extends Fragment {
+public class EditCourseGradingFormulaFragment extends Fragment {
 
-    private CourseGradingFormulaViewModel viewModel;
-    private UUID courseId;
-    private ImageButton btnGradingMore;
+    private TextInputLayout descriptionLayout;
     private LinearLayout gradingElementsRows;
+    private EditCourseGradingFormulaViewModel viewModel;
+    private UUID courseId;
 
-    public CourseGradingFormulaFragment() {
-        super(R.layout.fragment_course_grading_formula);
+    public EditCourseGradingFormulaFragment() {
+        super(R.layout.fragment_edit_course_grading_formula);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        btnGradingMore = view.findViewById(R.id.btnGradingMore);
-        gradingElementsRows = view.findViewById(R.id.gradingElementsRows);
+        descriptionLayout = view.findViewById(R.id.editGradingDescriptionLayout);
+        gradingElementsRows = view.findViewById(R.id.editGradingElementsRows);
 
         if (getArguments() == null) {
             NavHostFragment.findNavController(this).navigateUp();
@@ -64,26 +60,15 @@ public class CourseGradingFormulaFragment extends Fragment {
             return;
         }
 
-        viewModel = new ViewModelProvider(this, new CourseGradingFormulaViewModelFactory())
-                .get(CourseGradingFormulaViewModel.class);
-
-        viewModel.getGradingTextResult().observe(getViewLifecycleOwner(), this::onGradingTextResult);
+        viewModel = new ViewModelProvider(this, new EditCourseGradingFormulaViewModelFactory())
+                .get(EditCourseGradingFormulaViewModel.class);
+        viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
         viewModel.getGradingElementsResult().observe(getViewLifecycleOwner(), this::onGradingElementsResult);
-        viewModel.getLoadInProgress().observe(getViewLifecycleOwner(), busy -> {
-            if (btnGradingMore != null) {
-                btnGradingMore.setEnabled(busy == null || !busy);
-            }
-        });
 
-        btnGradingMore.setOnClickListener(v -> viewModel.loadGradingText(courseId));
+        view.findViewById(R.id.btnAddControlElement).setOnClickListener(v -> { });
+        view.findViewById(R.id.btnSaveGradingFormula).setOnClickListener(v -> { });
 
-        MaterialButton btnEdit = view.findViewById(R.id.btnEditGradingFormula);
-        btnEdit.setOnClickListener(v -> {
-            Bundle args = new Bundle();
-            args.putString("courseId", idStr);
-            NavHostFragment.findNavController(CourseGradingFormulaFragment.this)
-                    .navigate(R.id.action_courseGradingFormulaFragment_to_editCourseGradingFormulaFragment, args);
-        });
+        viewModel.loadGradingText(courseId);
     }
 
     @Override
@@ -92,6 +77,40 @@ public class CourseGradingFormulaFragment extends Fragment {
         if (courseId != null && viewModel != null) {
             viewModel.loadGradingElements(courseId);
         }
+    }
+
+    private void onLoadResult(@Nullable Result<CourseGradingTextResponse> result) {
+        if (result == null) return;
+        if (result instanceof Result.Success) {
+            CourseGradingTextResponse data = ((Result.Success<CourseGradingTextResponse>) result).data;
+            String t = data != null && data.text != null ? data.text : "";
+            if (descriptionLayout.getEditText() != null) {
+                descriptionLayout.getEditText().setText(t);
+            }
+            return;
+        }
+        if (result instanceof Result.HttpError) {
+            int code = ((Result.HttpError<CourseGradingTextResponse>) result).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
+                return;
+            }
+            if (code == 403 || code == 404 || code == 400) {
+                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                NavHostFragment.findNavController(this).navigateUp();
+                return;
+            }
+            if (code == 500) {
+                Snackbar.make(requireView(), R.string.grading_formula_load_error, Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        if (result instanceof Result.NetworkError) {
+            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
     }
 
     private void onGradingElementsResult(@Nullable Result<List<CourseGradingElementItem>> result) {
@@ -169,61 +188,5 @@ public class CourseGradingFormulaFragment extends Fragment {
             return "—";
         }
         return nf.format(c);
-    }
-
-    private void onGradingTextResult(@Nullable Result<CourseGradingTextResponse> result) {
-        if (result == null) return;
-        if (result instanceof Result.Success) {
-            CourseGradingTextResponse data = ((Result.Success<CourseGradingTextResponse>) result).data;
-            String raw = data != null ? data.text : null;
-            String display;
-            if (raw == null || raw.trim().isEmpty()) {
-                display = getString(R.string.grading_formula_text_empty);
-            } else {
-                display = raw;
-            }
-            showGradingTextDialog(display);
-            viewModel.clearGradingTextResult();
-            return;
-        }
-        if (result instanceof Result.HttpError) {
-            int code = ((Result.HttpError<CourseGradingTextResponse>) result).httpCode;
-            if (code == 401) {
-                App.getDeps().tokenStorage.clear();
-                NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
-                viewModel.clearGradingTextResult();
-                return;
-            }
-            if (code == 403 || code == 404 || code == 400) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
-                NavHostFragment.findNavController(this).navigateUp();
-                viewModel.clearGradingTextResult();
-                return;
-            }
-            if (code == 500) {
-                Snackbar.make(requireView(), R.string.grading_formula_load_error, Snackbar.LENGTH_SHORT).show();
-                viewModel.clearGradingTextResult();
-                return;
-            }
-        }
-        if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
-            viewModel.clearGradingTextResult();
-            return;
-        }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
-        viewModel.clearGradingTextResult();
-    }
-
-    private void showGradingTextDialog(@NonNull String text) {
-        View dView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_grading_text, null);
-        TextView tv = dView.findViewById(R.id.tvGradingTextContent);
-        ImageButton close = dView.findViewById(R.id.btnCloseGradingText);
-        tv.setText(text);
-        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
-                .setView(dView)
-                .create();
-        close.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
     }
 }

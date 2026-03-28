@@ -17,6 +17,8 @@ import retrofit2.http.Streaming;
 
 import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseGradingElementsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseGradingTextResponse;
 import ru.katevpy.coursesync.shared.dto.CourseListResponse;
 import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListResponse;
@@ -28,6 +30,12 @@ public interface CourseApi {
 
     @GET("course/{id}")
     Call<CourseDetailsResponse> getCourse(@Path("id") UUID id);
+
+    @GET("course/{id}/grading/text")
+    Call<CourseGradingTextResponse> getGradingText(@Path("id") UUID id);
+
+    @GET("course/{id}/grading")
+    Call<CourseGradingElementsResponse> getGrading(@Path("id") UUID id);
 
     @GET("course/{id}/general_materials")
     Call<CourseMaterialListResponse> listGeneralMaterials(@Path("id") UUID id);
