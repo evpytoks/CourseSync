@@ -13,6 +13,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<CourseGradingElement> CourseGradingElements => Set<CourseGradingElement>();
+    public DbSet<CourseGradingScore> CourseGradingScores => Set<CourseGradingScore>();
     public DbSet<CourseGeneralMaterial> CourseGeneralMaterials => Set<CourseGeneralMaterial>();
     public DbSet<CoursePersonalMaterial> CoursePersonalMaterials => Set<CoursePersonalMaterial>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
@@ -181,6 +182,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.CourseId).HasColumnName("course_id").IsRequired();
             e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
             e.Property(x => x.Coefficient).HasColumnName("coefficient").HasColumnType("numeric(5,4)").IsRequired();
+            e.Property(x => x.Count).HasColumnName("count").IsRequired().HasDefaultValue(1);
             e.Property(x => x.Position).HasColumnName("position").IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
@@ -191,6 +193,25 @@ public sealed class AppDbContext : DbContext
 
             e.HasIndex(x => x.CourseId);
             e.HasIndex(x => new { x.CourseId, x.Position });
+        });
+
+        b.Entity<CourseGradingScore>(e =>
+        {
+            e.ToTable("course_grading_scores");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.CourseGradingElementId).HasColumnName("course_grading_element_id").IsRequired();
+            e.Property(x => x.Number).HasColumnName("number").IsRequired();
+            e.Property(x => x.Score).HasColumnName("score").HasColumnType("numeric(6,2)").IsRequired().HasDefaultValue(0m);
+
+            e.HasOne(x => x.Element)
+                .WithMany()
+                .HasForeignKey(x => x.CourseGradingElementId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.CourseGradingElementId);
+            e.HasIndex(x => new { x.CourseGradingElementId, x.Number }).IsUnique();
         });
 
         b.Entity<CourseGeneralMaterial>(e =>

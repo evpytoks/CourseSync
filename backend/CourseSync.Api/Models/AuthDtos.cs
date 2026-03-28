@@ -106,7 +106,20 @@ public sealed record CourseGradingElementResponse(
     [property: JsonPropertyName("average_score")] decimal AverageScore);
 
 public sealed record CourseGradingResponse(
-    [property: JsonPropertyName("elements")] IReadOnlyList<CourseGradingElementResponse> Elements);
+    [property: JsonPropertyName("elements")] IReadOnlyList<CourseGradingElementResponse> Elements,
+    [property: JsonPropertyName("average_grade")] decimal AverageGrade);
+
+public sealed record CourseGradingScoresResponse(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("count")] int Count,
+    [property: JsonPropertyName("scores")] IReadOnlyList<decimal> Scores);
+
+public sealed record CourseGradingAllScoresResponse(
+    [property: JsonPropertyName("elements")] IReadOnlyList<CourseGradingScoresResponse> Elements);
+
+public sealed record UpdateCourseGradingScoresRequest(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("scores")] IReadOnlyList<decimal> Scores);
 
 public sealed record CalendarListItem(
     Guid Id,

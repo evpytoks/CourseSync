@@ -9,6 +9,10 @@ public sealed class CourseService
     public const int CourseNameMaxLength = 50;
     public const int GradingTextMaxLength = 3000;
     public const int GradingElementNameMaxLength = 50;
+    public const int GradingElementCountMin = 1;
+    public const int GradingElementCountMax = 100;
+    public const decimal GradingScoreMin = 0m;
+    public const decimal GradingScoreMax = 10m;
 
     private const int GeneralInfoMaxLength = 2000;
     private const int UsefulLinksMaxLength = 1000;
@@ -105,6 +109,18 @@ public sealed class CourseService
         string UsefulLinks);
 
     public sealed record GradingElementDto(string Name, decimal Coefficient, int Count, decimal AverageScore);
+    public sealed record GradingElementScoresRow(string Name, int Count, IReadOnlyList<decimal> Scores);
+
+    private static IReadOnlyList<decimal> NormalizeScoresToCount(int count, IEnumerable<(int Number, decimal Score)> fromDb)
+    {
+        var map = fromDb
+            .GroupBy(s => s.Number)
+            .ToDictionary(g => g.Key, g => g.First().Score);
+        var list = new List<decimal>(count);
+        for (var i = 1; i <= count; i++)
+            list.Add(map.TryGetValue(i, out var sc) ? sc : 0m);
+        return list;
+    }
 
     public async Task<(bool Ok, CourseDetailDto? Data, string? ErrorCode)> GetCourseByIdAsync(
         Guid userId,
@@ -223,7 +239,7 @@ public sealed class CourseService
         return (true, null);
     }
 
-    public static (bool Valid, string? ErrorCode) ValidateGradingElements(IReadOnlyList<(string Name, decimal Coefficient)> elements)
+    public static (bool Valid, string? ErrorCode) ValidateGradingElements(IReadOnlyList<(string Name, decimal Coefficient, int Count)> elements)
     {
         if (elements.Count == 0)
             return (true, null);
@@ -238,6 +254,8 @@ public sealed class CourseService
                 return (false, "grading_element_name_too_long");
             if (element.Coefficient < 0m || element.Coefficient > 1m)
                 return (false, "grading_coefficient_out_of_range");
+            if (element.Count < GradingElementCountMin || element.Count > GradingElementCountMax)
+                return (false, "grading_element_count_invalid");
             sum += element.Coefficient;
         }
 
@@ -252,7 +270,7 @@ public sealed class CourseService
         Guid groupId,
         Guid courseId,
         string? text,
-        IReadOnlyList<(string Name, decimal Coefficient)> elements,
+        IReadOnlyList<(string Name, decimal Coefficient, int Count)> elements,
         CancellationToken ct)
     {
         var member = await _db.GroupMembers
@@ -282,15 +300,27 @@ public sealed class CourseService
         var position = 0;
         foreach (var element in elements)
         {
-            _db.CourseGradingElements.Add(new CourseGradingElement
+            var gradingElement = new CourseGradingElement
             {
                 Id = Guid.NewGuid(),
                 CourseId = courseId,
                 Name = element.Name.Trim(),
                 Coefficient = decimal.Round(element.Coefficient, 4, MidpointRounding.AwayFromZero),
+                Count = element.Count,
                 Position = position++,
                 CreatedAt = now
-            });
+            };
+            _db.CourseGradingElements.Add(gradingElement);
+            for (var i = 1; i <= element.Count; i++)
+            {
+                _db.CourseGradingScores.Add(new CourseGradingScore
+                {
+                    Id = Guid.NewGuid(),
+                    CourseGradingElementId = gradingElement.Id,
+                    Number = i,
+                    Score = 0m
+                });
+            }
         }
 
         await _db.SaveChangesAsync(ct);
@@ -333,9 +363,172 @@ public sealed class CourseService
             .AsNoTracking()
             .Where(x => x.CourseId == courseId)
             .OrderBy(x => x.Position)
-            .Select(x => new GradingElementDto(x.Name, x.Coefficient, 1, 0m))
+            .Select(x => new { x.Id, x.Name, x.Coefficient, x.Count })
             .ToListAsync(ct);
 
-        return (true, elements, null);
+        var elementIds = elements.Select(e => e.Id).ToList();
+        var scoreAverages = await _db.CourseGradingScores
+            .AsNoTracking()
+            .Where(s => elementIds.Contains(s.CourseGradingElementId))
+            .GroupBy(s => s.CourseGradingElementId)
+            .Select(g => new { ElementId = g.Key, Average = g.Average(x => x.Score) })
+            .ToListAsync(ct);
+        var avgMap = scoreAverages.ToDictionary(x => x.ElementId, x => decimal.Round(x.Average, 2, MidpointRounding.AwayFromZero));
+
+        var dto = elements
+            .Select(e => new GradingElementDto(
+                e.Name,
+                e.Coefficient,
+                e.Count,
+                avgMap.TryGetValue(e.Id, out var avg) ? avg : 0m))
+            .ToList();
+
+        return (true, dto, null);
+    }
+
+    public async Task<(bool Ok, string Name, int Count, IReadOnlyList<decimal>? Scores, string? ErrorCode)> GetGradingScoresAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        string elementName,
+        CancellationToken ct)
+    {
+        var isMember = await _db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (!isMember)
+            return (false, "", 0, null, "forbidden");
+
+        var element = await _db.CourseGradingElements
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CourseId == courseId && x.Name == elementName, ct);
+        if (element is null)
+            return (false, "", 0, null, "grading_element_not_found");
+
+        var scores = await _db.CourseGradingScores
+            .AsNoTracking()
+            .Where(s => s.CourseGradingElementId == element.Id)
+            .OrderBy(s => s.Number)
+            .Select(s => new { s.Number, s.Score })
+            .ToListAsync(ct);
+        var normalized = NormalizeScoresToCount(element.Count, scores.Select(x => (x.Number, x.Score)));
+        return (true, element.Name, element.Count, normalized, null);
+    }
+
+    public async Task<(bool Ok, IReadOnlyList<GradingElementScoresRow>? Elements, string? ErrorCode)> GetAllGradingScoresAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        CancellationToken ct)
+    {
+        var isMember = await _db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (!isMember)
+            return (false, null, "forbidden");
+
+        var courseOk = await _db.Courses.AnyAsync(c => c.Id == courseId && c.GroupId == groupId, ct);
+        if (!courseOk)
+            return (false, null, "course_not_in_group");
+
+        var elements = await _db.CourseGradingElements
+            .AsNoTracking()
+            .Where(x => x.CourseId == courseId)
+            .OrderBy(x => x.Position)
+            .Select(x => new { x.Id, x.Name, x.Count })
+            .ToListAsync(ct);
+
+        var elementIds = elements.Select(e => e.Id).ToList();
+        var allScores = await _db.CourseGradingScores
+            .AsNoTracking()
+            .Where(s => elementIds.Contains(s.CourseGradingElementId))
+            .Select(s => new { s.CourseGradingElementId, s.Number, s.Score })
+            .ToListAsync(ct);
+
+        var byElement = allScores
+            .GroupBy(s => s.CourseGradingElementId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => (x.Number, x.Score)).ToList());
+
+        var rows = new List<GradingElementScoresRow>(elements.Count);
+        foreach (var e in elements)
+        {
+            var raw = byElement.TryGetValue(e.Id, out var list)
+                ? (IReadOnlyList<(int Number, decimal Score)>)list
+                : Array.Empty<(int Number, decimal Score)>();
+            rows.Add(new GradingElementScoresRow(e.Name, e.Count, NormalizeScoresToCount(e.Count, raw)));
+        }
+
+        return (true, rows, null);
+    }
+
+    public async Task<(bool Ok, string? ErrorCode)> UpdateGradingScoresAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        string elementName,
+        IReadOnlyList<decimal> scores,
+        CancellationToken ct)
+    {
+        var member = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (member is null || member.Role != GroupRole.Owner)
+            return (false, "forbidden");
+
+        var element = await _db.CourseGradingElements
+            .FirstOrDefaultAsync(x => x.CourseId == courseId && x.Name == elementName, ct);
+        if (element is null)
+            return (false, "grading_element_not_found");
+
+        if (scores.Count < GradingElementCountMin || scores.Count > GradingElementCountMax)
+            return (false, "grading_element_count_invalid");
+
+        foreach (var s in scores)
+        {
+            if (s < GradingScoreMin || s > GradingScoreMax)
+                return (false, "grading_score_out_of_range");
+        }
+
+        await ResizeGradingElementScoreRowsAsync(element, scores.Count, ct);
+        await _db.SaveChangesAsync(ct);
+
+        var entities = await _db.CourseGradingScores
+            .Where(s => s.CourseGradingElementId == element.Id)
+            .OrderBy(s => s.Number)
+            .ToListAsync(ct);
+        if (entities.Count != scores.Count)
+            return (false, "grading_scores_count_mismatch");
+
+        for (var i = 0; i < scores.Count; i++)
+            entities[i].Score = scores[i];
+
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    private async Task ResizeGradingElementScoreRowsAsync(CourseGradingElement element, int newCount, CancellationToken ct)
+    {
+        if (newCount == element.Count)
+            return;
+
+        if (newCount < element.Count)
+        {
+            var toRemove = await _db.CourseGradingScores
+                .Where(s => s.CourseGradingElementId == element.Id && s.Number > newCount)
+                .ToListAsync(ct);
+            _db.CourseGradingScores.RemoveRange(toRemove);
+        }
+        else
+        {
+            for (var i = element.Count + 1; i <= newCount; i++)
+            {
+                _db.CourseGradingScores.Add(new CourseGradingScore
+                {
+                    Id = Guid.NewGuid(),
+                    CourseGradingElementId = element.Id,
+                    Number = i,
+                    Score = 0m
+                });
+            }
+        }
+
+        element.Count = newCount;
     }
 }
