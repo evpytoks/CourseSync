@@ -176,6 +176,10 @@ public class MainActivity extends AppCompatActivity {
                     && navController.getCurrentDestination().getId() == R.id.newsFragment) {
                 btnAddNews.setVisibility(showOwnerToolbarActions(state) ? View.VISIBLE : View.GONE);
             }
+            if (btnEditCourse != null && navController.getCurrentDestination() != null
+                    && navController.getCurrentDestination().getId() == R.id.courseDetailFragment) {
+                btnEditCourse.setVisibility(showOwnerToolbarActions(state) ? View.VISIBLE : View.GONE);
+            }
             if (toolbarEventDetailButtonsWrap != null && navController.getCurrentDestination() != null
                     && navController.getCurrentDestination().getId() == R.id.calendarEventDetailFragment) {
                 toolbarEventDetailButtonsWrap.setVisibility(showOwnerToolbarActions(state) ? View.VISIBLE : View.GONE);
@@ -211,6 +215,9 @@ public class MainActivity extends AppCompatActivity {
                     refreshSettingsAndApplyTheme();
                 }
             }
+            if (id == R.id.courseDetailFragment || id == R.id.courseGradingFormulaFragment) {
+                refreshCurrentGroup();
+            }
 
             boolean isGroupsScreen = (id == R.id.groupsFragment);
             boolean isCoursesScreen = (id == R.id.coursesFragment);
@@ -240,7 +247,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             if (btnEditCourse != null) {
-                btnEditCourse.setVisibility(id == R.id.courseDetailFragment ? View.VISIBLE : View.GONE);
+                btnEditCourse.setVisibility(id == R.id.courseDetailFragment && showOwnerToolbarActions(groupState)
+                        ? View.VISIBLE : View.GONE);
             }
             if (toolbarGroupButtonsWrap != null) {
                 toolbarGroupButtonsWrap.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
