@@ -30,6 +30,8 @@ import java.util.UUID;
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementItem;
+import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
+import ru.katevpy.coursesync.shared.repository.GroupRepository;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingTextResponse;
 import ru.katevpy.coursesync.shared.util.Result;
@@ -41,6 +43,7 @@ public class CourseGradingFormulaFragment extends Fragment {
     private ImageButton btnGradingMore;
     private LinearLayout gradingElementsRows;
     private LinearLayout gradingScoresContainer;
+    private MaterialButton btnEditGradingFormula;
 
     public CourseGradingFormulaFragment() {
         super(R.layout.fragment_course_grading_formula);
@@ -83,13 +86,15 @@ public class CourseGradingFormulaFragment extends Fragment {
 
         btnGradingMore.setOnClickListener(v -> viewModel.loadGradingText(courseId));
 
-        MaterialButton btnEdit = view.findViewById(R.id.btnEditGradingFormula);
-        btnEdit.setOnClickListener(v -> {
+        btnEditGradingFormula = view.findViewById(R.id.btnEditGradingFormula);
+        btnEditGradingFormula.setVisibility(View.GONE);
+        btnEditGradingFormula.setOnClickListener(v -> {
             Bundle args = new Bundle();
             args.putString("courseId", idStr);
             NavHostFragment.findNavController(CourseGradingFormulaFragment.this)
                     .navigate(R.id.action_courseGradingFormulaFragment_to_editCourseGradingFormulaFragment, args);
         });
+        refreshEditGradingButtonVisibility();
     }
 
     @Override
@@ -98,6 +103,29 @@ public class CourseGradingFormulaFragment extends Fragment {
         if (courseId != null && viewModel != null) {
             viewModel.loadGradingElements(courseId);
         }
+        refreshEditGradingButtonVisibility();
+    }
+
+    private void refreshEditGradingButtonVisibility() {
+        if (btnEditGradingFormula == null) {
+            return;
+        }
+        new Thread(() -> {
+            Result<GroupDetailsResponse> result =
+                    new GroupRepository(App.getDeps().groupApi).getCurrentGroup();
+            requireActivity().runOnUiThread(() -> {
+                if (!isAdded() || btnEditGradingFormula == null) {
+                    return;
+                }
+                boolean owner = false;
+                if (result instanceof Result.Success) {
+                    GroupDetailsResponse data = ((Result.Success<GroupDetailsResponse>) result).data;
+                    owner = data != null && data.role != null
+                            && "owner".equalsIgnoreCase(data.role.trim());
+                }
+                btnEditGradingFormula.setVisibility(owner ? View.VISIBLE : View.GONE);
+            });
+        }).start();
     }
 
     private void onGradingElementsResult(@Nullable Result<CourseGradingElementsResponse> result) {
