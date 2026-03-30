@@ -131,15 +131,16 @@ public class GroupsFragment extends Fragment {
                 btn.setOnClickListener(v -> viewModel.chooseGroup(groupId));
                 wrapper.addView(btn);
 
-                LinearLayout iconsRow = new LinearLayout(requireContext());
-                iconsRow.setOrientation(LinearLayout.HORIZONTAL);
-                iconsRow.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
-                FrameLayout.LayoutParams iconsLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                iconsLp.gravity = android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL;
-                iconsRow.setLayoutParams(iconsLp);
+                boolean isOwner = g.role != null && "owner".equalsIgnoreCase(g.role.trim());
 
-                boolean isOwner = "owner".equalsIgnoreCase(g.role);
                 if (isOwner) {
+                    LinearLayout iconsRow = new LinearLayout(requireContext());
+                    iconsRow.setOrientation(LinearLayout.HORIZONTAL);
+                    iconsRow.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+                    FrameLayout.LayoutParams iconsLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    iconsLp.gravity = android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL;
+                    iconsRow.setLayoutParams(iconsLp);
+
                     ImageButton copyBtn = new ImageButton(requireContext());
                     copyBtn.setImageResource(R.drawable.ic_content_copy);
                     copyBtn.setBackground(null);
@@ -168,24 +169,26 @@ public class GroupsFragment extends Fragment {
                         }).start();
                     });
                     iconsRow.addView(copyBtn);
+
+                    ImageButton editBtn = new ImageButton(requireContext());
+                    editBtn.setImageResource(R.drawable.ic_edit);
+                    editBtn.setBackground(null);
+                    editBtn.setContentDescription(getString(R.string.event_edit));
+                    editBtn.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
+                    LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    editBtn.setLayoutParams(editLp);
+                    java.util.UUID editGroupId = g.id;
+                    String editGroupName = g.name != null ? g.name : "";
+                    editBtn.setOnClickListener(v -> {
+                        Bundle args = new Bundle();
+                        args.putString("groupId", editGroupId.toString());
+                        args.putString("groupName", editGroupName);
+                        NavController nav = NavHostFragment.findNavController(GroupsFragment.this);
+                        nav.navigate(R.id.action_groupsFragment_to_editGroupFragment, args);
+                    });
+                    iconsRow.addView(editBtn);
+                    wrapper.addView(iconsRow);
                 }
-                ImageButton editBtn = new ImageButton(requireContext());
-                editBtn.setImageResource(R.drawable.ic_edit);
-                editBtn.setBackground(null);
-                editBtn.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-                LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                editBtn.setLayoutParams(editLp);
-                java.util.UUID editGroupId = g.id;
-                String editGroupName = g.name != null ? g.name : "";
-                editBtn.setOnClickListener(v -> {
-                    Bundle args = new Bundle();
-                    args.putString("groupId", editGroupId.toString());
-                    args.putString("groupName", editGroupName);
-                    NavController nav = NavHostFragment.findNavController(GroupsFragment.this);
-                    nav.navigate(R.id.action_groupsFragment_to_editGroupFragment, args);
-                });
-                iconsRow.addView(editBtn);
-                wrapper.addView(iconsRow);
                 groupsContainer.addView(wrapper);
             }
             return;
