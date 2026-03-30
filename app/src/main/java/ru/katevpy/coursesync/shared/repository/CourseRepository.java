@@ -22,6 +22,8 @@ import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementItem;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseGradingScoresResponse;
+import ru.katevpy.coursesync.shared.dto.CourseGradingElementRequest;
 import ru.katevpy.coursesync.shared.dto.CourseGradingTextResponse;
 import ru.katevpy.coursesync.shared.dto.CourseListResponse;
 import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListItem;
@@ -29,6 +31,8 @@ import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListItem;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
+import ru.katevpy.coursesync.shared.dto.SaveCourseGradingRequest;
+import ru.katevpy.coursesync.shared.dto.UpdateCourseGradingScoresRequest;
 import ru.katevpy.coursesync.shared.network.CourseApi;
 import ru.katevpy.coursesync.shared.util.Result;
 
@@ -87,15 +91,64 @@ public class CourseRepository {
         }
     }
 
-    public Result<List<CourseGradingElementItem>> getGradingElements(UUID courseId) {
+    public Result<CourseGradingElementsResponse> getGrading(UUID courseId) {
         try {
             Response<CourseGradingElementsResponse> r = api.getGrading(courseId).execute();
             if (r.isSuccessful() && r.body() != null) {
-                List<CourseGradingElementItem> list = r.body().elements;
-                return Result.success(list != null ? list : Collections.emptyList());
+                return Result.success(r.body());
             }
             return Result.httpError(r.code(), parseError(r.errorBody()));
         } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<CourseGradingScoresResponse> getGradingScores(UUID courseId, String elementName) {
+        String q = elementName != null ? elementName.trim() : "";
+        try {
+            Response<CourseGradingScoresResponse> r = api.getGradingScores(courseId, q).execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<Void> updateGradingScores(UUID courseId, String elementName, List<Double> scores) {
+        try {
+            Response<Void> r = api.updateGradingScores(
+                    courseId,
+                    new UpdateCourseGradingScoresRequest(elementName, scores)).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<Void> saveGrading(UUID courseId, String text, List<CourseGradingElementItem> elements) {
+        List<CourseGradingElementRequest> reqElements = new java.util.ArrayList<>();
+        if (elements != null) {
+            for (CourseGradingElementItem e : elements) {
+                String name = e != null && e.name != null ? e.name : "";
+                Double c = e != null ? e.coefficient : null;
+                reqElements.add(new CourseGradingElementRequest(name, c != null ? c : 0.0));
+            }
+        }
+        try {
+            Response<Void> r = api.saveGrading(courseId, new SaveCourseGradingRequest(text, reqElements)).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
             return Result.networkError(e);
         }
     }

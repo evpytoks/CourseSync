@@ -141,7 +141,15 @@
         <action
             android:id="@+id/action_courseGradingFormulaFragment_to_editCourseGradingFormulaFragment"
             app:destination="@id/editCourseGradingFormulaFragment" />
+        <action
+            android:id="@+id/action_courseGradingFormulaFragment_to_gradingElementScoresFragment"
+            app:destination="@id/gradingElementScoresFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/gradingElementScoresFragment"
+        android:name="ru.katevpy.coursesync.courses.GradingElementScoresFragment"
+        android:label="@string/grading_scores_screen_title" />
 
     <fragment
         android:id="@+id/editCourseGradingFormulaFragment"

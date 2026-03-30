@@ -13,15 +13,19 @@ import retrofit2.http.PUT;
 import retrofit2.http.DELETE;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 import retrofit2.http.Streaming;
 
 import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseGradingScoresResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingTextResponse;
 import ru.katevpy.coursesync.shared.dto.CourseListResponse;
 import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListResponse;
+import ru.katevpy.coursesync.shared.dto.SaveCourseGradingRequest;
+import ru.katevpy.coursesync.shared.dto.UpdateCourseGradingScoresRequest;
 
 public interface CourseApi {
 
@@ -36,6 +40,19 @@ public interface CourseApi {
 
     @GET("course/{id}/grading")
     Call<CourseGradingElementsResponse> getGrading(@Path("id") UUID id);
+
+    @GET("course/{id}/grading/scores")
+    Call<CourseGradingScoresResponse> getGradingScores(
+            @Path("id") UUID id,
+            @Query("name") String elementName);
+
+    @PUT("course/{id}/grading/scores")
+    Call<Void> updateGradingScores(
+            @Path("id") UUID id,
+            @Body UpdateCourseGradingScoresRequest body);
+
+    @POST("course/{id}/grading")
+    Call<Void> saveGrading(@Path("id") UUID id, @Body SaveCourseGradingRequest body);
 
     @GET("course/{id}/general_materials")
     Call<CourseMaterialListResponse> listGeneralMaterials(@Path("id") UUID id);
