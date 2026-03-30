@@ -1,6 +1,8 @@
 package ru.katevpy.coursesync.courses;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -12,10 +14,13 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -23,6 +28,7 @@ import java.util.UUID;
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementItem;
+import ru.katevpy.coursesync.shared.dto.CourseGradingElementsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingTextResponse;
 import ru.katevpy.coursesync.shared.util.Result;
 
@@ -32,6 +38,7 @@ public class EditCourseGradingFormulaFragment extends Fragment {
     private LinearLayout gradingElementsRows;
     private EditCourseGradingFormulaViewModel viewModel;
     private UUID courseId;
+    private final List<CourseGradingElementItem> editableElements = new ArrayList<>();
 
     public EditCourseGradingFormulaFragment() {
         super(R.layout.fragment_edit_course_grading_formula);
@@ -64,9 +71,10 @@ public class EditCourseGradingFormulaFragment extends Fragment {
                 .get(EditCourseGradingFormulaViewModel.class);
         viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
         viewModel.getGradingElementsResult().observe(getViewLifecycleOwner(), this::onGradingElementsResult);
+        viewModel.getSaveResult().observe(getViewLifecycleOwner(), this::onSaveResult);
 
-        view.findViewById(R.id.btnAddControlElement).setOnClickListener(v -> { });
-        view.findViewById(R.id.btnSaveGradingFormula).setOnClickListener(v -> { });
+        view.findViewById(R.id.btnAddControlElement).setOnClickListener(v -> showAddElementDialog());
+        view.findViewById(R.id.btnSaveGradingFormula).setOnClickListener(v -> submit());
 
         viewModel.loadGradingText(courseId);
     }
@@ -113,15 +121,19 @@ public class EditCourseGradingFormulaFragment extends Fragment {
         Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
     }
 
-    private void onGradingElementsResult(@Nullable Result<List<CourseGradingElementItem>> result) {
+    private void onGradingElementsResult(@Nullable Result<CourseGradingElementsResponse> result) {
         if (result == null) return;
         if (result instanceof Result.Success) {
-            List<CourseGradingElementItem> items = ((Result.Success<List<CourseGradingElementItem>>) result).data;
-            renderGradingElements(items);
+            CourseGradingElementsResponse body = ((Result.Success<CourseGradingElementsResponse>) result).data;
+            editableElements.clear();
+            if (body != null && body.elements != null) {
+                editableElements.addAll(body.elements);
+            }
+            renderGradingElements(editableElements);
             return;
         }
         if (result instanceof Result.HttpError) {
-            int code = ((Result.HttpError<List<CourseGradingElementItem>>) result).httpCode;
+            int code = ((Result.HttpError<CourseGradingElementsResponse>) result).httpCode;
             if (code == 401) {
                 App.getDeps().tokenStorage.clear();
                 NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
@@ -144,6 +156,127 @@ public class EditCourseGradingFormulaFragment extends Fragment {
         Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
     }
 
+    private void submit() {
+        if (courseId == null || viewModel == null || descriptionLayout == null || descriptionLayout.getEditText() == null) {
+            return;
+        }
+        if (!hasValidCoefficientSum(editableElements)) {
+            Snackbar.make(requireView(), R.string.grading_coeff_sum_must_be_one, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        String text = descriptionLayout.getEditText().getText().toString();
+        viewModel.saveGrading(courseId, text, editableElements);
+    }
+
+    private static boolean hasValidCoefficientSum(@Nullable List<CourseGradingElementItem> items) {
+        if (items == null || items.isEmpty()) {
+            return false;
+        }
+        double sum = 0.0;
+        for (CourseGradingElementItem item : items) {
+            if (item == null || item.coefficient == null) {
+                return false;
+            }
+            sum += item.coefficient;
+        }
+        return Math.abs(sum - 1.0) <= 0.0001;
+    }
+
+    private void showAddElementDialog() {
+        if (!isAdded()) return;
+
+        float density = getResources().getDisplayMetrics().density;
+        int pad = (int) (16 * density);
+        int fieldGap = (int) (8 * density);
+
+        LinearLayout root = new LinearLayout(requireContext());
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(pad, pad, pad, 0);
+
+        TextInputLayout nameLayout = new TextInputLayout(requireContext());
+        TextInputEditText nameInput = new TextInputEditText(requireContext());
+        nameInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        nameLayout.setHint(getString(R.string.grading_element_name_hint));
+        nameLayout.addView(nameInput);
+        root.addView(nameLayout);
+
+        TextInputLayout coefLayout = new TextInputLayout(requireContext());
+        LinearLayout.LayoutParams coefLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        coefLp.topMargin = fieldGap;
+        coefLayout.setLayoutParams(coefLp);
+        TextInputEditText coefInput = new TextInputEditText(requireContext());
+        coefInput.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        coefLayout.setHint(getString(R.string.grading_element_coefficient_hint));
+        coefLayout.addView(coefInput);
+        root.addView(coefLayout);
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.grading_add_element_title)
+                .setView(root)
+                .setNegativeButton(R.string.event_no, null)
+                .setPositiveButton(R.string.event_yes, null)
+                .create();
+
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            nameLayout.setError(null);
+            coefLayout.setError(null);
+
+            String name = nameInput.getText() != null ? nameInput.getText().toString().trim() : "";
+            String coefRaw = coefInput.getText() != null ? coefInput.getText().toString().trim() : "";
+            if (name.isEmpty()) {
+                nameLayout.setError(getString(R.string.grading_invalid_element_name));
+                return;
+            }
+
+            Double coefficient;
+            try {
+                coefficient = Double.parseDouble(coefRaw.replace(',', '.'));
+            } catch (Exception ignored) {
+                coefficient = null;
+            }
+            if (coefficient == null || coefficient < 0.0 || coefficient > 1.0) {
+                coefLayout.setError(getString(R.string.grading_invalid_element_coefficient));
+                return;
+            }
+
+            CourseGradingElementItem item = new CourseGradingElementItem();
+            item.name = name;
+            item.coefficient = coefficient;
+            editableElements.add(item);
+            renderGradingElements(editableElements);
+            dialog.dismiss();
+        }));
+        dialog.show();
+    }
+
+    private void onSaveResult(@Nullable Result<Void> result) {
+        if (result == null) return;
+        if (result instanceof Result.Success) {
+            NavHostFragment.findNavController(this).navigateUp();
+            return;
+        }
+        if (result instanceof Result.HttpError) {
+            int code = ((Result.HttpError<Void>) result).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
+                return;
+            }
+            if (code == 500) {
+                Snackbar.make(requireView(), R.string.grading_formula_save_error, Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        if (result instanceof Result.NetworkError) {
+            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+    }
+
     private void renderGradingElements(@Nullable List<CourseGradingElementItem> items) {
         if (gradingElementsRows == null) {
             return;
@@ -154,7 +287,9 @@ public class EditCourseGradingFormulaFragment extends Fragment {
         }
         float density = getResources().getDisplayMetrics().density;
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
-        for (CourseGradingElementItem item : items) {
+        for (int i = 0; i < items.size(); i++) {
+            CourseGradingElementItem item = items.get(i);
+            final int rowIndex = i;
             LinearLayout row = new LinearLayout(requireContext());
             row.setOrientation(LinearLayout.HORIZONTAL);
             LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
@@ -177,8 +312,26 @@ public class EditCourseGradingFormulaFragment extends Fragment {
             coefCol.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
             coefCol.setText(formatCoefficient(item.coefficient, nf));
 
+            MaterialButton deleteBtn = new MaterialButton(
+                    requireContext(),
+                    null,
+                    com.google.android.material.R.attr.materialIconButtonStyle
+            );
+            deleteBtn.setIconResource(android.R.drawable.ic_menu_close_clear_cancel);
+            deleteBtn.setInsetTop(0);
+            deleteBtn.setInsetBottom(0);
+            deleteBtn.setContentDescription(getString(R.string.event_delete));
+            deleteBtn.setOnClickListener(v -> {
+                if (rowIndex < 0 || rowIndex >= items.size()) {
+                    return;
+                }
+                items.remove(rowIndex);
+                renderGradingElements(items);
+            });
+
             row.addView(nameCol);
             row.addView(coefCol);
+            row.addView(deleteBtn);
             gradingElementsRows.addView(row);
         }
     }

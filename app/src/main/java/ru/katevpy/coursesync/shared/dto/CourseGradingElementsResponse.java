@@ -7,4 +7,7 @@ import java.util.List;
 public final class CourseGradingElementsResponse {
     @SerializedName("elements")
     public List<CourseGradingElementItem> elements;
+
+    @SerializedName("average_grade")
+    public Double averageGrade;
 }
