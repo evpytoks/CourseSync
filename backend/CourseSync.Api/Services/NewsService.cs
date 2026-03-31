@@ -17,38 +17,39 @@ public sealed class NewsService
         _notificationService = notificationService;
     }
 
-    public async Task<(bool Ok, List<NewsListDto>? Items, string? ErrorCode)> GetByGroupIdAsync(
-        Guid userId,
-        Guid groupId,
-        CancellationToken ct)
+    public async Task<List<NewsListDto>> GetAllForUserAsync(Guid userId, CancellationToken ct)
     {
-        var isMember = await _db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
-        if (!isMember)
-            return (false, null, "forbidden");
+        var groupIds = await _db.GroupMembers
+            .Where(m => m.UserId == userId)
+            .Select(m => m.GroupId)
+            .ToListAsync(ct);
 
-        var list = await _db.News
-            .Where(n => n.GroupId == groupId)
+        if (groupIds.Count == 0)
+            return new List<NewsListDto>();
+
+        return await _db.News
+            .AsNoTracking()
+            .Where(n => groupIds.Contains(n.GroupId))
             .OrderByDescending(n => n.CreatedAt)
             .Select(n => new NewsListDto(n.Id, n.CreatedAt, n.GroupName, n.Section, n.Detail))
             .ToListAsync(ct);
-
-        return (true, list, null);
     }
 
     public async Task<(bool Ok, NewsDetailsDto? Item, string? ErrorCode)> GetByIdAsync(
         Guid userId,
-        Guid groupId,
         Guid newsId,
         CancellationToken ct)
     {
-        var isMember = await _db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
-        if (!isMember)
-            return (false, null, "forbidden");
-
         var news = await _db.News
-            .FirstOrDefaultAsync(n => n.Id == newsId && n.GroupId == groupId, ct);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(n => n.Id == newsId, ct);
         if (news is null)
             return (false, null, "news_not_found");
+
+        var isMember = await _db.GroupMembers.AnyAsync(
+            m => m.GroupId == news.GroupId && m.UserId == userId, ct);
+        if (!isMember)
+            return (false, null, "forbidden");
 
         return (true, new NewsDetailsDto(news.Id, news.CreatedAt, news.GroupName, news.Section, news.Detail), null);
     }
