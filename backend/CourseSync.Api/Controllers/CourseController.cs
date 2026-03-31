@@ -138,9 +138,8 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        const int defaultSlotCount = CourseService.GradingElementCountMin;
         var elements = (req.Elements ?? Array.Empty<CourseGradingElementRequest>())
-            .Select(e => (e.Name ?? "", e.Coefficient, defaultSlotCount))
+            .Select(e => (e.Name ?? "", e.Coefficient))
             .ToList();
 
         var (ok, errorCode) = await _courseService.SaveGradingAsync(

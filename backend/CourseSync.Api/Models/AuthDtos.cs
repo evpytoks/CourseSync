@@ -151,16 +151,19 @@ public sealed record UnregisterDeviceRequest(
 
 public sealed record NewsListItem(
     Guid Id,
-    string Name,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+    [property: JsonPropertyName("time")] DateTimeOffset Time,
+    [property: JsonPropertyName("group")] string Group,
+    [property: JsonPropertyName("section")] string Section,
+    [property: JsonPropertyName("text")] string Text);
+
 public sealed record NewsListResponse(IReadOnlyList<NewsListItem> News);
 
 public sealed record NewsDetailsResponse(
     Guid Id,
-    string Name,
-    string Description,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+    [property: JsonPropertyName("time")] DateTimeOffset Time,
+    [property: JsonPropertyName("group")] string Group,
+    [property: JsonPropertyName("section")] string Section,
+    [property: JsonPropertyName("text")] string Text);
 
 public sealed record AddNewsRequest(
-    string Name,
-    string? Description);
+    [property: JsonPropertyName("text")] string? Text);

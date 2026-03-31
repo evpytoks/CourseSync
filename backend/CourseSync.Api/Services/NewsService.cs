@@ -1,12 +1,12 @@
 using CourseSync.Api.Data;
+using CourseSync.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseSync.Api.Services;
 
 public sealed class NewsService
 {
-    private const int NewsNameMaxLength = 50;
-    private const int NewsDescriptionMaxLength = 3000;
+    private const int NewsTextMaxLength = 3000;
 
     private readonly AppDbContext _db;
     private readonly NotificationService _notificationService;
@@ -29,7 +29,7 @@ public sealed class NewsService
         var list = await _db.News
             .Where(n => n.GroupId == groupId)
             .OrderByDescending(n => n.CreatedAt)
-            .Select(n => new NewsListDto(n.Id, n.Title, n.CreatedAt))
+            .Select(n => new NewsListDto(n.Id, n.CreatedAt, n.GroupName, n.Section, n.Detail))
             .ToListAsync(ct);
 
         return (true, list, null);
@@ -50,35 +50,22 @@ public sealed class NewsService
         if (news is null)
             return (false, null, "news_not_found");
 
-        return (true, new NewsDetailsDto(news.Id, news.Title, news.Description, news.CreatedAt), null);
+        return (true, new NewsDetailsDto(news.Id, news.CreatedAt, news.GroupName, news.Section, news.Detail), null);
     }
 
-    public static (bool Valid, string? ErrorCode) ValidateNewsName(string? name)
+    public static (bool Valid, string? ErrorCode) ValidateNewsText(string? text)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            return (false, "news_name_required");
-        name = name.Trim();
-        if (name.Length < 1)
-            return (false, "news_name_too_short");
-        if (name.Length > NewsNameMaxLength)
-            return (false, "news_name_too_long");
-        return (true, null);
-    }
-
-    public static (bool Valid, string? ErrorCode) ValidateNewsDescription(string? description)
-    {
-        if (description is null)
-            return (true, null);
-        if (description.Length > NewsDescriptionMaxLength)
-            return (false, "news_description_too_long");
+        if (string.IsNullOrWhiteSpace(text))
+            return (false, "news_text_required");
+        if (text.Trim().Length > NewsTextMaxLength)
+            return (false, "news_text_too_long");
         return (true, null);
     }
 
     public async Task<(bool Ok, string? ErrorCode)> CheckOwnerAndCreateNewsAsync(
         Guid userId,
         Guid groupId,
-        string title,
-        string description,
+        string text,
         CancellationToken ct)
     {
         var isOwner = await _db.GroupMembers.AnyAsync(
@@ -87,16 +74,20 @@ public sealed class NewsService
         if (!isOwner)
             return (false, "forbidden");
 
+        var group = await _db.Groups.AsNoTracking().FirstOrDefaultAsync(g => g.Id == groupId, ct);
+        var groupName = string.IsNullOrWhiteSpace(group?.Name) ? "Группа" : group!.Name.Trim();
+
         await _notificationService.CreateNewsAndPushAsync(
             "manual",
             userId,
             groupId,
-            title,
-            description,
+            groupName,
+            NewsFormatting.SectionNews,
+            text.Trim(),
             ct);
         return (true, null);
     }
 
-    public sealed record NewsListDto(Guid Id, string Title, DateTimeOffset CreatedAt);
-    public sealed record NewsDetailsDto(Guid Id, string Title, string Description, DateTimeOffset CreatedAt);
+    public sealed record NewsListDto(Guid Id, DateTimeOffset Time, string Group, string Section, string Text);
+    public sealed record NewsDetailsDto(Guid Id, DateTimeOffset Time, string Group, string Section, string Text);
 }

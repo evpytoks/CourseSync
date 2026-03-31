@@ -5,34 +5,31 @@ namespace CourseSync.Api.Services;
 
 public sealed class NotificationService
 {
-    private const int NotificationTitleMinLength = 1;
-    private const int NotificationTitleMaxLength = 50;
+    private const int FieldGroupNameMinLength = 1;
+    private const int FieldGroupNameMaxLength = 50;
+    private const int FieldSectionMinLength = 1;
+    private const int FieldSectionMaxLength = 50;
     private const int NotificationBodyMaxLength = 3000;
 
     private readonly AppDbContext _db;
 
     public NotificationService(AppDbContext db) => _db = db;
 
-    private static string NotificationTitleFromGroupName(string groupName)
-    {
-        var g = (groupName ?? "").Trim();
-        if (g.Length <= NotificationTitleMaxLength) return g;
-        return g[..NotificationTitleMaxLength];
-    }
-
     public Task CreateNewsAndPushAsync(
         string type,
         Guid actorUserId,
         Guid groupId,
-        string title,
-        string description,
+        string groupName,
+        string section,
+        string detail,
         CancellationToken ct)
     {
         return CreateNewsAndPushToRecipientsAsync(
             type,
             groupId,
-            title,
-            description,
+            groupName,
+            section,
+            detail,
             async token =>
             {
                 return await _db.GroupMembers
@@ -46,16 +43,18 @@ public sealed class NotificationService
     public Task CreateNewsAndPushToAllMembersExceptAsync(
         string type,
         Guid groupId,
-        string title,
-        string description,
+        string groupName,
+        string section,
+        string detail,
         Guid exceptUserId,
         CancellationToken ct)
     {
         return CreateNewsAndPushToRecipientsAsync(
             type,
             groupId,
-            title,
-            description,
+            groupName,
+            section,
+            detail,
             async token =>
             {
                 return await _db.GroupMembers
@@ -66,22 +65,53 @@ public sealed class NotificationService
             ct);
     }
 
+    public Task CreateNewsAndPushToGroupOwnersAsync(
+        string type,
+        Guid groupId,
+        string groupName,
+        string section,
+        string detail,
+        CancellationToken ct)
+    {
+        return CreateNewsAndPushToRecipientsAsync(
+            type,
+            groupId,
+            groupName,
+            section,
+            detail,
+            async token =>
+            {
+                return await _db.GroupMembers
+                    .Where(m => m.GroupId == groupId && m.Role == GroupRole.Owner)
+                    .Select(m => m.UserId)
+                    .ToListAsync(token);
+            },
+            ct);
+    }
+
     private async Task CreateNewsAndPushToRecipientsAsync(
         string type,
         Guid groupId,
-        string title,
-        string description,
+        string groupName,
+        string section,
+        string detail,
         Func<CancellationToken, Task<List<Guid>>> resolveRecipients,
         CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
-        var titleValue = (title ?? "").Trim();
-        var descriptionValue = description ?? "";
+        var groupNameValue = (groupName ?? "").Trim();
+        var sectionValue = (section ?? "").Trim();
+        var detailValue = detail ?? "";
 
-        if (titleValue.Length < NotificationTitleMinLength || titleValue.Length > NotificationTitleMaxLength)
+        if (groupNameValue.Length < FieldGroupNameMinLength || groupNameValue.Length > FieldGroupNameMaxLength)
             throw new ArgumentException(
-                $"Notification title length must be between {NotificationTitleMinLength} and {NotificationTitleMaxLength}.",
-                nameof(title));
+                $"News group_name length must be between {FieldGroupNameMinLength} and {FieldGroupNameMaxLength}.",
+                nameof(groupName));
+
+        if (sectionValue.Length < FieldSectionMinLength || sectionValue.Length > FieldSectionMaxLength)
+            throw new ArgumentException(
+                $"News section length must be between {FieldSectionMinLength} and {FieldSectionMaxLength}.",
+                nameof(section));
 
         var group = await _db.Groups.AsNoTracking().FirstOrDefaultAsync(g => g.Id == groupId, ct);
         if (group is null)
@@ -91,18 +121,21 @@ public sealed class NotificationService
         {
             Id = Guid.NewGuid(),
             GroupId = groupId,
-            Title = titleValue,
-            Description = descriptionValue,
+            GroupName = groupNameValue,
+            Section = sectionValue,
+            Detail = detailValue,
             Type = type,
             CreatedAt = now
         };
         _db.News.Add(news);
 
-        if (descriptionValue.Length > NotificationBodyMaxLength)
-            throw new ArgumentException($"News description length must be <= {NotificationBodyMaxLength}.", nameof(description));
+        if (detailValue.Length > NotificationBodyMaxLength)
+            throw new ArgumentException($"News detail length must be <= {NotificationBodyMaxLength}.", nameof(detail));
 
-        var notificationTitle = NotificationTitleFromGroupName(group.Name);
-        var notificationBody = titleValue;
+        var pushTitle = groupNameValue.Length <= 50 ? groupNameValue : groupNameValue[..49] + "…";
+        var pushBody = detailValue.Length > 0
+            ? $"{sectionValue}\n\n{detailValue}"
+            : sectionValue;
 
         var memberUserIds = await resolveRecipients(ct);
 
@@ -114,8 +147,8 @@ public sealed class NotificationService
                 UserId = userId,
                 GroupId = groupId,
                 Type = type,
-                Title = notificationTitle,
-                Body = notificationBody,
+                Title = pushTitle,
+                Body = pushBody,
                 CreatedAt = now
             });
         }

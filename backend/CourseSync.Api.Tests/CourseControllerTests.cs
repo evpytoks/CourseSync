@@ -443,7 +443,6 @@ public sealed class CourseControllerTests
                 CourseId = course.Id,
                 Name = "Tests",
                 Coefficient = 0.3m,
-                Count = 1,
                 Position = 0,
                 CreatedAt = DateTimeOffset.UtcNow
             },
@@ -453,7 +452,6 @@ public sealed class CourseControllerTests
                 CourseId = course.Id,
                 Name = "Homework",
                 Coefficient = 0.2m,
-                Count = 1,
                 Position = 1,
                 CreatedAt = DateTimeOffset.UtcNow
             });
@@ -584,14 +582,13 @@ public sealed class CourseControllerTests
             CourseId = course.Id,
             Name = "Tests",
             Coefficient = 0.3m,
-            Count = 3,
             Position = 0,
             CreatedAt = DateTimeOffset.UtcNow
         });
         tdb.Db.CourseGradingScores.AddRange(
-            new CourseGradingScore { Id = Guid.NewGuid(), CourseGradingElementId = elementId, Number = 1, Score = 0m },
-            new CourseGradingScore { Id = Guid.NewGuid(), CourseGradingElementId = elementId, Number = 2, Score = 0m },
-            new CourseGradingScore { Id = Guid.NewGuid(), CourseGradingElementId = elementId, Number = 3, Score = 0m });
+            new CourseGradingScore { Id = Guid.NewGuid(), UserId = owner.Id, CourseGradingElementId = elementId, Number = 1, Score = 0m },
+            new CourseGradingScore { Id = Guid.NewGuid(), UserId = owner.Id, CourseGradingElementId = elementId, Number = 2, Score = 0m },
+            new CourseGradingScore { Id = Guid.NewGuid(), UserId = owner.Id, CourseGradingElementId = elementId, Number = 3, Score = 0m });
         owner.CurrentGroupId = group.Id;
         await tdb.Db.SaveChangesAsync();
 
@@ -646,14 +643,13 @@ public sealed class CourseControllerTests
             CourseId = course.Id,
             Name = "Tests",
             Coefficient = 1m,
-            Count = 3,
             Position = 0,
             CreatedAt = DateTimeOffset.UtcNow
         });
         tdb.Db.CourseGradingScores.AddRange(
-            new CourseGradingScore { Id = Guid.NewGuid(), CourseGradingElementId = elementId, Number = 1, Score = 0m },
-            new CourseGradingScore { Id = Guid.NewGuid(), CourseGradingElementId = elementId, Number = 2, Score = 0m },
-            new CourseGradingScore { Id = Guid.NewGuid(), CourseGradingElementId = elementId, Number = 3, Score = 0m });
+            new CourseGradingScore { Id = Guid.NewGuid(), UserId = owner.Id, CourseGradingElementId = elementId, Number = 1, Score = 0m },
+            new CourseGradingScore { Id = Guid.NewGuid(), UserId = owner.Id, CourseGradingElementId = elementId, Number = 2, Score = 0m },
+            new CourseGradingScore { Id = Guid.NewGuid(), UserId = owner.Id, CourseGradingElementId = elementId, Number = 3, Score = 0m });
         owner.CurrentGroupId = group.Id;
         await tdb.Db.SaveChangesAsync();
 
@@ -913,5 +909,72 @@ public sealed class CourseControllerTests
             Assert.Equal(grading.Elements[i].Count, all.Elements[i].Count);
             Assert.Equal(grading.Elements[i].Count, all.Elements[i].Scores.Count);
         }
+    }
+
+    [Fact]
+    public async Task Grading_scores_are_stored_per_user_not_shared()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var student = new User { Id = Guid.NewGuid(), Email = "student@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "MathGroup2026",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Linear Algebra",
+            GeneralInfo = "x",
+            UsefulLinks = "y",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        tdb.Db.Users.AddRange(owner, student);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.AddRange(
+            new GroupMember
+            {
+                GroupId = group.Id,
+                UserId = owner.Id,
+                Role = GroupRole.Owner,
+                JoinedAt = DateTimeOffset.UtcNow
+            },
+            new GroupMember
+            {
+                GroupId = group.Id,
+                UserId = student.Id,
+                Role = GroupRole.Participant,
+                JoinedAt = DateTimeOffset.UtcNow
+            });
+        tdb.Db.Courses.Add(course);
+        owner.CurrentGroupId = group.Id;
+        student.CurrentGroupId = group.Id;
+        await tdb.Db.SaveChangesAsync();
+
+        var ownerCtl = CreateController(tdb, owner.Id);
+        await ownerCtl.SaveGrading(
+            course.Id,
+            new SaveCourseGradingRequest("", new[] { new CourseGradingElementRequest("Tests", 1m) }),
+            CancellationToken.None);
+
+        var studentCtl = CreateController(tdb, student.Id);
+        Assert.IsType<NoContentResult>(
+            await studentCtl.UpdateGradingScores(
+                course.Id,
+                new UpdateCourseGradingScoresRequest("Tests", new decimal[] { 9m }),
+                CancellationToken.None));
+
+        var studentGrading = Assert.IsType<CourseGradingResponse>(
+            Assert.IsType<OkObjectResult>(await studentCtl.GetGrading(course.Id, CancellationToken.None)).Value);
+        Assert.Equal(9m, studentGrading.Elements[0].AverageScore);
+
+        var ownerGrading = Assert.IsType<CourseGradingResponse>(
+            Assert.IsType<OkObjectResult>(await ownerCtl.GetGrading(course.Id, CancellationToken.None)).Value);
+        Assert.Equal(0m, ownerGrading.Elements[0].AverageScore);
     }
 }

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using CourseSync.Api.Data;
+using CourseSync.Api.Infrastructure;
 using CourseSync.Api.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -165,6 +166,20 @@ public sealed class GroupService
             JoinedAt = DateTimeOffset.UtcNow
         });
         await _db.SaveChangesAsync(ct);
+
+        var joinerEmail = await _db.Users.AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync(ct) ?? "";
+
+        await _notifications.CreateNewsAndPushToGroupOwnersAsync(
+            "member_joined_by_code",
+            group.Id,
+            group.Name,
+            NewsFormatting.SectionGroups,
+            NewsFormatting.DetailMemberJoinedByCode(group.Name, joinerEmail),
+            ct);
+
         return (group.Id, group.Name, "participant");
     }
 
@@ -181,6 +196,7 @@ public sealed class GroupService
 
         var group = await _db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
         if (group is null) return (false, "forbidden");
+        var oldName = group.Name;
         group.Name = name.Trim();
         await _db.SaveChangesAsync(ct);
 
@@ -188,8 +204,9 @@ public sealed class GroupService
             "group_renamed",
             userId,
             groupId,
-            "Группа переименована",
-            $"Новое название: {group.Name}",
+            group.Name,
+            NewsFormatting.SectionGroups,
+            NewsFormatting.DetailGroupRenamed(oldName, group.Name),
             ct);
 
         return (true, null);

@@ -1,4 +1,5 @@
 using CourseSync.Api.Data;
+using CourseSync.Api.Infrastructure;
 using CourseSync.Api.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 
@@ -79,12 +80,14 @@ public sealed class CourseService
         _db.Courses.Add(course);
         await _db.SaveChangesAsync(ct);
 
+        var groupName = await GetGroupNameAsync(groupId, ct);
         await _notifications.CreateNewsAndPushAsync(
             "course_created",
             userId,
             groupId,
-            "Новый курс",
-            $"Добавлен курс: {course.Name}",
+            groupName,
+            NewsFormatting.SectionCourses,
+            NewsFormatting.DetailCourseCreatedInGroup(groupName, course.Name),
             ct);
 
         return (true, course.Id, course.Name, course.GeneralInfo, course.UsefulLinks, null);
@@ -163,18 +166,42 @@ public sealed class CourseService
         if (member.Role != GroupRole.Owner)
             return (false, "forbidden");
 
+        var oldName = course.Name;
+        var oldGeneral = course.GeneralInfo ?? "";
+        var oldLinks = course.UsefulLinks ?? "";
         course.Name = name.Trim();
         course.GeneralInfo = generalInfo ?? "";
         course.UsefulLinks = usefulLinks ?? "";
+
+        var nameChanged = TrimField(oldName) != TrimField(course.Name);
+        var restChanged = NewsFormatting.BuildChangedCourseFieldsGeneralLinks(
+            oldGeneral,
+            course.GeneralInfo,
+            oldLinks,
+            course.UsefulLinks);
+
         await _db.SaveChangesAsync(ct);
 
-        await _notifications.CreateNewsAndPushAsync(
-            "course_updated",
-            userId,
-            groupId,
-            "Курс обновлён",
-            $"Курс: {course.Name}",
-            ct);
+        if (nameChanged || restChanged is not null)
+        {
+            var groupName = await GetGroupNameAsync(groupId, ct);
+            string detail;
+            if (nameChanged && restChanged is null)
+                detail = NewsFormatting.DetailCourseRenamedInGroup(groupName, oldName, course.Name);
+            else if (nameChanged && restChanged is not null)
+                detail = NewsFormatting.DetailCourseRenamedInGroup(groupName, oldName, course.Name) + "\n\n" + restChanged;
+            else
+                detail = NewsFormatting.DetailCourseFieldsUpdatedInGroup(groupName, course.Name, restChanged!);
+
+            await _notifications.CreateNewsAndPushAsync(
+                "course_updated",
+                userId,
+                groupId,
+                groupName,
+                NewsFormatting.SectionCourses,
+                detail,
+                ct);
+        }
 
         return (true, null);
     }
@@ -221,12 +248,14 @@ public sealed class CourseService
         _db.Courses.Remove(course);
         await _db.SaveChangesAsync(ct);
 
+        var groupNameDel = await GetGroupNameAsync(groupId, ct);
         await _notifications.CreateNewsAndPushAsync(
             "course_deleted",
             userId,
             groupId,
-            "Курс удалён",
-            $"Удалён курс: {courseName}",
+            groupNameDel,
+            NewsFormatting.SectionCourses,
+            NewsFormatting.DetailCourseDeleted(courseName),
             ct);
 
         return (true, null);
@@ -239,7 +268,7 @@ public sealed class CourseService
         return (true, null);
     }
 
-    public static (bool Valid, string? ErrorCode) ValidateGradingElements(IReadOnlyList<(string Name, decimal Coefficient, int Count)> elements)
+    public static (bool Valid, string? ErrorCode) ValidateGradingElements(IReadOnlyList<(string Name, decimal Coefficient)> elements)
     {
         if (elements.Count == 0)
             return (true, null);
@@ -254,8 +283,6 @@ public sealed class CourseService
                 return (false, "grading_element_name_too_long");
             if (element.Coefficient < 0m || element.Coefficient > 1m)
                 return (false, "grading_coefficient_out_of_range");
-            if (element.Count < GradingElementCountMin || element.Count > GradingElementCountMax)
-                return (false, "grading_element_count_invalid");
             sum += element.Coefficient;
         }
 
@@ -265,12 +292,15 @@ public sealed class CourseService
         return (true, null);
     }
 
+    private static int DisplaySlotCount(int userRowCount) =>
+        userRowCount == 0 ? 1 : userRowCount;
+
     public async Task<(bool Ok, string? ErrorCode)> SaveGradingAsync(
         Guid userId,
         Guid groupId,
         Guid courseId,
         string? text,
-        IReadOnlyList<(string Name, decimal Coefficient, int Count)> elements,
+        IReadOnlyList<(string Name, decimal Coefficient)> elements,
         CancellationToken ct)
     {
         var member = await _db.GroupMembers
@@ -290,6 +320,15 @@ public sealed class CourseService
         if (course is null)
             return (false, "course_not_in_group");
 
+        var oldGradingText = course.GradingText ?? "";
+        var oldElementsRows = await _db.CourseGradingElements
+            .AsNoTracking()
+            .Where(x => x.CourseId == courseId)
+            .OrderBy(x => x.Position)
+            .Select(x => new { x.Name, x.Coefficient })
+            .ToListAsync(ct);
+        var oldFormula = oldElementsRows.Select(x => (x.Name, x.Coefficient)).ToList();
+
         course.GradingText = text ?? "";
 
         var old = await _db.CourseGradingElements.Where(x => x.CourseId == courseId).ToListAsync(ct);
@@ -300,30 +339,35 @@ public sealed class CourseService
         var position = 0;
         foreach (var element in elements)
         {
-            var gradingElement = new CourseGradingElement
+            _db.CourseGradingElements.Add(new CourseGradingElement
             {
                 Id = Guid.NewGuid(),
                 CourseId = courseId,
                 Name = element.Name.Trim(),
                 Coefficient = decimal.Round(element.Coefficient, 4, MidpointRounding.AwayFromZero),
-                Count = element.Count,
                 Position = position++,
                 CreatedAt = now
-            };
-            _db.CourseGradingElements.Add(gradingElement);
-            for (var i = 1; i <= element.Count; i++)
-            {
-                _db.CourseGradingScores.Add(new CourseGradingScore
-                {
-                    Id = Guid.NewGuid(),
-                    CourseGradingElementId = gradingElement.Id,
-                    Number = i,
-                    Score = 0m
-                });
-            }
+            });
         }
 
         await _db.SaveChangesAsync(ct);
+
+        var newFormula = elements.Select(e => (e.Name.Trim(), e.Coefficient)).ToList();
+        var oldSnap = NewsFormatting.FormatGradingFormulaLines(oldFormula, oldGradingText);
+        var newSnap = NewsFormatting.FormatGradingFormulaLines(newFormula, text ?? "");
+        if (oldSnap != newSnap)
+        {
+            var groupNameG = await GetGroupNameAsync(groupId, ct);
+            await _notifications.CreateNewsAndPushAsync(
+                "course_grading_saved",
+                userId,
+                groupId,
+                groupNameG,
+                NewsFormatting.SectionCourses,
+                NewsFormatting.DetailGradingChangedInGroup(groupNameG, course.Name),
+                ct);
+        }
+
         return (true, null);
     }
 
@@ -363,24 +407,31 @@ public sealed class CourseService
             .AsNoTracking()
             .Where(x => x.CourseId == courseId)
             .OrderBy(x => x.Position)
-            .Select(x => new { x.Id, x.Name, x.Coefficient, x.Count })
+            .Select(x => new { x.Id, x.Name, x.Coefficient })
             .ToListAsync(ct);
 
         var elementIds = elements.Select(e => e.Id).ToList();
-        var scoreAverages = await _db.CourseGradingScores
+        var scoreRows = await _db.CourseGradingScores
             .AsNoTracking()
-            .Where(s => elementIds.Contains(s.CourseGradingElementId))
-            .GroupBy(s => s.CourseGradingElementId)
-            .Select(g => new { ElementId = g.Key, Average = g.Average(x => x.Score) })
+            .Where(s => s.UserId == userId && elementIds.Contains(s.CourseGradingElementId))
+            .Select(s => new { s.CourseGradingElementId, s.Score })
             .ToListAsync(ct);
-        var avgMap = scoreAverages.ToDictionary(x => x.ElementId, x => decimal.Round(x.Average, 2, MidpointRounding.AwayFromZero));
+
+        var grouped = scoreRows.GroupBy(x => x.CourseGradingElementId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Score).ToList());
 
         var dto = elements
-            .Select(e => new GradingElementDto(
-                e.Name,
-                e.Coefficient,
-                e.Count,
-                avgMap.TryGetValue(e.Id, out var avg) ? avg : 0m))
+            .Select(e =>
+            {
+                var rows = grouped.TryGetValue(e.Id, out var list) ? list : new List<decimal>();
+                var n = rows.Count;
+                var avg = n == 0 ? 0m : decimal.Round(rows.Average(x => x), 2, MidpointRounding.AwayFromZero);
+                return new GradingElementDto(
+                    e.Name,
+                    e.Coefficient,
+                    DisplaySlotCount(n),
+                    avg);
+            })
             .ToList();
 
         return (true, dto, null);
@@ -405,12 +456,14 @@ public sealed class CourseService
 
         var scores = await _db.CourseGradingScores
             .AsNoTracking()
-            .Where(s => s.CourseGradingElementId == element.Id)
+            .Where(s => s.UserId == userId && s.CourseGradingElementId == element.Id)
             .OrderBy(s => s.Number)
             .Select(s => new { s.Number, s.Score })
             .ToListAsync(ct);
-        var normalized = NormalizeScoresToCount(element.Count, scores.Select(x => (x.Number, x.Score)));
-        return (true, element.Name, element.Count, normalized, null);
+        var n = scores.Count;
+        var displayCount = DisplaySlotCount(n);
+        var normalized = NormalizeScoresToCount(displayCount, scores.Select(x => (x.Number, x.Score)));
+        return (true, element.Name, displayCount, normalized, null);
     }
 
     public async Task<(bool Ok, IReadOnlyList<GradingElementScoresRow>? Elements, string? ErrorCode)> GetAllGradingScoresAsync(
@@ -431,13 +484,13 @@ public sealed class CourseService
             .AsNoTracking()
             .Where(x => x.CourseId == courseId)
             .OrderBy(x => x.Position)
-            .Select(x => new { x.Id, x.Name, x.Count })
+            .Select(x => new { x.Id, x.Name })
             .ToListAsync(ct);
 
         var elementIds = elements.Select(e => e.Id).ToList();
         var allScores = await _db.CourseGradingScores
             .AsNoTracking()
-            .Where(s => elementIds.Contains(s.CourseGradingElementId))
+            .Where(s => s.UserId == userId && elementIds.Contains(s.CourseGradingElementId))
             .Select(s => new { s.CourseGradingElementId, s.Number, s.Score })
             .ToListAsync(ct);
 
@@ -453,7 +506,9 @@ public sealed class CourseService
             var raw = byElement.TryGetValue(e.Id, out var list)
                 ? (IReadOnlyList<(int Number, decimal Score)>)list
                 : Array.Empty<(int Number, decimal Score)>();
-            rows.Add(new GradingElementScoresRow(e.Name, e.Count, NormalizeScoresToCount(e.Count, raw)));
+            var n = raw.Count;
+            var displayCount = DisplaySlotCount(n);
+            rows.Add(new GradingElementScoresRow(e.Name, displayCount, NormalizeScoresToCount(displayCount, raw)));
         }
 
         return (true, rows, null);
@@ -467,9 +522,9 @@ public sealed class CourseService
         IReadOnlyList<decimal> scores,
         CancellationToken ct)
     {
-        var member = await _db.GroupMembers
-            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
-        if (member is null || member.Role != GroupRole.Owner)
+        var isMember = await _db.GroupMembers
+            .AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (!isMember)
             return (false, "forbidden");
 
         var element = await _db.CourseGradingElements
@@ -486,11 +541,11 @@ public sealed class CourseService
                 return (false, "grading_score_out_of_range");
         }
 
-        await ResizeGradingElementScoreRowsAsync(element, scores.Count, ct);
+        await ResizeUserGradingScoreRowsAsync(userId, element.Id, scores.Count, ct);
         await _db.SaveChangesAsync(ct);
 
         var entities = await _db.CourseGradingScores
-            .Where(s => s.CourseGradingElementId == element.Id)
+            .Where(s => s.UserId == userId && s.CourseGradingElementId == element.Id)
             .OrderBy(s => s.Number)
             .ToListAsync(ct);
         if (entities.Count != scores.Count)
@@ -503,32 +558,50 @@ public sealed class CourseService
         return (true, null);
     }
 
-    private async Task ResizeGradingElementScoreRowsAsync(CourseGradingElement element, int newCount, CancellationToken ct)
+    private async Task<string> GetGroupNameAsync(Guid groupId, CancellationToken ct)
     {
-        if (newCount == element.Count)
+        var name = await _db.Groups.AsNoTracking()
+            .Where(g => g.Id == groupId)
+            .Select(g => g.Name)
+            .FirstOrDefaultAsync(ct);
+        return string.IsNullOrWhiteSpace(name) ? "Группа" : name.Trim();
+    }
+
+    private static string TrimField(string s) => (s ?? "").Trim();
+
+    private async Task ResizeUserGradingScoreRowsAsync(
+        Guid userId,
+        Guid courseGradingElementId,
+        int newCount,
+        CancellationToken ct)
+    {
+        var existing = await _db.CourseGradingScores
+            .Where(s => s.UserId == userId && s.CourseGradingElementId == courseGradingElementId)
+            .OrderBy(s => s.Number)
+            .ToListAsync(ct);
+        var oldCount = existing.Count;
+
+        if (newCount == oldCount)
             return;
 
-        if (newCount < element.Count)
+        if (newCount < oldCount)
         {
-            var toRemove = await _db.CourseGradingScores
-                .Where(s => s.CourseGradingElementId == element.Id && s.Number > newCount)
-                .ToListAsync(ct);
+            var toRemove = existing.Where(s => s.Number > newCount).ToList();
             _db.CourseGradingScores.RemoveRange(toRemove);
         }
         else
         {
-            for (var i = element.Count + 1; i <= newCount; i++)
+            for (var i = oldCount + 1; i <= newCount; i++)
             {
                 _db.CourseGradingScores.Add(new CourseGradingScore
                 {
                     Id = Guid.NewGuid(),
-                    CourseGradingElementId = element.Id,
+                    UserId = userId,
+                    CourseGradingElementId = courseGradingElementId,
                     Number = i,
                     Score = 0m
                 });
             }
         }
-
-        element.Count = newCount;
     }
 }

@@ -134,12 +134,14 @@ public sealed class CourseMaterialService
             var course = await _db.Courses.AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == courseId, ct);
             var courseLabel = course?.Name ?? "";
+            var groupName = await GetGroupNameAsync(groupId, ct);
             await _notifications.CreateNewsAndPushAsync(
                 "general_material_added",
                 userId,
                 groupId,
-                "Общий материал",
-                $"Курс: {courseLabel}\nФайл: {name}",
+                groupName,
+                NewsFormatting.SectionCourses,
+                NewsFormatting.DetailGeneralMaterialAdded(courseLabel, name),
                 ct);
         }
 
@@ -206,11 +208,13 @@ public sealed class CourseMaterialService
             var course = await _db.Courses.AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == courseId, ct);
             var courseLabel = course?.Name ?? "";
+            var groupName = await GetGroupNameAsync(groupId, ct);
             await _notifications.CreateNewsAndPushToAllMembersExceptAsync(
                 "personal_material_added",
                 groupId,
-                "Индивидуальный материал",
-                $"Курс: {courseLabel}\nФайл: {name}",
+                groupName,
+                NewsFormatting.SectionCourses,
+                NewsFormatting.DetailPersonalMaterialAdded(courseLabel, userEmail, name),
                 userId,
                 ct);
         }
@@ -242,11 +246,6 @@ public sealed class CourseMaterialService
         if (entity is null)
             return (false, "material_not_found");
 
-        var course = await _db.Courses.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == courseId, ct);
-        var courseLabel = course?.Name ?? "";
-        var materialLabel = entity.Name;
-
         _db.CourseGeneralMaterials.Remove(entity);
         await _db.SaveChangesAsync(ct);
         try
@@ -256,14 +255,6 @@ public sealed class CourseMaterialService
         catch
         {
         }
-
-        await _notifications.CreateNewsAndPushAsync(
-            "general_material_deleted",
-            userId,
-            groupId,
-            "Общий материал удалён",
-            $"Курс: {courseLabel}\nФайл: {materialLabel}",
-            ct);
 
         return (true, null);
     }
@@ -293,11 +284,6 @@ public sealed class CourseMaterialService
         if (!canDelete)
             return (false, "forbidden");
 
-        var course = await _db.Courses.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == courseId, ct);
-        var courseLabel = course?.Name ?? "";
-        var materialLabel = entity.Name;
-
         _db.CoursePersonalMaterials.Remove(entity);
         await _db.SaveChangesAsync(ct);
         try
@@ -308,15 +294,16 @@ public sealed class CourseMaterialService
         {
         }
 
-        await _notifications.CreateNewsAndPushToAllMembersExceptAsync(
-            "personal_material_deleted",
-            groupId,
-            "Индивидуальный материал удалён",
-            $"Курс: {courseLabel}\nФайл: {materialLabel}",
-            userId,
-            ct);
-
         return (true, null);
+    }
+
+    private async Task<string> GetGroupNameAsync(Guid groupId, CancellationToken ct)
+    {
+        var name = await _db.Groups.AsNoTracking()
+            .Where(g => g.Id == groupId)
+            .Select(g => g.Name)
+            .FirstOrDefaultAsync(ct);
+        return string.IsNullOrWhiteSpace(name) ? "Группа" : name.Trim();
     }
 
     public async Task<(bool Ok, MaterialFileDto? File, string? ErrorCode)> OpenGeneralPdfAsync(

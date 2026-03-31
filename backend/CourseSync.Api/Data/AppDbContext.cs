@@ -182,7 +182,6 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.CourseId).HasColumnName("course_id").IsRequired();
             e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
             e.Property(x => x.Coefficient).HasColumnName("coefficient").HasColumnType("numeric(5,4)").IsRequired();
-            e.Property(x => x.Count).HasColumnName("count").IsRequired().HasDefaultValue(1);
             e.Property(x => x.Position).HasColumnName("position").IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
@@ -201,17 +200,24 @@ public sealed class AppDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
             e.Property(x => x.CourseGradingElementId).HasColumnName("course_grading_element_id").IsRequired();
             e.Property(x => x.Number).HasColumnName("number").IsRequired();
             e.Property(x => x.Score).HasColumnName("score").HasColumnType("numeric(6,2)").IsRequired().HasDefaultValue(0m);
+
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             e.HasOne(x => x.Element)
                 .WithMany()
                 .HasForeignKey(x => x.CourseGradingElementId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.CourseGradingElementId);
-            e.HasIndex(x => new { x.CourseGradingElementId, x.Number }).IsUnique();
+            e.HasIndex(x => new { x.UserId, x.CourseGradingElementId, x.Number }).IsUnique();
         });
 
         b.Entity<CourseGeneralMaterial>(e =>
@@ -343,8 +349,9 @@ public sealed class AppDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
-            e.Property(x => x.Title).HasColumnName("title").IsRequired().HasMaxLength(50);
-            e.Property(x => x.Description).HasColumnName("description").IsRequired().HasMaxLength(3000);
+            e.Property(x => x.GroupName).HasColumnName("group_name").IsRequired().HasMaxLength(50);
+            e.Property(x => x.Section).HasColumnName("section").IsRequired().HasMaxLength(50);
+            e.Property(x => x.Detail).HasColumnName("detail").IsRequired().HasMaxLength(3000);
             e.Property(x => x.Type).HasColumnName("type").IsRequired().HasMaxLength(100);
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
