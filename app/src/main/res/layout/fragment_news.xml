@@ -20,16 +20,6 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <TextView
-            android:id="@+id/newsNoGroupMessage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:text="@string/courses_no_group"
-            android:textAppearance="?attr/textAppearanceTitleLarge"
-            android:visibility="gone" />
-
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/newsRecycler"
             android:layout_width="match_parent"
@@ -39,7 +29,6 @@
             android:paddingTop="@dimen/grid_1"
             android:paddingEnd="@dimen/screen_padding_horizontal"
             android:paddingBottom="@dimen/screen_padding_bottom"
-            android:scrollbars="vertical"
-            android:visibility="gone" />
+            android:scrollbars="vertical" />
     </FrameLayout>
 </LinearLayout>

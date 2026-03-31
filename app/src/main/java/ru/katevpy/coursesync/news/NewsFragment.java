@@ -11,6 +11,7 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,7 +38,6 @@ public class NewsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        View noGroupMessage = view.findViewById(R.id.newsNoGroupMessage);
         newsRecycler = view.findViewById(R.id.newsRecycler);
         errorBanner = view.findViewById(R.id.errorBanner);
 
@@ -55,18 +55,7 @@ public class NewsFragment extends Fragment {
         viewModel = new ViewModelProvider(this, new NewsViewModelFactory()).get(NewsViewModel.class);
 
         SharedGroupViewModel groupVm = new ViewModelProvider(requireActivity()).get(SharedGroupViewModel.class);
-        groupVm.getGroupState().observe(getViewLifecycleOwner(), state -> {
-            if (state != null && state.hasGroup()) {
-                noGroupMessage.setVisibility(View.GONE);
-                newsRecycler.setVisibility(View.VISIBLE);
-                viewModel.loadNews();
-            } else {
-                ErrorUi.hideErrorBanner(errorBanner);
-                listAdapter.submitList(null);
-                noGroupMessage.setVisibility(View.VISIBLE);
-                newsRecycler.setVisibility(View.GONE);
-            }
-        });
+        groupVm.getGroupState().observe(getViewLifecycleOwner(), state -> viewModel.loadNews());
 
         viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
     }
@@ -74,8 +63,7 @@ public class NewsFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        SharedGroupViewModel groupVm = new ViewModelProvider(requireActivity()).get(SharedGroupViewModel.class);
-        if (groupVm.getGroupState().getValue() != null && groupVm.getGroupState().getValue().hasGroup() && newsRecycler != null) {
+        if (newsRecycler != null) {
             viewModel.loadNews();
         }
     }
@@ -89,11 +77,17 @@ public class NewsFragment extends Fragment {
             return;
         }
         if (result instanceof Result.HttpError) {
-            int code = ((Result.HttpError<List<NewsListItem>>) result).httpCode;
+            Result.HttpError<List<NewsListItem>> he = (Result.HttpError<List<NewsListItem>>) result;
+            int code = he.httpCode;
             if (code == 401) {
                 ErrorUi.hideErrorBanner(errorBanner);
                 App.getDeps().tokenStorage.clear();
                 NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
+                return;
+            }
+            if (code == 400 && isNoGroupSelected(he)) {
+                ErrorUi.hideErrorBanner(errorBanner);
+                listAdapter.submitList(Collections.emptyList());
                 return;
             }
             if (code == 500) {
@@ -104,5 +98,12 @@ public class NewsFragment extends Fragment {
         }
         listAdapter.submitList(null);
         ErrorUi.showErrorBanner(errorBanner, R.string.internal_error, () -> viewModel.loadNews());
+    }
+
+    private static boolean isNoGroupSelected(Result.HttpError<List<NewsListItem>> he) {
+        if (he.error == null || he.error.code == null) {
+            return false;
+        }
+        return "no_group_selected".equals(he.error.code);
     }
 }

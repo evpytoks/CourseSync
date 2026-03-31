@@ -73,7 +73,20 @@ public class CreateNewsFragment extends Fragment {
             return;
         }
 
-        viewModel.createNews(name, description);
+        String text;
+        String descTrimmed = description.trim();
+        if (descTrimmed.isEmpty()) {
+            text = name;
+        } else {
+            text = name + "\n\n" + descTrimmed;
+        }
+        final int maxBody = getResources().getInteger(R.integer.max_news_body_length);
+        if (text.length() > maxBody) {
+            newsDescriptionLayout.setError(getString(R.string.news_body_max_length));
+            return;
+        }
+
+        viewModel.createNews(text);
     }
 
     private void onCreateResult(@Nullable Result<Void> result) {

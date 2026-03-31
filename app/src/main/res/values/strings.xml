@@ -136,5 +136,6 @@
     <string name="enter_news_name">Введите название новости…</string>
     <string name="news_name_max_length">Длина не более 50 символов</string>
     <string name="news_description_max_length">Длина не более 3000 символов</string>
+    <string name="news_body_max_length">Общий текст новости не более 3000 символов</string>
     <string name="create_news_server_error">Не удалось создать новость. Попробуйте позже</string>
 </resources>
