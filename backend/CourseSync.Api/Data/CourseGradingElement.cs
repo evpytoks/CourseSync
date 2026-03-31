@@ -6,7 +6,6 @@ public sealed class CourseGradingElement
     public Guid CourseId { get; set; }
     public string Name { get; set; } = "";
     public decimal Coefficient { get; set; }
-    public int Count { get; set; }
     public int Position { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 

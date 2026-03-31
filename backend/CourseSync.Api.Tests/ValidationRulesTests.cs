@@ -36,21 +36,18 @@ public sealed class ValidationRulesTests
     }
 
     [Fact]
-    public void News_limits_are_name_50_and_description_3000()
+    public void News_text_is_required_and_has_3000_max()
     {
-        var name50 = NewsService.ValidateNewsName(new string('n', 50));
-        Assert.True(name50.Valid);
+        var empty = NewsService.ValidateNewsText(null);
+        Assert.False(empty.Valid);
+        Assert.Equal("news_text_required", empty.ErrorCode);
 
-        var name51 = NewsService.ValidateNewsName(new string('n', 51));
-        Assert.False(name51.Valid);
-        Assert.Equal("news_name_too_long", name51.ErrorCode);
+        var ok = NewsService.ValidateNewsText(new string('t', 3000));
+        Assert.True(ok.Valid);
 
-        var desc3000 = NewsService.ValidateNewsDescription(new string('d', 3000));
-        Assert.True(desc3000.Valid);
-
-        var desc3001 = NewsService.ValidateNewsDescription(new string('d', 3001));
-        Assert.False(desc3001.Valid);
-        Assert.Equal("news_description_too_long", desc3001.ErrorCode);
+        var tooLong = NewsService.ValidateNewsText(new string('t', 3001));
+        Assert.False(tooLong.Valid);
+        Assert.Equal("news_text_too_long", tooLong.ErrorCode);
     }
 
     [Fact]

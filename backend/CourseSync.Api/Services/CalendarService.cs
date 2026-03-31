@@ -1,4 +1,5 @@
 using CourseSync.Api.Data;
+using CourseSync.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseSync.Api.Services;
@@ -7,8 +8,6 @@ public sealed class CalendarService
 {
     private const int NameMaxLength = 50;
     private const int DescriptionMaxLength = 1000;
-    private const int NotificationBodyMaxLength = 3000;
-
     private readonly AppDbContext _db;
     private readonly NotificationService _notifications;
 
@@ -47,15 +46,6 @@ public sealed class CalendarService
         if (endDate < startDate)
             return (false, "calendar_date_range_invalid");
         return (true, null);
-    }
-
-    internal static string FormatCalendarEventDescription(string name, DateTime date, string description)
-    {
-        var text = $"Название: {name}\nДата: {date:yyyy-MM-dd HH:mm}\nОписание: {description}";
-        if (text.Length > NotificationBodyMaxLength)
-            throw new ArgumentException($"Formatted calendar event text length must be <= {NotificationBodyMaxLength}.", nameof(description));
-
-        return text;
     }
 
     public async Task<(bool Ok, List<CalendarEventListDto>? Events, string? ErrorCode)> GetEventsAsync(
@@ -107,12 +97,18 @@ public sealed class CalendarService
         _db.CalendarEvents.Add(entity);
         await _db.SaveChangesAsync(ct);
 
+        var groupName = await GetGroupNameAsync(groupId, ct);
         await _notifications.CreateNewsAndPushAsync(
             "calendar_event_created",
             userId,
             groupId,
-            "Календарь: новое событие",
-            FormatCalendarEventDescription(entity.Name, entity.Date, entity.Description ?? ""),
+            groupName,
+            NewsFormatting.SectionCalendar,
+            NewsFormatting.DetailCalendarEventCreated(
+                groupName,
+                entity.Name,
+                entity.Date,
+                entity.Description ?? ""),
             ct);
 
         return (true, entity.Id, null);
@@ -162,19 +158,36 @@ public sealed class CalendarService
 
         date = DateTime.SpecifyKind(date, DateTimeKind.Utc);
 
+        var oldName = entity.Name;
+        var oldDate = entity.Date;
+        var oldDescription = entity.Description ?? "";
+
         entity.Name = name.Trim();
         entity.Date = date;
         entity.Description = description ?? "";
 
         await _db.SaveChangesAsync(ct);
 
-        await _notifications.CreateNewsAndPushAsync(
-            "calendar_event_updated",
-            userId,
-            groupId,
-            "Календарь: изменение события",
-            FormatCalendarEventDescription(entity.Name, entity.Date, entity.Description ?? ""),
-            ct);
+        var newDescription = entity.Description ?? "";
+        if (oldName != entity.Name || oldDate != entity.Date || oldDescription != newDescription)
+        {
+            var groupNameU = await GetGroupNameAsync(groupId, ct);
+            await _notifications.CreateNewsAndPushAsync(
+                "calendar_event_updated",
+                userId,
+                groupId,
+                groupNameU,
+                NewsFormatting.SectionCalendar,
+                NewsFormatting.DetailCalendarEventUpdated(
+                    groupNameU,
+                    entity.Name,
+                    entity.Date,
+                    newDescription,
+                    oldName,
+                    oldDate,
+                    oldDescription),
+                ct);
+        }
 
         return (true, null);
     }
@@ -197,18 +210,32 @@ public sealed class CalendarService
         if (member is null || member.Role != GroupRole.Owner)
             return (false, "forbidden");
 
+        var delName = entity.Name;
+        var delDate = entity.Date;
+        var delDescription = entity.Description ?? "";
         _db.CalendarEvents.Remove(entity);
         await _db.SaveChangesAsync(ct);
 
+        var groupNameD = await GetGroupNameAsync(groupId, ct);
         await _notifications.CreateNewsAndPushAsync(
             "calendar_event_deleted",
             userId,
             groupId,
-            "Календарь: удаление события",
-            FormatCalendarEventDescription(entity.Name, entity.Date, entity.Description ?? ""),
+            groupNameD,
+            NewsFormatting.SectionCalendar,
+            NewsFormatting.DetailCalendarEventDeleted(groupNameD, delName, delDate, delDescription),
             ct);
 
         return (true, null);
+    }
+
+    private async Task<string> GetGroupNameAsync(Guid groupId, CancellationToken ct)
+    {
+        var name = await _db.Groups.AsNoTracking()
+            .Where(g => g.Id == groupId)
+            .Select(g => g.Name)
+            .FirstOrDefaultAsync(ct);
+        return string.IsNullOrWhiteSpace(name) ? "Группа" : name.Trim();
     }
 
     public sealed record CalendarEventListDto(Guid Id, string Name, DateTime Date);

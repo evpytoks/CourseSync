@@ -48,7 +48,7 @@ public sealed class NewsController : ControllerBase
         }
 
         var news = items!
-            .Select(n => new NewsListItem(n.Id, n.Title, n.CreatedAt))
+            .Select(n => new NewsListItem(n.Id, n.Time, n.Group, n.Section, n.Text))
             .ToList();
 
         return Ok(new NewsListResponse(news));
@@ -83,7 +83,7 @@ public sealed class NewsController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
         }
 
-        return Ok(new NewsDetailsResponse(item!.Id, item.Title, item.Description, item.CreatedAt));
+        return Ok(new NewsDetailsResponse(item!.Id, item.Time, item.Group, item.Section, item.Text));
     }
 
     [HttpPost("add")]
@@ -100,19 +100,14 @@ public sealed class NewsController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var nameValidation = NewsService.ValidateNewsName(req.Name);
-        if (!nameValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(nameValidation.ErrorCode!)));
-
-        var descriptionValidation = NewsService.ValidateNewsDescription(req.Description);
-        if (!descriptionValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(descriptionValidation.ErrorCode!)));
+        var textValidation = NewsService.ValidateNewsText(req.Text);
+        if (!textValidation.Valid)
+            return BadRequest(new ErrorEnvelope(new ApiError(textValidation.ErrorCode!)));
 
         var (ok, errorCode) = await _newsService.CheckOwnerAndCreateNewsAsync(
             userId.Value,
             user.CurrentGroupId.Value,
-            req.Name!.Trim(),
-            req.Description ?? "",
+            req.Text!.Trim(),
             ct);
 
         if (!ok)

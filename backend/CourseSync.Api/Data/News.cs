@@ -4,8 +4,11 @@ public sealed class News
 {
     public Guid Id { get; set; }
     public Guid GroupId { get; set; }
-    public string Title { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string Type { get; set; } = "";
+
     public DateTimeOffset CreatedAt { get; set; }
+    public string GroupName { get; set; } = "";
+    public string Section { get; set; } = "";
+    public string Detail { get; set; } = "";
+
+    public string Type { get; set; } = "";
 }
