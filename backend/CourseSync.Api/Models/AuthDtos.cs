@@ -24,6 +24,10 @@ public sealed record GroupListItem(
     [property: JsonPropertyName("group_code")] string? GroupCode);
 public sealed record GroupListResponse(IReadOnlyList<GroupListItem> Groups);
 
+public sealed record OwnerGroupListItem(Guid Id, string Name);
+
+public sealed record OwnerGroupListResponse(IReadOnlyList<OwnerGroupListItem> Groups);
+
 public sealed record GroupJoinRequest(string Code);
 
 public sealed record GroupChangeRequest(string Name);
@@ -166,4 +170,5 @@ public sealed record NewsDetailsResponse(
     [property: JsonPropertyName("text")] string Text);
 
 public sealed record AddNewsRequest(
+    [property: JsonPropertyName("group_id")] Guid GroupId,
     [property: JsonPropertyName("text")] string? Text);

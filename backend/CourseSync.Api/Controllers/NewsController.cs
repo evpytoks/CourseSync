@@ -80,8 +80,8 @@ public sealed class NewsController : ControllerBase
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        if (user.CurrentGroupId is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+        if (req.GroupId == Guid.Empty)
+            return BadRequest(new ErrorEnvelope(new ApiError("group_id_required")));
 
         var textValidation = NewsService.ValidateNewsText(req.Text);
         if (!textValidation.Valid)
@@ -89,7 +89,7 @@ public sealed class NewsController : ControllerBase
 
         var (ok, errorCode) = await _newsService.CheckOwnerAndCreateNewsAsync(
             userId.Value,
-            user.CurrentGroupId.Value,
+            req.GroupId,
             req.Text!.Trim(),
             ct);
 

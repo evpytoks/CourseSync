@@ -19,17 +19,9 @@ public sealed class NewsService
 
     public async Task<List<NewsListDto>> GetAllForUserAsync(Guid userId, CancellationToken ct)
     {
-        var groupIds = await _db.GroupMembers
-            .Where(m => m.UserId == userId)
-            .Select(m => m.GroupId)
-            .ToListAsync(ct);
-
-        if (groupIds.Count == 0)
-            return new List<NewsListDto>();
-
         return await _db.News
             .AsNoTracking()
-            .Where(n => groupIds.Contains(n.GroupId))
+            .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId))
             .OrderByDescending(n => n.CreatedAt)
             .Select(n => new NewsListDto(n.Id, n.CreatedAt, n.GroupName, n.Section, n.Detail))
             .ToListAsync(ct);

@@ -46,6 +46,18 @@ public sealed class GroupController : ControllerBase
         return Ok(new GroupListResponse(items));
     }
 
+    [HttpGet("owner-list")]
+    public async Task<ActionResult<OwnerGroupListResponse>> OwnerList(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var dtos = await _groupService.GetOwnerGroupsAsync(userId.Value, ct);
+        var items = dtos.Select(d => new OwnerGroupListItem(d.Id, d.Name)).ToList();
+        return Ok(new OwnerGroupListResponse(items));
+    }
+
     [HttpPost("join")]
     public async Task<IActionResult> Join([FromBody] GroupJoinRequest req, CancellationToken ct)
     {
