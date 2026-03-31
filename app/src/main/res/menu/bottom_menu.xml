@@ -2,21 +2,26 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/groupsFragment"
+        android:icon="@drawable/ic_nav_groups"
         android:title="Группы" />
 
     <item
         android:id="@+id/newsFragment"
+        android:icon="@drawable/ic_nav_news"
         android:title="Новости" />
 
     <item
         android:id="@+id/coursesFragment"
+        android:icon="@drawable/ic_nav_courses"
         android:title="Курсы" />
 
     <item
         android:id="@+id/calendarFragment"
+        android:icon="@drawable/ic_nav_calendar"
         android:title="Календарь" />
 
     <item
         android:id="@+id/settingsFragment"
+        android:icon="@drawable/ic_nav_settings"
         android:title="Настройки" />
 </menu>

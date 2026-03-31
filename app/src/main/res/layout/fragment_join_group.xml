@@ -1,43 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp">
+    android:padding="@dimen/grid_3">
 
-    <LinearLayout
-        android:id="@+id/centerBlock"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
+        app:cardCornerRadius="@dimen/card_corner_radius"
+        app:cardElevation="@dimen/card_elevation_default"
+        app:cardUseCompatPadding="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_max="520dp"
+        app:strokeWidth="0dp">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/groupCodeLayout"
+        <LinearLayout
+            android:id="@+id/centerBlock"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/group_code_hint"
-            app:errorEnabled="true">
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="@dimen/card_content_padding">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/groupCodeInput"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/groupCodeLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="text"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:hint="@string/group_code_hint"
+                app:errorEnabled="true">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnJoin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/join"
-            style="@style/Widget.Material3.Button"/>
-    </LinearLayout>
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/groupCodeInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnJoin"
+                style="@style/Widget.CourseSync.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/grid_2"
+                android:text="@string/join" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

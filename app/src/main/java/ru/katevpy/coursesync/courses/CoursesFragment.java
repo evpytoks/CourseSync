@@ -2,7 +2,6 @@ package ru.katevpy.coursesync.courses;
 
 import android.os.Bundle;
 import android.view.View;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -10,9 +9,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
-
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
@@ -21,13 +19,16 @@ import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
 import ru.katevpy.coursesync.shared.dto.CourseListItem;
 import ru.katevpy.coursesync.shared.util.Result;
+import ru.katevpy.coursesync.ui.ErrorUi;
+import ru.katevpy.coursesync.ui.ListSpacingDecoration;
 
 public class CoursesFragment extends Fragment {
 
     private CoursesViewModel viewModel;
-    private LinearLayout coursesContainer;
+    private RecyclerView coursesRecycler;
     private TextView coursesNoGroupMessage;
-    private View coursesScroll;
+    private View errorBanner;
+    private CourseListAdapter listAdapter;
 
     public CoursesFragment() {
         super(R.layout.fragment_courses);
@@ -37,9 +38,21 @@ public class CoursesFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        coursesContainer = view.findViewById(R.id.coursesContainer);
+        coursesRecycler = view.findViewById(R.id.coursesRecycler);
         coursesNoGroupMessage = view.findViewById(R.id.coursesNoGroupMessage);
-        coursesScroll = view.findViewById(R.id.coursesScroll);
+        errorBanner = view.findViewById(R.id.errorBanner);
+
+        coursesRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+        int spacing = getResources().getDimensionPixelSize(R.dimen.grid_1);
+        coursesRecycler.addItemDecoration(new ListSpacingDecoration(spacing));
+
+        listAdapter = new CourseListAdapter(courseId -> {
+            Bundle args = new Bundle();
+            args.putString("courseId", courseId.toString());
+            NavHostFragment.findNavController(CoursesFragment.this)
+                    .navigate(R.id.action_coursesFragment_to_courseDetailFragment, args);
+        });
+        coursesRecycler.setAdapter(listAdapter);
 
         viewModel = new ViewModelProvider(
                 this,
@@ -50,11 +63,13 @@ public class CoursesFragment extends Fragment {
         groupVm.getGroupState().observe(getViewLifecycleOwner(), state -> {
             if (state != null && state.hasGroup()) {
                 coursesNoGroupMessage.setVisibility(View.GONE);
-                coursesScroll.setVisibility(View.VISIBLE);
+                coursesRecycler.setVisibility(View.VISIBLE);
                 viewModel.loadCourses();
             } else {
+                ErrorUi.hideErrorBanner(errorBanner);
+                listAdapter.submitList(null);
                 coursesNoGroupMessage.setVisibility(View.VISIBLE);
-                coursesScroll.setVisibility(View.GONE);
+                coursesRecycler.setVisibility(View.GONE);
             }
         });
 
@@ -65,46 +80,28 @@ public class CoursesFragment extends Fragment {
         if (result == null) return;
 
         if (result instanceof Result.Success) {
+            ErrorUi.hideErrorBanner(errorBanner);
             List<CourseListItem> items = ((Result.Success<List<CourseListItem>>) result).data;
-            renderCourses(items);
+            listAdapter.submitList(items);
             return;
         }
 
         if (result instanceof Result.HttpError) {
             int code = ((Result.HttpError<List<CourseListItem>>) result).httpCode;
             if (code == 401) {
+                ErrorUi.hideErrorBanner(errorBanner);
                 App.getDeps().tokenStorage.clear();
                 NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.groups_load_error, Snackbar.LENGTH_LONG).show();
+                listAdapter.submitList(null);
+                ErrorUi.showErrorBanner(errorBanner, R.string.courses_list_load_error, () -> viewModel.loadCourses());
                 return;
             }
         }
 
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
-    }
-
-    private void renderCourses(List<CourseListItem> items) {
-        coursesContainer.removeAllViews();
-        if (items == null) return;
-        int marginBottom = (int) (12 * getResources().getDisplayMetrics().density);
-        for (CourseListItem item : items) {
-            MaterialButton btn = new MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-            btn.setText(item.name != null ? item.name : "");
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.bottomMargin = marginBottom;
-            btn.setLayoutParams(lp);
-            if (item.id != null) {
-                btn.setOnClickListener(v -> {
-                    Bundle args = new Bundle();
-                    args.putString("courseId", item.id.toString());
-                    NavHostFragment.findNavController(CoursesFragment.this)
-                            .navigate(R.id.action_coursesFragment_to_courseDetailFragment, args);
-                });
-            }
-            coursesContainer.addView(btn);
-        }
+        listAdapter.submitList(null);
+        ErrorUi.showErrorBanner(errorBanner, R.string.internal_error, () -> viewModel.loadCourses());
     }
 }

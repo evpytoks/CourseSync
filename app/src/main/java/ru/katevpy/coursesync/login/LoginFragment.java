@@ -4,20 +4,20 @@ import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
-import androidx.activity.OnBackPressedCallback;
-import com.google.android.material.snackbar.Snackbar;
 
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.MainActivity;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.databinding.FragmentLoginBinding;
 import ru.katevpy.coursesync.push.CourseSyncFirebaseMessagingService;
+import ru.katevpy.coursesync.ui.ErrorUi;
 
 public class LoginFragment extends Fragment {
 
@@ -76,28 +76,15 @@ public class LoginFragment extends Fragment {
             binding.email.setError(null);
             binding.code.setError(null);
 
-            if (state.emailError != null) binding.email.setError(state.emailError);
-            if (state.codeError != null) binding.code.setError(state.codeError);
+            if (state.emailError != null) {
+                binding.email.setError(state.emailError);
+            }
+            if (state.codeError != null) {
+                binding.code.setError(state.codeError);
+            }
 
-            if (state.message != null) {
-                if (state.message != null) {
-
-                    if ("Код истёк. Отправьте новый".equals(state.message)) {
-
-                        Snackbar.make(binding.getRoot(),
-                                        state.message,
-                                        Snackbar.LENGTH_INDEFINITE)
-                                .setAction("OK", v -> {})
-                                .show();
-
-                    } else {
-
-                        Snackbar.make(binding.getRoot(),
-                                        state.message,
-                                        Snackbar.LENGTH_LONG)
-                                .show();
-                    }
-                }
+            if (state.message != null && !state.message.isEmpty()) {
+                ErrorUi.show(LoginFragment.this, state.message, ErrorUi.Duration.LONG);
             }
 
             if (state.navigateToApp) {

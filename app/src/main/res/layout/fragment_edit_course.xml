@@ -1,76 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp">
+    android:padding="@dimen/grid_3">
 
-    <LinearLayout
-        android:id="@+id/editCourseCenterBlock"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
+        app:cardCornerRadius="@dimen/card_corner_radius"
+        app:cardElevation="@dimen/card_elevation_default"
+        app:cardUseCompatPadding="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_max="520dp"
+        app:strokeWidth="0dp">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/editCourseNameLayout"
+        <LinearLayout
+            android:id="@+id/editCourseCenterBlock"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/course_name_hint"
-            app:errorEnabled="true">
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="@dimen/card_content_padding">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editCourseNameInput"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/editCourseNameLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="text"
-                android:maxLength="@integer/max_course_name_length" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_marginBottom="@dimen/grid_2"
+                android:hint="@string/course_name_hint"
+                app:errorEnabled="true">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/editCourseGeneralLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/general_info_hint"
-            app:errorEnabled="true">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editCourseNameInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:maxLength="@integer/max_course_name_length" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editCourseGeneralInput"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/editCourseGeneralLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
-                android:minLines="3"
-                android:maxLength="@integer/max_general_info_length" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_marginBottom="@dimen/grid_2"
+                android:hint="@string/general_info_hint"
+                app:errorEnabled="true">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/editCourseLinksLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/useful_links_hint"
-            app:errorEnabled="true">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editCourseGeneralInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine"
+                    android:maxLength="@integer/max_general_info_length"
+                    android:minLines="3" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editCourseLinksInput"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/editCourseLinksLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
-                android:minLines="2"
-                android:maxLength="@integer/max_useful_links_length" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:hint="@string/useful_links_hint"
+                app:errorEnabled="true">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSaveCourse"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/save"
-            style="@style/Widget.Material3.Button" />
-    </LinearLayout>
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editCourseLinksInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine"
+                    android:maxLength="@integer/max_useful_links_length"
+                    android:minLines="2" />
+            </com.google.android.material.textfield.TextInputLayout>
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveCourse"
+                style="@style/Widget.CourseSync.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/grid_2"
+                android:text="@string/save" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

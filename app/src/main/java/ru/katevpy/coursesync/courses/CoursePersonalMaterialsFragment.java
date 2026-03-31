@@ -1,6 +1,5 @@
 package ru.katevpy.coursesync.courses;
 
-import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
@@ -22,7 +21,9 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+import ru.katevpy.coursesync.ui.ErrorUi;
 
 import java.io.File;
 import java.util.List;
@@ -125,16 +126,16 @@ public class CoursePersonalMaterialsFragment extends Fragment {
                 return;
             }
             if (code == 403 || code == 404 || code == 400) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.personal_materials_load_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.personal_materials_load_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 
     private void onDeleteResult(@Nullable Result<Void> result) {
@@ -156,17 +157,17 @@ public class CoursePersonalMaterialsFragment extends Fragment {
                 return;
             }
             if (he.httpCode == 500) {
-                Snackbar.make(requireView(), R.string.material_delete_server_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.material_delete_server_error, ErrorUi.Duration.LONG);
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 
     private void askDeleteMaterial(@NonNull CoursePersonalMaterialListItem item) {
         if (courseId == null || item.id == null) return;
         String name = item.name != null && !item.name.trim().isEmpty() ? item.name.trim() : "документ";
-        new AlertDialog.Builder(requireContext())
+        new MaterialAlertDialogBuilder(requireContext())
                 .setMessage(getString(R.string.delete_material_confirm, name))
                 .setPositiveButton(R.string.event_yes, (d, which) ->
                         viewModel.deletePersonalMaterial(courseId, item.id))
@@ -179,7 +180,7 @@ public class CoursePersonalMaterialsFragment extends Fragment {
         if (result instanceof Result.Success) {
             File file = ((Result.Success<File>) result).data;
             if (file == null || !file.exists()) {
-                Snackbar.make(requireView(), R.string.material_pdf_load_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.material_pdf_load_error, ErrorUi.Duration.LONG);
             } else {
                 Uri uri = FileProvider.getUriForFile(requireContext(), FILE_PROVIDER_AUTHORITY, file);
                 Intent viewIntent = new Intent(Intent.ACTION_VIEW);
@@ -188,7 +189,7 @@ public class CoursePersonalMaterialsFragment extends Fragment {
                 try {
                     startActivity(Intent.createChooser(viewIntent, null));
                 } catch (ActivityNotFoundException e) {
-                    Snackbar.make(requireView(), R.string.material_pdf_open_error, Snackbar.LENGTH_LONG).show();
+                    ErrorUi.show(this, R.string.material_pdf_open_error, ErrorUi.Duration.LONG);
                 }
             }
         } else if (result instanceof Result.HttpError) {
@@ -197,16 +198,16 @@ public class CoursePersonalMaterialsFragment extends Fragment {
                 App.getDeps().tokenStorage.clear();
                 NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
             } else if (code == 403 || code == 404) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
             } else if (code == 500) {
-                Snackbar.make(requireView(), R.string.material_pdf_load_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.material_pdf_load_error, ErrorUi.Duration.LONG);
             } else {
-                Snackbar.make(requireView(), R.string.material_pdf_load_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.material_pdf_load_error, ErrorUi.Duration.LONG);
             }
         } else if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_LONG).show();
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.LONG);
         } else {
-            Snackbar.make(requireView(), R.string.material_pdf_load_error, Snackbar.LENGTH_LONG).show();
+            ErrorUi.show(this, R.string.material_pdf_load_error, ErrorUi.Duration.LONG);
         }
         viewModel.clearDownloadForViewResult();
     }
@@ -222,11 +223,11 @@ public class CoursePersonalMaterialsFragment extends Fragment {
         if (result instanceof Result.LogicalError) {
             String code = ((Result.LogicalError<Void>) result).message;
             if ("not_pdf".equals(code)) {
-                Snackbar.make(requireView(), R.string.material_upload_not_pdf, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.material_upload_not_pdf, ErrorUi.Duration.LONG);
                 return;
             }
             if ("file_too_large".equals(code)) {
-                Snackbar.make(requireView(), R.string.material_upload_too_large, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.material_upload_too_large, ErrorUi.Duration.LONG);
                 return;
             }
         }
@@ -246,15 +247,15 @@ public class CoursePersonalMaterialsFragment extends Fragment {
                 }
             }
             if (he.httpCode == 500) {
-                Snackbar.make(requireView(), R.string.material_upload_server_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.material_upload_server_error, ErrorUi.Duration.LONG);
                 return;
             }
         }
         if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_LONG).show();
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.LONG);
             return;
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 
     private boolean materialUploadErrorFromApi(@Nullable ApiError error) {
@@ -263,13 +264,13 @@ public class CoursePersonalMaterialsFragment extends Fragment {
         }
         switch (error.code) {
             case "not_pdf":
-                Snackbar.make(requireView(), R.string.material_upload_not_pdf, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.material_upload_not_pdf, ErrorUi.Duration.LONG);
                 return true;
             case "file_too_large":
-                Snackbar.make(requireView(), R.string.material_upload_too_large, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.material_upload_too_large, ErrorUi.Duration.LONG);
                 return true;
             case "file_required":
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
                 return true;
             default:
                 return false;
@@ -283,9 +284,11 @@ public class CoursePersonalMaterialsFragment extends Fragment {
             return;
         }
         emptyView.setVisibility(View.GONE);
-        float density = getResources().getDisplayMetrics().density;
-        int marginBottom = (int) (12 * density);
-        int cardPadding = (int) (16 * density);
+        android.content.res.Resources res = getResources();
+        int marginBottom = res.getDimensionPixelSize(R.dimen.grid_2);
+        int cardPadding = res.getDimensionPixelSize(R.dimen.card_content_padding);
+        float cardRadius = res.getDimension(R.dimen.card_corner_radius);
+        float cardElev = res.getDimension(R.dimen.card_elevation_default);
         for (CoursePersonalMaterialListItem item : items) {
             MaterialCardView card = new MaterialCardView(requireContext());
             LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
@@ -293,7 +296,8 @@ public class CoursePersonalMaterialsFragment extends Fragment {
                     ViewGroup.LayoutParams.WRAP_CONTENT);
             cardLp.bottomMargin = marginBottom;
             card.setLayoutParams(cardLp);
-            card.setCardElevation(1f * density);
+            card.setRadius(cardRadius);
+            card.setCardElevation(cardElev);
             card.setUseCompatPadding(true);
             card.setClickable(true);
             card.setFocusable(true);
@@ -318,11 +322,11 @@ public class CoursePersonalMaterialsFragment extends Fragment {
                     1f);
 
             TextView title = new TextView(requireContext());
-            title.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleMedium);
+            title.setTextAppearance(R.style.TextAppearance_CourseSync_BodyEmphasized);
             title.setText(item.name != null ? item.name : "");
 
             TextView meta = new TextView(requireContext());
-            meta.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall);
+            meta.setTextAppearance(R.style.TextAppearance_CourseSync_Caption);
             String author = item.authorEmail != null ? item.authorEmail : "";
             String at = item.createdAt != null ? item.createdAt : "";
             String metaLine = author;

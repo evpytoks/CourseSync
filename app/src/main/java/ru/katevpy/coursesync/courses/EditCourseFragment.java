@@ -10,7 +10,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.UUID;
@@ -140,16 +140,16 @@ public class EditCourseFragment extends Fragment {
                 return;
             }
             if (code == 403 || code == 404 || code == 400) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.course_load_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.course_load_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 
     private void onUpdateResult(@Nullable Result<Void> result) {
@@ -169,10 +169,10 @@ public class EditCourseFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.update_course_server_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.update_course_server_error, ErrorUi.Duration.LONG);
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 }

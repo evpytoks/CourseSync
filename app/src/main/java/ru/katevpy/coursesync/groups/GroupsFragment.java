@@ -5,10 +5,6 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,11 +14,11 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
-
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.util.UUID;
 
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.MainActivity;
@@ -32,13 +28,17 @@ import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListItem;
 import ru.katevpy.coursesync.shared.repository.GroupRepository;
 import ru.katevpy.coursesync.shared.util.Result;
+import ru.katevpy.coursesync.ui.ErrorUi;
+import ru.katevpy.coursesync.ui.ListSpacingDecoration;
 
 public class GroupsFragment extends Fragment {
 
     private GroupsViewModel viewModel;
 
-    private LinearLayout groupsContainer;
+    private RecyclerView groupsRecycler;
     private TextView emptyText;
+    private View errorBanner;
+    private GroupListAdapter listAdapter;
 
     public GroupsFragment() {
         super(R.layout.fragment_groups);
@@ -48,8 +48,35 @@ public class GroupsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        groupsContainer = view.findViewById(R.id.groupsContainer);
+        groupsRecycler = view.findViewById(R.id.groupsRecycler);
         emptyText = view.findViewById(R.id.emptyText);
+        errorBanner = view.findViewById(R.id.errorBanner);
+
+        groupsRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+        int spacing = getResources().getDimensionPixelSize(R.dimen.grid_1);
+        groupsRecycler.addItemDecoration(new ListSpacingDecoration(spacing));
+
+        listAdapter = new GroupListAdapter(new GroupListAdapter.Listener() {
+            @Override
+            public void onSelectGroup(@NonNull UUID groupId) {
+                viewModel.chooseGroup(groupId);
+            }
+
+            @Override
+            public void onCopyInviteCode(@NonNull UUID groupId) {
+                copyInviteCode(groupId);
+            }
+
+            @Override
+            public void onEditGroup(@NonNull UUID groupId, @NonNull String name) {
+                Bundle args = new Bundle();
+                args.putString("groupId", groupId.toString());
+                args.putString("groupName", name);
+                NavHostFragment.findNavController(GroupsFragment.this)
+                        .navigate(R.id.action_groupsFragment_to_editGroupFragment, args);
+            }
+        });
+        groupsRecycler.setAdapter(listAdapter);
 
         viewModel = new ViewModelProvider(
                 this,
@@ -60,6 +87,27 @@ public class GroupsFragment extends Fragment {
         viewModel.getChooseResult().observe(getViewLifecycleOwner(), this::onChooseResult);
 
         viewModel.loadGroups();
+    }
+
+    private void copyInviteCode(@NonNull UUID groupId) {
+        new Thread(() -> {
+            GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
+            repo.chooseGroup(groupId);
+            Result<GroupDetailsResponse> res = repo.getCurrentGroup();
+            if (res instanceof Result.Success && ((Result.Success<GroupDetailsResponse>) res).data != null) {
+                GroupDetailsResponse data = ((Result.Success<GroupDetailsResponse>) res).data;
+                String code = data.groupCode;
+                if (code != null && !code.isEmpty()) {
+                    requireActivity().runOnUiThread(() -> {
+                        ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                        if (clipboard != null) {
+                            clipboard.setPrimaryClip(ClipData.newPlainText("invite_code", code));
+                            ErrorUi.show(GroupsFragment.this, R.string.invite_code_copied, ErrorUi.Duration.SHORT);
+                        }
+                    });
+                }
+            }
+        }).start();
     }
 
     private void onChooseResult(@Nullable Result<ChooseGroupResponse> result) {
@@ -85,12 +133,12 @@ public class GroupsFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(groupsContainer, R.string.choose_group_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.choose_group_error, ErrorUi.Duration.LONG);
                 return;
             }
         }
 
-        Snackbar.make(groupsContainer, R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 
     @Override
@@ -100,103 +148,33 @@ public class GroupsFragment extends Fragment {
     }
 
     private void renderGroupsResult(Result<List<GroupListItem>> result) {
-        groupsContainer.removeAllViews();
+        listAdapter.submitList(null);
 
         if (result == null) {
+            ErrorUi.hideErrorBanner(errorBanner);
             emptyText.setVisibility(View.GONE);
             return;
         }
 
         if (result instanceof Result.Success) {
+            ErrorUi.hideErrorBanner(errorBanner);
             List<GroupListItem> groups = ((Result.Success<List<GroupListItem>>) result).data;
             if (groups == null || groups.isEmpty()) {
                 emptyText.setText(R.string.no_groups);
                 emptyText.setVisibility(View.VISIBLE);
+                groupsRecycler.setVisibility(View.GONE);
                 return;
             }
             emptyText.setVisibility(View.GONE);
-            int marginBottom = (int) (12 * getResources().getDisplayMetrics().density);
-            int iconPadding = (int) (12 * getResources().getDisplayMetrics().density);
-            for (GroupListItem g : groups) {
-                FrameLayout wrapper = new FrameLayout(requireContext());
-                LinearLayout.LayoutParams wrapperLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                wrapperLp.bottomMargin = marginBottom;
-                wrapper.setLayoutParams(wrapperLp);
-
-                MaterialButton btn = new MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-                btn.setText(g.name);
-                FrameLayout.LayoutParams btnLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                btn.setLayoutParams(btnLp);
-                java.util.UUID groupId = g.id;
-                btn.setOnClickListener(v -> viewModel.chooseGroup(groupId));
-                wrapper.addView(btn);
-
-                boolean isOwner = g.role != null && "owner".equalsIgnoreCase(g.role.trim());
-
-                if (isOwner) {
-                    LinearLayout iconsRow = new LinearLayout(requireContext());
-                    iconsRow.setOrientation(LinearLayout.HORIZONTAL);
-                    iconsRow.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
-                    FrameLayout.LayoutParams iconsLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                    iconsLp.gravity = android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL;
-                    iconsRow.setLayoutParams(iconsLp);
-
-                    ImageButton copyBtn = new ImageButton(requireContext());
-                    copyBtn.setImageResource(R.drawable.ic_content_copy);
-                    copyBtn.setBackground(null);
-                    copyBtn.setContentDescription(getString(R.string.copy_invite_code));
-                    copyBtn.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-                    LinearLayout.LayoutParams copyLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                    copyBtn.setLayoutParams(copyLp);
-                    copyBtn.setOnClickListener(v -> {
-                        new Thread(() -> {
-                            GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
-                            repo.chooseGroup(groupId);
-                            Result<GroupDetailsResponse> res = repo.getCurrentGroup();
-                            if (res instanceof Result.Success && ((Result.Success<GroupDetailsResponse>) res).data != null) {
-                                GroupDetailsResponse data = ((Result.Success<GroupDetailsResponse>) res).data;
-                                String code = data.groupCode;
-                                if (code != null && !code.isEmpty()) {
-                                    requireActivity().runOnUiThread(() -> {
-                                        ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                                        if (clipboard != null) {
-                                            clipboard.setPrimaryClip(ClipData.newPlainText("invite_code", code));
-                                            Snackbar.make(groupsContainer, R.string.invite_code_copied, Snackbar.LENGTH_SHORT).show();
-                                        }
-                                    });
-                                }
-                            }
-                        }).start();
-                    });
-                    iconsRow.addView(copyBtn);
-
-                    ImageButton editBtn = new ImageButton(requireContext());
-                    editBtn.setImageResource(R.drawable.ic_edit);
-                    editBtn.setBackground(null);
-                    editBtn.setContentDescription(getString(R.string.event_edit));
-                    editBtn.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-                    LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                    editBtn.setLayoutParams(editLp);
-                    java.util.UUID editGroupId = g.id;
-                    String editGroupName = g.name != null ? g.name : "";
-                    editBtn.setOnClickListener(v -> {
-                        Bundle args = new Bundle();
-                        args.putString("groupId", editGroupId.toString());
-                        args.putString("groupName", editGroupName);
-                        NavController nav = NavHostFragment.findNavController(GroupsFragment.this);
-                        nav.navigate(R.id.action_groupsFragment_to_editGroupFragment, args);
-                    });
-                    iconsRow.addView(editBtn);
-                    wrapper.addView(iconsRow);
-                }
-                groupsContainer.addView(wrapper);
-            }
+            groupsRecycler.setVisibility(View.VISIBLE);
+            listAdapter.submitList(groups);
             return;
         }
 
         if (result instanceof Result.HttpError) {
             int code = ((Result.HttpError<List<GroupListItem>>) result).httpCode;
             if (code == 401) {
+                ErrorUi.hideErrorBanner(errorBanner);
                 App.getDeps().tokenStorage.clear();
                 NavController nav = NavHostFragment.findNavController(this);
                 NavOptions opts = new NavOptions.Builder()
@@ -205,12 +183,14 @@ public class GroupsFragment extends Fragment {
                 nav.navigate(R.id.loginFragment, null, opts);
                 return;
             }
-            emptyText.setText(R.string.groups_load_error);
+            ErrorUi.showErrorBanner(errorBanner, R.string.groups_load_error, () -> viewModel.loadGroups());
         } else if (result instanceof Result.NetworkError) {
-            emptyText.setText(R.string.groups_load_error);
+            ErrorUi.showErrorBanner(errorBanner, R.string.groups_load_error, () -> viewModel.loadGroups());
         } else {
-            emptyText.setText(((Result.LogicalError<List<GroupListItem>>) result).message);
+            String msg = ((Result.LogicalError<List<GroupListItem>>) result).message;
+            ErrorUi.showErrorBanner(errorBanner, msg != null ? msg : getString(R.string.internal_error), () -> viewModel.loadGroups());
         }
-        emptyText.setVisibility(View.VISIBLE);
+        emptyText.setVisibility(View.GONE);
+        groupsRecycler.setVisibility(View.GONE);
     }
 }

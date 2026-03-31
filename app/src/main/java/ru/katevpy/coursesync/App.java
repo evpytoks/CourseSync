@@ -4,6 +4,8 @@ import android.app.Application;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
+import com.google.android.material.color.DynamicColors;
+
 import ru.katevpy.coursesync.shared.network.NetworkModule;
 
 public class App extends Application {
@@ -24,6 +26,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        DynamicColors.applyToActivitiesIfAvailable(this);
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         deps = NetworkModule.create(this, BASE_URL);
     }

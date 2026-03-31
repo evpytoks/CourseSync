@@ -8,12 +8,12 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -135,7 +135,7 @@ public class EditCalendarEventFragment extends Fragment {
         LocalTime initialTime = chosenDateTime != null ? chosenDateTime.toLocalTime() : LocalTime.of(12, 0);
         new DatePickerDialog(requireContext(), (picker, y, m, d) -> {
             LocalDate date = LocalDate.of(y, m + 1, d);
-            new AlertDialog.Builder(requireContext())
+            new MaterialAlertDialogBuilder(requireContext())
                     .setMessage(R.string.event_ask_time)
                     .setPositiveButton(R.string.event_yes, (dialog, which) -> {
                         new TimePickerDialog(requireContext(), (timePicker, hour, minute) -> {
@@ -193,7 +193,7 @@ public class EditCalendarEventFragment extends Fragment {
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
         NavHostFragment.findNavController(this).navigateUp();
     }
 
@@ -211,10 +211,10 @@ public class EditCalendarEventFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.update_event_server_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.update_event_server_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 }

@@ -11,7 +11,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.UUID;
@@ -110,18 +110,16 @@ public class EditGroupFragment extends Fragment {
             }
             if (he.httpCode == 500) {
                 groupNameLayout.setError(null);
-                View v = getView();
-                if (v != null) {
-                    Snackbar.make(v, R.string.update_group_name_error, Snackbar.LENGTH_LONG).show();
+                if (getView() != null) {
+                    ErrorUi.show(this, R.string.update_group_name_error, ErrorUi.Duration.LONG);
                 }
                 return;
             }
         }
 
         groupNameLayout.setError(null);
-        View v = getView();
-        if (v != null) {
-            Snackbar.make(v, R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        if (getView() != null) {
+            ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
         }
     }
 }

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="grid_1">8dp</dimen>
+    <dimen name="grid_2">16dp</dimen>
+    <dimen name="grid_3">24dp</dimen>
+    <dimen name="grid_4">32dp</dimen>
+
+    <dimen name="screen_padding_horizontal">@dimen/grid_2</dimen>
+    <dimen name="screen_padding_top">@dimen/grid_2</dimen>
+    <dimen name="screen_padding_bottom">@dimen/grid_4</dimen>
+
+    <dimen name="spacing_section">@dimen/grid_3</dimen>
+    <dimen name="card_content_padding">@dimen/grid_2</dimen>
+    <dimen name="card_corner_radius">18dp</dimen>
+
+    <dimen name="shape_corner_small">12dp</dimen>
+    <dimen name="shape_corner_medium">14dp</dimen>
+    <dimen name="shape_corner_large">18dp</dimen>
+    <dimen name="shape_corner_extra_large">24dp</dimen>
+    <dimen name="shape_corner_toolbar_dense">10dp</dimen>
+
+    <dimen name="list_row_min_height">56dp</dimen>
+    <dimen name="list_row_padding_vertical">@dimen/grid_1</dimen>
+    <dimen name="divider_margin_vertical">@dimen/grid_1</dimen>
+
+    <dimen name="toolbar_icon_margin_start">@dimen/grid_1</dimen>
+    <dimen name="toolbar_stack_margin_start">@dimen/grid_1</dimen>
+    <dimen name="toolbar_stack_margin_top">@dimen/grid_1</dimen>
+    <dimen name="toolbar_stack_button_spacing">@dimen/grid_1</dimen>
+    <dimen name="toolbar_compact_button_padding">@dimen/grid_1</dimen>
+    <dimen name="toolbar_compact_button_min_height">32dp</dimen>
+    <dimen name="toolbar_group_indicator_icon_size">16dp</dimen>
+    <dimen name="toolbar_group_indicator_icon_text_gap">6dp</dimen>
+    <dimen name="toolbar_group_indicator_max_width">200dp</dimen>
+
+    <dimen name="login_above_bottom_nav">56dp</dimen>
+    <dimen name="login_field_spacing">@dimen/grid_4</dimen>
+    <dimen name="login_code_button_spacing">128dp</dimen>
+    <dimen name="login_submit_min_height">56dp</dimen>
+
+    <dimen name="calendar_grid_min_height">256dp</dimen>
+    <dimen name="card_elevation_default">3dp</dimen>
+    <dimen name="elevation_toolbar">3dp</dimen>
+    <dimen name="elevation_bottom_nav">6dp</dimen>
+    <dimen name="elevation_button_rest">1dp</dimen>
+
+    <dimen name="dialog_grading_text_max_height">368dp</dimen>
+</resources>

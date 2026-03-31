@@ -6,6 +6,7 @@ import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -16,7 +17,6 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.NumberFormat;
@@ -29,6 +29,7 @@ import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.CourseGradingScoresResponse;
 import ru.katevpy.coursesync.shared.util.Result;
+import ru.katevpy.coursesync.ui.ErrorUi;
 
 public class GradingElementScoresFragment extends Fragment {
 
@@ -45,8 +46,8 @@ public class GradingElementScoresFragment extends Fragment {
     private TextView tvTitle;
     private TextView tvAverage;
     private LinearLayout tableRows;
-    private MaterialButton btnAdd;
-    private MaterialButton btnRemove;
+    private ImageButton btnAdd;
+    private ImageButton btnRemove;
     private MaterialButton btnSave;
 
     private final ArrayList<Double> localScores = new ArrayList<>();
@@ -108,12 +109,13 @@ public class GradingElementScoresFragment extends Fragment {
         });
         btnSave.setOnClickListener(v -> trySave());
 
+        updateRemoveButtonState();
         viewModel.loadScores(courseId, elementName);
     }
 
     private void trySave() {
         if (!syncAllScoreFieldsFromEdits()) {
-            Snackbar.make(requireView(), R.string.grading_score_fix_field_error, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.grading_score_fix_field_error, ErrorUi.Duration.SHORT);
             return;
         }
         if (!validateScoresForSubmit()) {
@@ -124,24 +126,19 @@ public class GradingElementScoresFragment extends Fragment {
 
     private boolean validateScoresForSubmit() {
         if (localScores.isEmpty()) {
-            Snackbar.make(requireView(), R.string.grading_scores_need_at_least_one, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.grading_scores_need_at_least_one, ErrorUi.Duration.SHORT);
             return false;
         }
         for (Double d : localScores) {
             double v = d != null ? d : 0.0;
             if (v < SCORE_MIN || v > SCORE_MAX) {
-                Snackbar.make(requireView(), R.string.grading_scores_invalid_range, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_scores_invalid_range, ErrorUi.Duration.SHORT);
                 return false;
             }
         }
         return true;
     }
 
-    /**
-     * Updates {@link #localScores} from inputs and sets {@link TextInputEditText#setError} when invalid.
-     *
-     * @return true if every non-empty field parses and lies in {@link #SCORE_MIN}..{@link #SCORE_MAX} (empty = 0).
-     */
     private boolean refreshScoreField(@NonNull TextInputEditText edit, int index) {
         String t = edit.getText() != null ? edit.getText().toString().trim() : "";
         if (t.isEmpty()) {
@@ -210,38 +207,38 @@ public class GradingElementScoresFragment extends Fragment {
                 return;
             }
             if (code == 403) {
-                Snackbar.make(requireView(), R.string.grading_scores_save_forbidden, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_scores_save_forbidden, ErrorUi.Duration.SHORT);
                 viewModel.clearSaveResult();
                 return;
             }
             if (code == 404) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 viewModel.clearSaveResult();
                 return;
             }
             if (code == 400 && err != null && "grading_score_out_of_range".equals(err.code)) {
-                Snackbar.make(requireView(), R.string.grading_scores_invalid_range, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_scores_invalid_range, ErrorUi.Duration.SHORT);
                 viewModel.clearSaveResult();
                 return;
             }
             if (code == 400 && err != null && "grading_element_count_invalid".equals(err.code)) {
-                Snackbar.make(requireView(), R.string.grading_scores_need_at_least_one, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_scores_need_at_least_one, ErrorUi.Duration.SHORT);
                 viewModel.clearSaveResult();
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.grading_scores_save_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_scores_save_error, ErrorUi.Duration.SHORT);
                 viewModel.clearSaveResult();
                 return;
             }
         }
         if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
             viewModel.clearSaveResult();
             return;
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
         viewModel.clearSaveResult();
     }
 
@@ -272,26 +269,25 @@ public class GradingElementScoresFragment extends Fragment {
                 return;
             }
             if (code == 403 || code == 404 || code == 400) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.grading_scores_load_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_scores_load_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
         if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
             return;
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 
     private void renderFromLocal() {
         tableRows.removeAllViews();
-        float density = getResources().getDisplayMetrics().density;
-        int gap = (int) (4 * density);
+        int gap = getResources().getDimensionPixelSize(R.dimen.grid_1);
         for (int i = 0; i < localScores.size(); i++) {
             final int index = i;
             double val = localScores.get(i);
@@ -307,14 +303,14 @@ public class GradingElementScoresFragment extends Fragment {
             TextView numCol = new TextView(requireContext());
             numCol.setLayoutParams(new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            numCol.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+            numCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             numCol.setText(String.format(Locale.getDefault(), "%d", i + 1));
 
             TextInputEditText scoreEdit = new TextInputEditText(requireContext());
             scoreEdit.setLayoutParams(new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
             scoreEdit.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-            scoreEdit.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+            scoreEdit.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             setScoreText(scoreEdit, val);
             scoreEdit.addTextChangedListener(new TextWatcher() {
                 @Override
@@ -380,6 +376,8 @@ public class GradingElementScoresFragment extends Fragment {
     }
 
     private void updateRemoveButtonState() {
-        btnRemove.setEnabled(!localScores.isEmpty());
+        boolean canRemove = !localScores.isEmpty();
+        btnRemove.setEnabled(canRemove);
+        btnRemove.setAlpha(canRemove ? 1f : 0.38f);
     }
 }

@@ -2,30 +2,32 @@ package ru.katevpy.coursesync.news;
 
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
-
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.util.UUID;
 
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
 import ru.katevpy.coursesync.shared.dto.NewsListItem;
 import ru.katevpy.coursesync.shared.util.Result;
+import ru.katevpy.coursesync.ui.ErrorUi;
+import ru.katevpy.coursesync.ui.ListSpacingDecoration;
 
 public class NewsFragment extends Fragment {
 
     private NewsViewModel viewModel;
-    private LinearLayout newsList;
+    private RecyclerView newsRecycler;
+    private View errorBanner;
+    private NewsListAdapter listAdapter;
 
     public NewsFragment() {
         super(R.layout.fragment_news);
@@ -36,8 +38,19 @@ public class NewsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         View noGroupMessage = view.findViewById(R.id.newsNoGroupMessage);
-        View newsContent = view.findViewById(R.id.newsContent);
-        newsList = view.findViewById(R.id.newsList);
+        newsRecycler = view.findViewById(R.id.newsRecycler);
+        errorBanner = view.findViewById(R.id.errorBanner);
+
+        newsRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+        int spacing = getResources().getDimensionPixelSize(R.dimen.grid_1);
+        newsRecycler.addItemDecoration(new ListSpacingDecoration(spacing));
+
+        listAdapter = new NewsListAdapter(newsId -> {
+            Bundle args = new Bundle();
+            args.putString("newsId", newsId.toString());
+            NavHostFragment.findNavController(this).navigate(R.id.action_newsFragment_to_newsDetailFragment, args);
+        });
+        newsRecycler.setAdapter(listAdapter);
 
         viewModel = new ViewModelProvider(this, new NewsViewModelFactory()).get(NewsViewModel.class);
 
@@ -45,11 +58,13 @@ public class NewsFragment extends Fragment {
         groupVm.getGroupState().observe(getViewLifecycleOwner(), state -> {
             if (state != null && state.hasGroup()) {
                 noGroupMessage.setVisibility(View.GONE);
-                newsContent.setVisibility(View.VISIBLE);
+                newsRecycler.setVisibility(View.VISIBLE);
                 viewModel.loadNews();
             } else {
+                ErrorUi.hideErrorBanner(errorBanner);
+                listAdapter.submitList(null);
                 noGroupMessage.setVisibility(View.VISIBLE);
-                newsContent.setVisibility(View.GONE);
+                newsRecycler.setVisibility(View.GONE);
             }
         });
 
@@ -60,7 +75,7 @@ public class NewsFragment extends Fragment {
     public void onResume() {
         super.onResume();
         SharedGroupViewModel groupVm = new ViewModelProvider(requireActivity()).get(SharedGroupViewModel.class);
-        if (groupVm.getGroupState().getValue() != null && groupVm.getGroupState().getValue().hasGroup() && newsList != null) {
+        if (groupVm.getGroupState().getValue() != null && groupVm.getGroupState().getValue().hasGroup() && newsRecycler != null) {
             viewModel.loadNews();
         }
     }
@@ -68,40 +83,26 @@ public class NewsFragment extends Fragment {
     private void onLoadResult(@Nullable Result<List<NewsListItem>> result) {
         if (result == null) return;
         if (result instanceof Result.Success) {
+            ErrorUi.hideErrorBanner(errorBanner);
             List<NewsListItem> items = ((Result.Success<List<NewsListItem>>) result).data;
-            newsList.removeAllViews();
-            if (items == null) return;
-            int marginBottom = (int) (12 * getResources().getDisplayMetrics().density);
-            for (NewsListItem item : items) {
-                MaterialButton btn = new MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-                btn.setText(item.name != null ? item.name : "");
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                lp.bottomMargin = marginBottom;
-                btn.setLayoutParams(lp);
-                java.util.UUID newsId = item.id;
-                if (newsId != null) {
-                    btn.setOnClickListener(v -> {
-                        Bundle args = new Bundle();
-                        args.putString("newsId", newsId.toString());
-                        NavHostFragment.findNavController(this).navigate(R.id.action_newsFragment_to_newsDetailFragment, args);
-                    });
-                }
-                newsList.addView(btn);
-            }
+            listAdapter.submitList(items);
             return;
         }
         if (result instanceof Result.HttpError) {
             int code = ((Result.HttpError<List<NewsListItem>>) result).httpCode;
             if (code == 401) {
+                ErrorUi.hideErrorBanner(errorBanner);
                 App.getDeps().tokenStorage.clear();
                 NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.news_load_error, Snackbar.LENGTH_SHORT).show();
+                listAdapter.submitList(null);
+                ErrorUi.showErrorBanner(errorBanner, R.string.news_load_error, () -> viewModel.loadNews());
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        listAdapter.submitList(null);
+        ErrorUi.showErrorBanner(errorBanner, R.string.internal_error, () -> viewModel.loadNews());
     }
 }

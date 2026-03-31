@@ -9,9 +9,10 @@
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@color/cs_toolbar_background"
+        android:background="?attr/colorSurface"
+        app:elevation="@dimen/elevation_toolbar"
         app:title="CourseSync"
-        app:titleTextColor="@color/cs_toolbar_on_background"
+        app:titleTextColor="?attr/colorOnSurface"
         app:contentInsetStart="0dp"
         app:contentInsetStartWithNavigation="0dp"
         app:layout_constraintTop_toTopOf="parent"
@@ -35,153 +36,83 @@
                     android:id="@+id/btnEditCourse"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:layout_marginStart="4dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:layout_marginStart="@dimen/toolbar_icon_margin_start"
+                    android:background="@drawable/bg_toolbar_action_add"
+                    android:contentDescription="@string/edit_course"
+                    android:padding="@dimen/grid_1"
+                    android:src="@drawable/ic_edit_toolbar"
+                    android:visibility="gone"
+                    app:tint="?attr/colorPrimary" />
+
+                <ImageButton
+                    android:id="@+id/btnToolbarCreate"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="@dimen/toolbar_icon_margin_start"
+                    android:background="@drawable/bg_toolbar_action_add"
+                    android:contentDescription="@string/add_content"
+                    android:padding="@dimen/grid_1"
+                    android:src="@drawable/ic_add"
+                    android:visibility="gone"
+                    app:tint="?attr/colorPrimary" />
+
+                <ImageButton
+                    android:id="@+id/btnEditEvent"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="@dimen/toolbar_icon_margin_start"
+                    android:background="@drawable/bg_toolbar_action_add"
                     android:contentDescription="@string/event_edit"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_edit"
+                    android:padding="@dimen/grid_1"
+                    android:src="@drawable/ic_edit_toolbar"
                     android:visibility="gone"
-                    app:tint="@color/cs_toolbar_on_background" />
+                    app:tint="?attr/colorPrimary" />
 
-                <Button
-                    android:id="@+id/btnAddNews"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minHeight="?attr/actionBarSize"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:text="@string/add_news"
-                    android:textColor="@color/cs_toolbar_on_background"
-                    android:background="@drawable/bg_toolbar_button"
-                    app:backgroundTint="@null"
-                    android:visibility="gone"/>
-
-                <Button
-                    android:id="@+id/btnAddEvent"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minHeight="?attr/actionBarSize"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:text="@string/add_event"
-                    android:textColor="@color/cs_toolbar_on_background"
-                    android:background="@drawable/bg_toolbar_button"
-                    app:backgroundTint="@null"
-                    android:visibility="gone"/>
-
-                <LinearLayout
-                    android:id="@+id/toolbarEventDetailButtonsWrap"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
+                <ImageButton
+                    android:id="@+id/btnToolbarGroup"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="@dimen/toolbar_icon_margin_start"
+                    android:background="@drawable/bg_toolbar_action_add"
+                    android:contentDescription="@string/toolbar_group_menu"
+                    android:padding="@dimen/grid_1"
+                    android:src="@drawable/ic_add"
                     android:visibility="gone"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginTop="8dp">
-
-                    <Button
-                        android:id="@+id/btnEditEvent"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="28dp"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:textSize="12sp"
-                        android:text="@string/event_edit"
-                        android:textColor="@color/cs_toolbar_on_background"
-                        android:background="@drawable/bg_toolbar_button"
-                        app:backgroundTint="@null"/>
-
-                    <Button
-                        android:id="@+id/btnDeleteEvent"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="24dp"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:textSize="12sp"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="4dp"
-                        android:text="@string/event_delete"
-                        android:textColor="@color/cs_toolbar_on_background"
-                        android:background="@drawable/bg_toolbar_button"
-                        app:backgroundTint="@null"/>
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/btnCreateCourse"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minHeight="?attr/actionBarSize"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:text="@string/create_course"
-                    android:textColor="@color/cs_toolbar_on_background"
-                    android:background="@drawable/bg_toolbar_button"
-                    app:backgroundTint="@null"
-                    android:visibility="gone"/>
-
-                <LinearLayout
-                    android:id="@+id/toolbarGroupButtonsWrap"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="gone"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginTop="8dp">
-
-                    <Button
-                        android:id="@+id/btnCreateGroup"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="28dp"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:textSize="12sp"
-                        android:text="@string/create_group"
-                        android:textColor="@color/cs_toolbar_on_background"
-                        android:background="@drawable/bg_toolbar_button"
-                        app:backgroundTint="@null"/>
-
-                    <Button
-                        android:id="@+id/btnJoinGroup"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="24dp"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:textSize="12sp"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="4dp"
-                        android:text="@string/join_group"
-                        android:textColor="@color/cs_toolbar_on_background"
-                        android:background="@drawable/bg_toolbar_button"
-                        app:backgroundTint="@null"/>
-                </LinearLayout>
+                    app:tint="?attr/colorPrimary" />
 
                 <View
                     android:layout_width="0dp"
                     android:layout_height="0dp"
                     android:layout_weight="1"/>
 
-                <TextView
-                    android:id="@+id/tvGroupIndicator"
+                <LinearLayout
+                    android:id="@+id/groupIndicatorContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingEnd="16dp"
-                    android:paddingStart="16dp"
-                    android:text="нет группы"
-                    android:textColor="@color/cs_toolbar_on_background"
-                    android:textStyle="bold"
-                    android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="@dimen/grid_1"
+                    android:paddingEnd="@dimen/grid_2">
+
+                    <ImageView
+                        android:layout_width="@dimen/toolbar_group_indicator_icon_size"
+                        android:layout_height="@dimen/toolbar_group_indicator_icon_size"
+                        android:layout_marginEnd="@dimen/toolbar_group_indicator_icon_text_gap"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_nav_groups"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+
+                    <TextView
+                        android:id="@+id/tvGroupIndicator"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:maxWidth="@dimen/toolbar_group_indicator_max_width"
+                        android:text="нет группы"
+                        android:textAppearance="?attr/textAppearanceBodySmall" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
@@ -203,9 +134,14 @@
         android:id="@+id/bottom_nav"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:theme="@style/ThemeOverlay.CourseSync.BottomNavigation"
+        app:elevation="@dimen/elevation_bottom_nav"
         app:menu="@menu/bottom_menu"
-        app:labelVisibilityMode="labeled"
+        app:labelVisibilityMode="selected"
         app:itemHorizontalTranslationEnabled="false"
+        app:itemIconTint="@color/bottom_nav_item_color"
+        app:itemTextColor="@color/bottom_nav_item_color"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>

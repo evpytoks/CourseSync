@@ -1,35 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    app:cardCornerRadius="@dimen/card_corner_radius"
+    app:cardElevation="@dimen/card_elevation_default"
+    app:cardUseCompatPadding="true"
+    app:strokeWidth="0dp">
 
-    <ImageButton
-        android:id="@+id/btnCloseGradingText"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="4dp"
-        android:layout_marginTop="4dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/grading_formula_close_dialog"
-        android:padding="8dp"
-        android:src="@android:drawable/ic_menu_close_clear_cancel"
-        app:tint="?attr/colorOnSurface" />
-
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="360dp"
-        android:clipToPadding="false"
-        android:fillViewport="true"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="20dp">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvGradingTextContent"
+        <ImageButton
+            android:id="@+id/btnCloseGradingText"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="@dimen/grid_1"
+            android:layout_marginTop="@dimen/grid_1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/grading_formula_close_dialog"
+            android:padding="@dimen/grid_1"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="?attr/colorOnSurface" />
+
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
-    </ScrollView>
-</LinearLayout>
+            android:layout_height="@dimen/dialog_grading_text_max_height"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:paddingStart="@dimen/card_content_padding"
+            android:paddingEnd="@dimen/card_content_padding"
+            android:paddingBottom="@dimen/card_content_padding">
+
+            <TextView
+                android:id="@+id/tvGradingTextContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+        </ScrollView>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

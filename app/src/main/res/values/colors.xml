@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="cs_primary">#1565C0</color>
+    <color name="cs_primary">#1B4965</color>
     <color name="cs_on_primary">#FFFFFF</color>
-    <color name="cs_primary_container">#E3F2FD</color>
-    <color name="cs_on_primary_container">#0D47A1</color>
+    <color name="cs_primary_container">#D4E4EF</color>
+    <color name="cs_on_primary_container">#0A2433</color>
 
-    <color name="cs_background">#FFFFFF</color>
-    <color name="cs_on_background">#121212</color>
+    <color name="cs_accent">#0D9488</color>
+    <color name="cs_on_accent">#FFFFFF</color>
+    <color name="cs_accent_container">#C5EDE8</color>
+    <color name="cs_on_accent_container">#064E48</color>
+
+    <color name="cs_background">#F4F5F7</color>
+    <color name="cs_on_background">#1A1C1E</color>
 
     <color name="cs_surface">#FFFFFF</color>
-    <color name="cs_on_surface">#121212</color>
+    <color name="cs_on_surface">#1A1C1E</color>
 
-    <color name="cs_toolbar_background">#1565C0</color>
-    <color name="cs_toolbar_on_background">#FFFFFF</color>
-
-    <color name="cs_toolbar_button_stroke">#FFFFFF</color>
-    <color name="cs_toolbar_button_fill">#33FFFFFF</color>
+    <color name="cs_surface_variant">#E8EAED</color>
+    <color name="cs_on_surface_variant">#5E6268</color>
+    <color name="cs_outline">#90949C</color>
+    <color name="cs_outline_variant">#DADCE0</color>
 </resources>
-

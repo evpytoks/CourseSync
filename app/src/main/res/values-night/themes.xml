@@ -5,10 +5,43 @@
         <item name="colorPrimaryContainer">@color/cs_primary_container</item>
         <item name="colorOnPrimaryContainer">@color/cs_on_primary_container</item>
 
+        <item name="colorSecondary">@color/cs_accent</item>
+        <item name="colorOnSecondary">@color/cs_on_accent</item>
+        <item name="colorSecondaryContainer">@color/cs_accent_container</item>
+        <item name="colorOnSecondaryContainer">@color/cs_on_accent_container</item>
+
         <item name="android:colorBackground">@color/cs_background</item>
         <item name="colorOnBackground">@color/cs_on_background</item>
 
         <item name="colorSurface">@color/cs_surface</item>
         <item name="colorOnSurface">@color/cs_on_surface</item>
+
+        <item name="colorSurfaceVariant">@color/cs_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/cs_on_surface_variant</item>
+        <item name="colorOutline">@color/cs_outline</item>
+        <item name="colorOutlineVariant">@color/cs_outline_variant</item>
+
+        <item name="android:textColorLink">?attr/colorPrimary</item>
+        <item name="android:colorControlActivated">?attr/colorSecondary</item>
+
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.CourseSync.Small</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.CourseSync.Medium</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.CourseSync.Large</item>
+        <item name="shapeAppearanceCornerExtraLarge">@style/ShapeAppearance.CourseSync.ExtraLarge</item>
+
+        <item name="materialCardViewStyle">@style/Widget.CourseSync.CardView</item>
+        <item name="materialButtonStyle">@style/Widget.CourseSync.Button</item>
+
+        <item name="snackbarStyle">@style/Widget.CourseSync.Snackbar</item>
+        <item name="snackbarTextViewStyle">@style/TextAppearance.CourseSync.Snackbar</item>
+
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.CourseSync.Title</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.CourseSync.Title</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.CourseSync.BodyEmphasized</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.CourseSync.CaptionEmphasized</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.CourseSync.Body</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.CourseSync.Body</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.CourseSync.Caption</item>
+        <item name="android:textAppearance">@style/TextAppearance.CourseSync.Body</item>
     </style>
 </resources>

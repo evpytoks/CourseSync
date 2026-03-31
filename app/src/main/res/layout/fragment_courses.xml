@@ -1,33 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context=".courses.CoursesFragment">
 
-    <TextView
-        android:id="@+id/coursesNoGroupMessage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/courses_no_group"
-        android:textSize="20sp"
-        android:layout_gravity="center"
-        android:visibility="gone"/>
-
-    <ScrollView
-        android:id="@+id/coursesScroll"
+    <include
+        android:id="@+id/errorBanner"
+        layout="@layout/view_error_banner"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_padding_horizontal"
+        android:layout_marginTop="@dimen/screen_padding_top"
+        android:layout_marginEnd="@dimen/screen_padding_horizontal" />
 
-        <LinearLayout
-            android:id="@+id/coursesContainer"
-            android:orientation="vertical"
-            android:layout_width="match_parent"
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/coursesNoGroupMessage"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:padding="16dp"/>
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="@string/courses_no_group"
+            android:textAppearance="?attr/textAppearanceTitleLarge"
+            android:visibility="gone" />
 
-    </ScrollView>
-
-</FrameLayout>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/coursesRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="@dimen/screen_padding_horizontal"
+            android:paddingTop="@dimen/grid_1"
+            android:paddingEnd="@dimen/screen_padding_horizontal"
+            android:paddingBottom="@dimen/screen_padding_bottom"
+            android:scrollbars="vertical" />
+    </FrameLayout>
+</LinearLayout>

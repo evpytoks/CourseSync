@@ -10,22 +10,26 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingStart="@dimen/screen_padding_horizontal"
+        android:paddingTop="@dimen/screen_padding_top"
+        android:paddingEnd="@dimen/screen_padding_horizontal"
+        android:paddingBottom="@dimen/grid_1">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/personalMaterialsEmpty"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:paddingTop="32dp"
+                android:padding="@dimen/grid_4"
                 android:text="@string/personal_materials_empty"
-                android:textSize="16sp"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
                 android:visibility="gone"
                 tools:visibility="visible" />
 
@@ -39,9 +43,9 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnAddPersonalDocument"
-        style="@style/Widget.Material3.Button"
+        style="@style/Widget.CourseSync.Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/grid_2"
         android:text="@string/add_document" />
 </LinearLayout>
