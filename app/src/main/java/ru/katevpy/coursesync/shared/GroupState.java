@@ -5,10 +5,12 @@ import androidx.annotation.Nullable;
 public class GroupState {
     @Nullable public final String groupNumber;
     @Nullable public final String role;
+    @Nullable public final String groupId;
 
-    public GroupState(@Nullable String groupNumber, @Nullable String role) {
+    public GroupState(@Nullable String groupNumber, @Nullable String role, @Nullable String groupId) {
         this.groupNumber = groupNumber;
         this.role = role;
+        this.groupId = groupId;
     }
 
     public boolean hasGroup() {

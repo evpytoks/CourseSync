@@ -21,6 +21,7 @@ import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupJoinRequest;
 import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
+import ru.katevpy.coursesync.shared.dto.OwnerGroupListResponse;
 import ru.katevpy.coursesync.shared.network.GroupApi;
 import ru.katevpy.coursesync.shared.util.Result;
 
@@ -53,6 +54,18 @@ public class GroupRepository {
 
             return Result.httpError(r.code(), null);
 
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<OwnerGroupListResponse> getOwnerGroups() {
+        try {
+            Response<OwnerGroupListResponse> r = api.ownerListGroups().execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
         } catch (IOException e) {
             return Result.networkError(e);
         }

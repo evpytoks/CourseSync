@@ -20,4 +20,11 @@
     <color name="cs_on_surface_variant">#5E6268</color>
     <color name="cs_outline">#90949C</color>
     <color name="cs_outline_variant">#DADCE0</color>
+
+    <color name="news_card_background">#F5F5F5</color>
+    <color name="news_item_icon_bg">#E8EAED</color>
+    <color name="news_item_label_muted">#999999</color>
+
+    <color name="news_list_row_header">@color/cs_on_surface</color>
+    <color name="news_list_row_body">@color/cs_on_surface_variant</color>
 </resources>
