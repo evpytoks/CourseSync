@@ -19,7 +19,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 
 import java.text.NumberFormat;
 import java.util.Collections;
@@ -147,20 +147,20 @@ public class CourseGradingFormulaFragment extends Fragment {
                 return;
             }
             if (code == 403 || code == 404 || code == 400) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.grading_elements_load_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_elements_load_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
         if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
             return;
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 
     private void clearAccumulatedScores() {
@@ -177,15 +177,15 @@ public class CourseGradingFormulaFragment extends Fragment {
         if (data == null) {
             return;
         }
-        float density = getResources().getDisplayMetrics().density;
+        android.content.res.Resources res = getResources();
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
-        int rowGap = (int) (4 * density);
+        int rowGap = res.getDimensionPixelSize(R.dimen.grid_1);
 
         TextView overall = new TextView(requireContext());
         overall.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        overall.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+        overall.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
         overall.setText(getString(R.string.grading_overall_average, formatScoreDisplay(data.averageGrade, nf)));
         LinearLayout.LayoutParams overallLp = (LinearLayout.LayoutParams) overall.getLayoutParams();
         overallLp.bottomMargin = rowGap;
@@ -217,21 +217,21 @@ public class CourseGradingFormulaFragment extends Fragment {
             TextView left = new TextView(requireContext());
             LinearLayout.LayoutParams leftLp = new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            leftLp.setMarginEnd((int) (8 * density));
+            leftLp.setMarginEnd(res.getDimensionPixelSize(R.dimen.grid_1));
             left.setLayoutParams(leftLp);
-            left.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+            left.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             left.setText(getString(R.string.grading_element_score_line_left, name, count));
 
             TextView right = new TextView(requireContext());
             LinearLayout.LayoutParams rightLp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT);
-            rightLp.setMarginEnd((int) (8 * density));
+            rightLp.setMarginEnd(res.getDimensionPixelSize(R.dimen.grid_1));
             right.setLayoutParams(rightLp);
-            right.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+            right.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             right.setText(avgDisplay);
 
-            int iconPx = (int) (24 * density);
+            int iconPx = res.getDimensionPixelSize(R.dimen.grid_3);
             ImageView chevron = new ImageView(requireContext());
             chevron.setLayoutParams(new LinearLayout.LayoutParams(iconPx, iconPx));
             chevron.setImageResource(R.drawable.ic_chevron_right);
@@ -275,29 +275,31 @@ public class CourseGradingFormulaFragment extends Fragment {
         if (items == null || items.isEmpty()) {
             return;
         }
-        float density = getResources().getDisplayMetrics().density;
+        android.content.res.Resources res = getResources();
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
+        int rowSpacing = res.getDimensionPixelSize(R.dimen.grid_1);
+        int colGap = res.getDimensionPixelSize(R.dimen.grid_1);
         for (CourseGradingElementItem item : items) {
             LinearLayout row = new LinearLayout(requireContext());
             row.setOrientation(LinearLayout.HORIZONTAL);
             LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT);
-            rowLp.bottomMargin = (int) (4 * density);
+            rowLp.bottomMargin = rowSpacing;
             row.setLayoutParams(rowLp);
 
             TextView nameCol = new TextView(requireContext());
             LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            nameLp.setMarginEnd((int) (8 * density));
+            nameLp.setMarginEnd(colGap);
             nameCol.setLayoutParams(nameLp);
-            nameCol.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+            nameCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             nameCol.setText(item.name != null ? item.name : "");
 
             TextView coefCol = new TextView(requireContext());
             coefCol.setLayoutParams(new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            coefCol.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+            coefCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             coefCol.setText(formatCoefficient(item.coefficient, nf));
 
             row.addView(nameCol);
@@ -337,23 +339,23 @@ public class CourseGradingFormulaFragment extends Fragment {
                 return;
             }
             if (code == 403 || code == 404 || code == 400) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 viewModel.clearGradingTextResult();
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.grading_formula_load_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_formula_load_error, ErrorUi.Duration.SHORT);
                 viewModel.clearGradingTextResult();
                 return;
             }
         }
         if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
             viewModel.clearGradingTextResult();
             return;
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
         viewModel.clearGradingTextResult();
     }
 

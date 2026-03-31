@@ -10,7 +10,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 import com.google.android.material.textfield.TextInputLayout;
 
 import ru.katevpy.coursesync.App;
@@ -90,10 +90,10 @@ public class CreateNewsFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.create_news_server_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.create_news_server_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 }

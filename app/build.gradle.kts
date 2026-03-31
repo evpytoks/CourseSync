@@ -42,6 +42,7 @@ android {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation(libs.fragment)
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)

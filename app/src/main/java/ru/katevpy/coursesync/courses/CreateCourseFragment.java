@@ -10,7 +10,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 import com.google.android.material.textfield.TextInputLayout;
 
 import ru.katevpy.coursesync.App;
@@ -121,11 +121,11 @@ public class CreateCourseFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.create_course_server_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.create_course_server_error, ErrorUi.Duration.LONG);
                 return;
             }
         }
 
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 }

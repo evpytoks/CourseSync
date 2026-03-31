@@ -14,7 +14,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
@@ -115,7 +115,7 @@ public class SettingsFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.settings_load_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.settings_load_error, ErrorUi.Duration.LONG);
                 isUpdating = false;
                 notificationsCheckBox.setEnabled(true);
                 darkThemeCheckBox.setEnabled(true);
@@ -123,7 +123,7 @@ public class SettingsFragment extends Fragment {
             }
         }
 
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
         isUpdating = false;
         notificationsCheckBox.setEnabled(true);
         darkThemeCheckBox.setEnabled(true);
@@ -158,13 +158,13 @@ public class SettingsFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.settings_save_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.settings_save_error, ErrorUi.Duration.LONG);
                 viewModel.loadSettings();
                 return;
             }
         }
 
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
         viewModel.loadSettings();
     }
 
@@ -200,12 +200,12 @@ public class SettingsFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.logout_error, Snackbar.LENGTH_LONG).show();
+                ErrorUi.show(this, R.string.logout_error, ErrorUi.Duration.LONG);
                 return;
             }
         }
 
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_LONG).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 
     private void bindCheckListeners() {

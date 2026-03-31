@@ -12,7 +12,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 import com.google.android.material.textfield.TextInputLayout;
 
 import ru.katevpy.coursesync.App;
@@ -85,9 +85,8 @@ public class CreateGroupFragment extends Fragment {
             }
             if (he.httpCode == 500) {
                 groupNameLayout.setError(null);
-                View v = getView();
-                if (v != null) {
-                    Snackbar.make(v, R.string.create_group_server_error, Snackbar.LENGTH_LONG).show();
+                if (getView() != null) {
+                    ErrorUi.show(this, R.string.create_group_server_error, ErrorUi.Duration.LONG);
                 }
                 return;
             }

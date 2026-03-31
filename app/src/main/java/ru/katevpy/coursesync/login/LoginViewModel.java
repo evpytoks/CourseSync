@@ -1,5 +1,7 @@
 package ru.katevpy.coursesync.login;
 
+import android.content.res.Resources;
+
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -10,11 +12,12 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.LoginResponse;
 import ru.katevpy.coursesync.shared.dto.SendCodeResponse;
@@ -26,8 +29,7 @@ public class LoginViewModel extends ViewModel {
     public enum Step { ENTER_EMAIL, ENTER_CODE, VERIFY }
 
     private final AuthRepository repo;
-    private final String internalErrorMessage;
-    private final String networkErrorMessage;
+    private final Resources res;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     private final MutableLiveData<LoginUiState> ui = new MutableLiveData<>(LoginUiState.initial());
@@ -36,10 +38,9 @@ public class LoginViewModel extends ViewModel {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private @Nullable ScheduledFuture<?> expiryTask = null;
 
-    public LoginViewModel(AuthRepository repo, String internalErrorMessage, String networkErrorMessage) {
+    public LoginViewModel(AuthRepository repo, Resources resources) {
         this.repo = repo;
-        this.internalErrorMessage = internalErrorMessage;
-        this.networkErrorMessage = networkErrorMessage;
+        this.res = resources;
 
         if (repo.hasPending()) {
             ui.setValue(new LoginUiState(Step.ENTER_CODE, false, null, null, null, false));
@@ -88,7 +89,7 @@ public class LoginViewModel extends ViewModel {
         ui.postValue(new LoginUiState(
                 Step.ENTER_EMAIL,
                 false,
-                "Поле не должно быть пустым",
+                res.getString(R.string.login_validation_email_empty),
                 null,
                 null,
                 false
@@ -99,7 +100,7 @@ public class LoginViewModel extends ViewModel {
         ui.postValue(new LoginUiState(
                 Step.ENTER_EMAIL,
                 false,
-                "Введите корректную почту",
+                res.getString(R.string.login_validation_email_invalid),
                 null,
                 null,
                 false
@@ -110,7 +111,7 @@ public class LoginViewModel extends ViewModel {
         ui.postValue(new LoginUiState(
                 Step.ENTER_EMAIL,
                 false,
-                "Поддерживается только корпоративная почта ВШЭ",
+                res.getString(R.string.login_validation_email_not_hse),
                 null,
                 null,
                 false
@@ -122,7 +123,7 @@ public class LoginViewModel extends ViewModel {
                 Step.ENTER_CODE,
                 false,
                 null,
-                "Введите код",
+                res.getString(R.string.login_validation_code_empty),
                 null,
                 false
         ));
@@ -147,7 +148,7 @@ public class LoginViewModel extends ViewModel {
                     false,
                     null,
                     null,
-                    "Код истёк. Отправьте новый",
+                    res.getString(R.string.login_code_expired),
                     false
             ));
             return;
@@ -163,7 +164,7 @@ public class LoginViewModel extends ViewModel {
                     false,
                     null,
                     null,
-                    "Код истёк. Отправьте новый",
+                    res.getString(R.string.login_code_expired),
                     false
             ));
         }, delayMs, TimeUnit.MILLISECONDS);
@@ -223,12 +224,12 @@ public class LoginViewModel extends ViewModel {
 
             if (r instanceof Result.NetworkError) {
                 Throwable t = ((Result.NetworkError<SendCodeResponse>) r).t;
-                String msg = isNoInternet(t) ? networkErrorMessage : internalErrorMessage;
+                String msg = isNoInternet(t) ? res.getString(R.string.network_error) : res.getString(R.string.internal_error);
                 ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, msg, false));
                 return;
             }
 
-            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, internalErrorMessage, false));
+            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, res.getString(R.string.internal_error), false));
         });
     }
 
@@ -277,7 +278,8 @@ public class LoginViewModel extends ViewModel {
             if (r instanceof Result.LogicalError) {
                 inFlight = false;
                 String msg = ((Result.LogicalError<LoginResponse>) r).message;
-                if (msg.toLowerCase().contains("почт") || msg.toLowerCase().contains("истёк")) {
+                String lower = msg != null ? msg.toLowerCase() : "";
+                if (lower.contains("почт") || lower.contains("истёк")) {
                     ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, msg, false));
                 } else {
                     ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, msg, false));
@@ -288,13 +290,13 @@ public class LoginViewModel extends ViewModel {
             if (r instanceof Result.NetworkError) {
                 inFlight = false;
                 Throwable t = ((Result.NetworkError<LoginResponse>) r).t;
-                String msg = isNoInternet(t) ? networkErrorMessage : internalErrorMessage;
+                String msg = isNoInternet(t) ? res.getString(R.string.network_error) : res.getString(R.string.internal_error);
                 ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, msg, false));
                 return;
             }
 
             inFlight = false;
-            ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, internalErrorMessage, false));
+            ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, res.getString(R.string.internal_error), false));
         });
     }
 
@@ -334,16 +336,18 @@ public class LoginViewModel extends ViewModel {
         }
 
         if (http == 429 && "rate_limited".equals(code)) {
-            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, "Можно отправить только 1 код в минуту", false));
+            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null,
+                    res.getString(R.string.login_rate_limited), false));
             return;
         }
 
         if (http == 500 && "email_send_failed".equals(code)) {
-            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, "Не удалось отправить код. Попробуйте позже", false));
+            ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null,
+                    res.getString(R.string.login_send_code_failed), false));
             return;
         }
 
-        ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, internalErrorMessage, false));
+        ui.postValue(new LoginUiState(Step.ENTER_EMAIL, false, null, null, res.getString(R.string.internal_error), false));
     }
 
     private void postLoginHttpError(int http, @Nullable ApiError apiError) {
@@ -369,7 +373,7 @@ public class LoginViewModel extends ViewModel {
         }
 
         if (http == 401 && "invalid_code".equals(code)) {
-            ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, "Неверный код", null, false));
+            ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, res.getString(R.string.invalid_code), null, false));
             return;
         }
 
@@ -381,13 +385,13 @@ public class LoginViewModel extends ViewModel {
                     false,
                     null,
                     null,
-                    "Слишком много попыток",
+                    res.getString(R.string.login_too_many_attempts),
                     false
             ));
             return;
         }
 
-        ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, internalErrorMessage, false));
+        ui.postValue(new LoginUiState(Step.ENTER_CODE, false, null, null, res.getString(R.string.internal_error), false));
     }
 
     @Override

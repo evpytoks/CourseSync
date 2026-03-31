@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="@dimen/card_corner_radius"
+    app:cardElevation="@dimen/card_elevation_default"
+    app:cardUseCompatPadding="true"
+    app:strokeWidth="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/list_row_min_height"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="@dimen/card_content_padding">
+
+            <TextView
+                android:id="@+id/groupRowTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                tools:text="Название группы" />
+
+            <TextView
+                android:id="@+id/groupRowSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/grid_1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Владелец" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/groupRowActions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingEnd="@dimen/grid_1"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <ImageButton
+                android:id="@+id/groupRowCopy"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_toolbar_action_add"
+                android:contentDescription="@string/copy_invite_code"
+                android:padding="6dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_content_copy"
+                app:tint="?attr/colorPrimary" />
+
+            <ImageButton
+                android:id="@+id/groupRowEdit"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_toolbar_action_add"
+                android:contentDescription="@string/edit_group_title"
+                android:padding="6dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_edit_toolbar"
+                app:tint="?attr/colorPrimary" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

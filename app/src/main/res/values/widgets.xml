@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Widget.CourseSync.CardView" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">@dimen/card_corner_radius</item>
+        <item name="cardElevation">@dimen/card_elevation_default</item>
+        <item name="cardUseCompatPadding">true</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <style name="Widget.CourseSync.Button" parent="Widget.Material3.Button">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="elevation">@dimen/elevation_button_rest</item>
+    </style>
+
+    <style name="Widget.CourseSync.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="Widget.CourseSync.Button.OutlinedToolbar" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">?attr/actionBarSize</item>
+        <item name="android:paddingStart">@dimen/grid_2</item>
+        <item name="android:paddingEnd">@dimen/grid_2</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="Widget.CourseSync.Button.OutlinedToolbarDense" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">@dimen/toolbar_compact_button_min_height</item>
+        <item name="android:paddingStart">@dimen/toolbar_compact_button_padding</item>
+        <item name="android:paddingEnd">@dimen/toolbar_compact_button_padding</item>
+        <item name="android:paddingTop">@dimen/toolbar_compact_button_padding</item>
+        <item name="android:paddingBottom">@dimen/toolbar_compact_button_padding</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.CourseSync.ToolbarDense</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="Widget.CourseSync.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
+        <item name="android:minHeight">@dimen/list_row_min_height</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="elevation">@dimen/elevation_button_rest</item>
+    </style>
+</resources>

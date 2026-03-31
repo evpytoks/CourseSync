@@ -11,87 +11,120 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
+        android:gravity="center"
         android:text="@string/calendar_no_group"
-        android:textSize="20sp"
+        android:textAppearance="?attr/textAppearanceTitleLarge"
         android:visibility="gone" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/calendarScroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingStart="@dimen/screen_padding_horizontal"
+        android:paddingTop="@dimen/screen_padding_top"
+        android:paddingEnd="@dimen/screen_padding_horizontal"
+        android:paddingBottom="@dimen/screen_padding_bottom">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:orientation="vertical">
 
-            <LinearLayout
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingBottom="12dp">
+                android:layout_marginBottom="@dimen/spacing_section"
+                app:cardCornerRadius="@dimen/card_corner_radius"
+                app:cardElevation="@dimen/card_elevation_default"
+                app:cardUseCompatPadding="true"
+                app:strokeWidth="0dp">
 
-                <ImageButton
-                    android:id="@+id/btnMonthPrev"
-                    style="?attr/borderlessButtonStyle"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription="@string/calendar_prev_month"
-                    android:src="@drawable/ic_arrow_left" />
-
-                <TextView
-                    android:id="@+id/calendarMonthYear"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    tools:text="Март 2025" />
-
-                <ImageButton
-                    android:id="@+id/btnMonthNext"
-                    style="?attr/borderlessButtonStyle"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription="@string/calendar_next_month"
-                    android:src="@drawable/ic_arrow_right" />
-
-            </LinearLayout>
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="260dp">
-
-                <com.kizitonwose.calendar.view.CalendarView
-                    android:id="@+id/calendarView"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    app:cv_dayViewResource="@layout/calendar_day"
-                    app:cv_daySize="square"
-                    app:cv_orientation="vertical"
-                    app:cv_scrollPaged="true" />
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/card_content_padding">
 
-            </FrameLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingBottom="@dimen/grid_2">
 
-            <TextView
-                android:id="@+id/calendarEventsTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/calendar_events_title"
-                android:textSize="16sp" />
+                        <ImageButton
+                            android:id="@+id/btnMonthPrev"
+                            style="?attr/borderlessButtonStyle"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:contentDescription="@string/calendar_prev_month"
+                            android:src="@drawable/ic_arrow_left" />
 
-            <LinearLayout
-                android:id="@+id/calendarEventsList"
+                        <TextView
+                            android:id="@+id/calendarMonthYear"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:textAppearance="?attr/textAppearanceTitleLarge"
+                            tools:text="Март 2025" />
+
+                        <ImageButton
+                            android:id="@+id/btnMonthNext"
+                            style="?attr/borderlessButtonStyle"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:contentDescription="@string/calendar_next_month"
+                            android:src="@drawable/ic_arrow_right" />
+                    </LinearLayout>
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/calendar_grid_min_height">
+
+                        <com.kizitonwose.calendar.view.CalendarView
+                            android:id="@+id/calendarView"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            app:cv_dayViewResource="@layout/calendar_day"
+                            app:cv_daySize="square"
+                            app:cv_orientation="vertical"
+                            app:cv_scrollPaged="true" />
+                    </FrameLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                app:cardCornerRadius="@dimen/card_corner_radius"
+                app:cardElevation="@dimen/card_elevation_default"
+                app:cardUseCompatPadding="true"
+                app:strokeWidth="0dp">
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/card_content_padding">
+
+                    <TextView
+                        android:id="@+id/calendarEventsTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/grid_2"
+                        android:text="@string/calendar_events_title"
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                    <LinearLayout
+                        android:id="@+id/calendarEventsList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
 </FrameLayout>

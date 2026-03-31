@@ -10,7 +10,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 
 import java.util.UUID;
 
@@ -23,8 +23,8 @@ public class CourseDetailFragment extends Fragment {
 
     private TextView courseDetailName;
     private TextView courseDetailGeneral;
-    private TextView courseDetailUsefulLinksLabel;
     private TextView courseDetailUsefulLinks;
+    private View courseDetailLinksCard;
     private UUID courseUuid;
     private String courseIdStr;
 
@@ -38,8 +38,8 @@ public class CourseDetailFragment extends Fragment {
 
         courseDetailName = view.findViewById(R.id.courseDetailName);
         courseDetailGeneral = view.findViewById(R.id.courseDetailGeneral);
-        courseDetailUsefulLinksLabel = view.findViewById(R.id.courseDetailUsefulLinksLabel);
         courseDetailUsefulLinks = view.findViewById(R.id.courseDetailUsefulLinks);
+        courseDetailLinksCard = view.findViewById(R.id.courseDetailLinksCard);
 
         if (getArguments() == null) {
             NavHostFragment.findNavController(this).navigateUp();
@@ -102,8 +102,9 @@ public class CourseDetailFragment extends Fragment {
             String links = data.usefulLinks != null ? data.usefulLinks : "";
             courseDetailUsefulLinks.setText(links);
             boolean showLinks = !links.isEmpty();
-            courseDetailUsefulLinksLabel.setVisibility(showLinks ? View.VISIBLE : View.GONE);
-            courseDetailUsefulLinks.setVisibility(showLinks ? View.VISIBLE : View.GONE);
+            if (courseDetailLinksCard != null) {
+                courseDetailLinksCard.setVisibility(showLinks ? View.VISIBLE : View.GONE);
+            }
             return;
         }
         if (result instanceof Result.HttpError) {
@@ -114,20 +115,20 @@ public class CourseDetailFragment extends Fragment {
                 return;
             }
             if (code == 403 || code == 404) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 return;
             }
             if (code == 400) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.course_load_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.course_load_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 }

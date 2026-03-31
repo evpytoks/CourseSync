@@ -5,83 +5,110 @@
     android:layout_height="match_parent"
     android:clipToPadding="false"
     android:fillViewport="true"
+    android:paddingStart="@dimen/screen_padding_horizontal"
+    android:paddingTop="@dimen/screen_padding_top"
+    android:paddingEnd="@dimen/screen_padding_horizontal"
+    android:paddingBottom="@dimen/screen_padding_bottom"
     android:scrollbars="vertical">
 
-    <LinearLayout
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingStart="16dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="24dp">
-
-        <TextView
-            android:id="@+id/tvGradingElementTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleLarge" />
-
-        <TextView
-            android:id="@+id/tvGradingElementAverage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
+        app:cardCornerRadius="@dimen/card_corner_radius"
+        app:cardElevation="@dimen/card_elevation_default"
+        app:cardUseCompatPadding="true"
+        app:strokeWidth="0dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="horizontal"
-            android:paddingBottom="8dp">
+            android:orientation="vertical"
+            android:padding="@dimen/card_content_padding">
 
             <TextView
-                android:layout_width="0dp"
+                android:id="@+id/tvGradingElementTitle"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:paddingEnd="8dp"
-                android:text="@string/grading_score_column_number"
-                android:textAppearance="?attr/textAppearanceTitleSmall"
-                android:textStyle="bold" />
+                android:textAppearance="?attr/textAppearanceTitleLarge" />
 
             <TextView
-                android:layout_width="0dp"
+                android:id="@+id/tvGradingElementAverage"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/grading_score_column_value"
-                android:textAppearance="?attr/textAppearanceTitleSmall"
-                android:textStyle="bold" />
+                android:layout_marginTop="@dimen/grid_2"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/grid_2"
+                android:orientation="horizontal"
+                android:paddingBottom="@dimen/grid_1">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:paddingEnd="@dimen/grid_1"
+                    android:text="@string/grading_score_column_number"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/grading_score_column_value"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/gradingScoresTableRows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/grid_2"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/btnRemoveGradingScoreEntry"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_toolbar_action_add"
+                    android:contentDescription="@string/grading_delete_score_entry"
+                    android:padding="@dimen/grid_1"
+                    android:src="@drawable/ic_minus"
+                    app:tint="?attr/colorPrimary" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <ImageButton
+                    android:id="@+id/btnAddGradingScoreEntry"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_toolbar_action_add"
+                    android:contentDescription="@string/grading_add_score_entry"
+                    android:padding="@dimen/grid_1"
+                    android:src="@drawable/ic_add"
+                    app:tint="?attr/colorPrimary" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveGradingScores"
+                style="@style/Widget.CourseSync.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/grid_2"
+                android:text="@string/save" />
         </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/gradingScoresTableRows"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddGradingScoreEntry"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/grading_add_score_entry" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnRemoveGradingScoreEntry"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/grading_delete_score_entry" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSaveGradingScores"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/save" />
-    </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 </androidx.core.widget.NestedScrollView>

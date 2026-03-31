@@ -1,6 +1,6 @@
 package ru.katevpy.coursesync.courses;
 
-import android.app.AlertDialog;
+import androidx.appcompat.app.AlertDialog;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.View;
@@ -15,7 +15,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -31,6 +31,7 @@ import ru.katevpy.coursesync.shared.dto.CourseGradingElementItem;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingTextResponse;
 import ru.katevpy.coursesync.shared.util.Result;
+import ru.katevpy.coursesync.ui.ErrorUi;
 
 public class EditCourseGradingFormulaFragment extends Fragment {
 
@@ -105,20 +106,20 @@ public class EditCourseGradingFormulaFragment extends Fragment {
                 return;
             }
             if (code == 403 || code == 404 || code == 400) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.grading_formula_load_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_formula_load_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
         if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
             return;
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 
     private void onGradingElementsResult(@Nullable Result<CourseGradingElementsResponse> result) {
@@ -140,20 +141,20 @@ public class EditCourseGradingFormulaFragment extends Fragment {
                 return;
             }
             if (code == 403 || code == 404 || code == 400) {
-                Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
                 NavHostFragment.findNavController(this).navigateUp();
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.grading_elements_load_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_elements_load_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
         if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
             return;
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 
     private void submit() {
@@ -161,7 +162,7 @@ public class EditCourseGradingFormulaFragment extends Fragment {
             return;
         }
         if (!hasValidCoefficientSum(editableElements)) {
-            Snackbar.make(requireView(), R.string.grading_coeff_sum_must_be_one, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.grading_coeff_sum_must_be_one, ErrorUi.Duration.SHORT);
             return;
         }
         String text = descriptionLayout.getEditText().getText().toString();
@@ -185,9 +186,9 @@ public class EditCourseGradingFormulaFragment extends Fragment {
     private void showAddElementDialog() {
         if (!isAdded()) return;
 
-        float density = getResources().getDisplayMetrics().density;
-        int pad = (int) (16 * density);
-        int fieldGap = (int) (8 * density);
+        android.content.res.Resources res = getResources();
+        int pad = res.getDimensionPixelSize(R.dimen.card_content_padding);
+        int fieldGap = res.getDimensionPixelSize(R.dimen.grid_1);
 
         LinearLayout root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
@@ -213,7 +214,7 @@ public class EditCourseGradingFormulaFragment extends Fragment {
         coefLayout.addView(coefInput);
         root.addView(coefLayout);
 
-        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.grading_add_element_title)
                 .setView(root)
                 .setNegativeButton(R.string.event_no, null)
@@ -266,15 +267,15 @@ public class EditCourseGradingFormulaFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.grading_formula_save_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.grading_formula_save_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
         if (result instanceof Result.NetworkError) {
-            Snackbar.make(requireView(), R.string.network_error, Snackbar.LENGTH_SHORT).show();
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
             return;
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 
     private void renderGradingElements(@Nullable List<CourseGradingElementItem> items) {
@@ -285,8 +286,10 @@ public class EditCourseGradingFormulaFragment extends Fragment {
         if (items == null || items.isEmpty()) {
             return;
         }
-        float density = getResources().getDisplayMetrics().density;
+        android.content.res.Resources res = getResources();
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
+        int rowSpacing = res.getDimensionPixelSize(R.dimen.grid_1);
+        int colGap = res.getDimensionPixelSize(R.dimen.grid_1);
         for (int i = 0; i < items.size(); i++) {
             CourseGradingElementItem item = items.get(i);
             final int rowIndex = i;
@@ -295,21 +298,21 @@ public class EditCourseGradingFormulaFragment extends Fragment {
             LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT);
-            rowLp.bottomMargin = (int) (4 * density);
+            rowLp.bottomMargin = rowSpacing;
             row.setLayoutParams(rowLp);
 
             TextView nameCol = new TextView(requireContext());
             LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            nameLp.setMarginEnd((int) (8 * density));
+            nameLp.setMarginEnd(colGap);
             nameCol.setLayoutParams(nameLp);
-            nameCol.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+            nameCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             nameCol.setText(item.name != null ? item.name : "");
 
             TextView coefCol = new TextView(requireContext());
             coefCol.setLayoutParams(new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            coefCol.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+            coefCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             coefCol.setText(formatCoefficient(item.coefficient, nf));
 
             MaterialButton deleteBtn = new MaterialButton(

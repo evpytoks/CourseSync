@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="ShapeAppearance.CourseSync.Small" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/shape_corner_small</item>
+    </style>
+
+    <style name="ShapeAppearance.CourseSync.Medium" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/shape_corner_medium</item>
+    </style>
+
+    <style name="ShapeAppearance.CourseSync.Large" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/shape_corner_large</item>
+    </style>
+
+    <style name="ShapeAppearance.CourseSync.ExtraLarge" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/shape_corner_extra_large</item>
+    </style>
+
+    <style name="ShapeAppearance.CourseSync.ToolbarDense" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/shape_corner_toolbar_dense</item>
+    </style>
+</resources>

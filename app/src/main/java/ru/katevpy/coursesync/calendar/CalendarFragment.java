@@ -15,7 +15,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.material.snackbar.Snackbar;
+import ru.katevpy.coursesync.ui.ErrorUi;
 import com.kizitonwose.calendar.core.CalendarDay;
 import com.kizitonwose.calendar.core.DayPosition;
 import com.kizitonwose.calendar.view.CalendarView;
@@ -176,18 +176,18 @@ public class CalendarFragment extends Fragment {
                 return;
             }
             if (code == 500) {
-                Snackbar.make(requireView(), R.string.calendar_load_error, Snackbar.LENGTH_SHORT).show();
+                ErrorUi.show(this, R.string.calendar_load_error, ErrorUi.Duration.SHORT);
                 return;
             }
         }
-        Snackbar.make(requireView(), R.string.internal_error, Snackbar.LENGTH_SHORT).show();
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
     }
 
     private void renderEventsList(List<CalendarListItem> events) {
         calendarEventsList.removeAllViews();
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.getDefault());
         DateTimeFormatter dateTimeFmt = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.getDefault());
-        int paddingPx = (int) (12 * getResources().getDisplayMetrics().density);
+        int paddingPx = getResources().getDimensionPixelSize(R.dimen.grid_2);
         int[] attrs = new int[]{android.R.attr.selectableItemBackground};
         TypedArray ta = requireContext().getTheme().obtainStyledAttributes(attrs);
         int rippleResId = ta.getResourceId(0, 0);
@@ -196,10 +196,10 @@ public class CalendarFragment extends Fragment {
             String line = formatEventLine(item, dateFmt, dateTimeFmt);
             TextView tv = new TextView(requireContext());
             tv.setText(line);
-            tv.setTextSize(14);
+            tv.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             tv.setPadding(paddingPx, paddingPx, paddingPx, paddingPx);
             tv.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_chevron_right, 0);
-            tv.setCompoundDrawablePadding((int) (8 * getResources().getDisplayMetrics().density));
+            tv.setCompoundDrawablePadding(getResources().getDimensionPixelSize(R.dimen.grid_1));
             tv.setBackgroundResource(rippleResId);
             tv.setClickable(true);
             tv.setFocusable(true);
