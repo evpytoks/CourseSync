@@ -91,6 +91,29 @@ public sealed class GroupControllerTests
     }
 
     [Fact]
+    public async Task OwnerList_returns_only_groups_where_user_is_owner()
+    {
+        await using var tdb = new TestDb();
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var joiner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "j@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, joiner);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var gOwned = await svc.CreateGroupAsync(owner.Id, "Owned", CancellationToken.None);
+        var gOther = await svc.CreateGroupAsync(joiner.Id, "Other", CancellationToken.None);
+        Assert.NotNull(gOwned);
+        Assert.NotNull(gOther);
+        await svc.JoinByCodeAsync(owner.Id, gOther.Value.Code, CancellationToken.None);
+
+        var controller = CreateController(svc, owner.Id);
+        var res = await controller.OwnerList(CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(res.Result);
+        var payload = Assert.IsType<OwnerGroupListResponse>(ok.Value);
+        Assert.Single(payload.Groups);
+        Assert.Equal("Owned", payload.Groups[0].Name);
+    }
+
+    [Fact]
     public async Task Join_invalid_code_format_returns_400()
     {
         await using var tdb = new TestDb();

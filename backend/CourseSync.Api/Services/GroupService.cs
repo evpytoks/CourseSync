@@ -132,6 +132,16 @@ public sealed class GroupService
         return result;
     }
 
+    public async Task<List<OwnerGroupListDto>> GetOwnerGroupsAsync(Guid userId, CancellationToken ct)
+    {
+        return await _db.GroupMembers
+            .AsNoTracking()
+            .Where(m => m.UserId == userId && m.Role == GroupRole.Owner)
+            .OrderBy(m => m.Group!.Name)
+            .Select(m => new OwnerGroupListDto(m.Group!.Id, m.Group.Name))
+            .ToListAsync(ct);
+    }
+
     private static string GenerateCode()
     {
         var bytes = RandomNumberGenerator.GetBytes(CodeLength);
@@ -142,6 +152,8 @@ public sealed class GroupService
     }
 
     public sealed record GroupListDto(Guid Id, string Name, string Role, string? GroupCode);
+
+    public sealed record OwnerGroupListDto(Guid Id, string Name);
 
     public async Task<(Guid GroupId, string Name, string Role)?> JoinByCodeAsync(Guid userId, string code, CancellationToken ct)
     {

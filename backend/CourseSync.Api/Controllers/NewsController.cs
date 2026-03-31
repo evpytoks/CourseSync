@@ -32,22 +32,9 @@ public sealed class NewsController : ControllerBase
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        if (user.CurrentGroupId is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+        var items = await _newsService.GetAllForUserAsync(userId.Value, ct);
 
-        var (ok, items, errorCode) = await _newsService.GetByGroupIdAsync(
-            userId.Value,
-            user.CurrentGroupId.Value,
-            ct);
-
-        if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
-
-        var news = items!
+        var news = items
             .Select(n => new NewsListItem(n.Id, n.Time, n.Group, n.Section, n.Text))
             .ToList();
 
@@ -65,12 +52,8 @@ public sealed class NewsController : ControllerBase
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        if (user.CurrentGroupId is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
-
         var (ok, item, errorCode) = await _newsService.GetByIdAsync(
             userId.Value,
-            user.CurrentGroupId.Value,
             id,
             ct);
 
@@ -97,8 +80,8 @@ public sealed class NewsController : ControllerBase
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        if (user.CurrentGroupId is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+        if (req.GroupId == Guid.Empty)
+            return BadRequest(new ErrorEnvelope(new ApiError("group_id_required")));
 
         var textValidation = NewsService.ValidateNewsText(req.Text);
         if (!textValidation.Valid)
@@ -106,7 +89,7 @@ public sealed class NewsController : ControllerBase
 
         var (ok, errorCode) = await _newsService.CheckOwnerAndCreateNewsAsync(
             userId.Value,
-            user.CurrentGroupId.Value,
+            req.GroupId,
             req.Text!.Trim(),
             ct);
 
