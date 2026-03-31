@@ -1,11 +1,12 @@
 package ru.katevpy.coursesync.shared.dto;
 
-public final class AddNewsRequest {
-    public String name;
-    public String description;
+import com.google.gson.annotations.SerializedName;
 
-    public AddNewsRequest(String name, String description) {
-        this.name = name;
-        this.description = description != null ? description : "";
+public final class AddNewsRequest {
+    @SerializedName("text")
+    public String text;
+
+    public AddNewsRequest(String text) {
+        this.text = text;
     }
 }

@@ -9,7 +9,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.time.LocalDate;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -25,6 +27,8 @@ public final class NewsListAdapter extends RecyclerView.Adapter<NewsListAdapter.
     public interface OnNewsClickListener {
         void onNewsClick(@NonNull UUID newsId);
     }
+
+    private static final int TITLE_MAX = 100;
 
     private final List<NewsListItem> items = new ArrayList<>();
     private final OnNewsClickListener listener;
@@ -51,8 +55,8 @@ public final class NewsListAdapter extends RecyclerView.Adapter<NewsListAdapter.
     @Override
     public void onBindViewHolder(@NonNull VH h, int position) {
         NewsListItem item = items.get(position);
-        h.title.setText(item.name != null ? item.name : "");
-        String sub = formatCreatedAt(item.createdAt);
+        h.title.setText(listTitle(item));
+        String sub = listSubtitle(item);
         if (sub != null && !sub.isEmpty()) {
             h.subtitle.setVisibility(View.VISIBLE);
             h.subtitle.setText(sub);
@@ -71,19 +75,59 @@ public final class NewsListAdapter extends RecyclerView.Adapter<NewsListAdapter.
         return items.size();
     }
 
+    @NonNull
+    private static String listTitle(@NonNull NewsListItem item) {
+        String fromText = firstLinePreview(item.text);
+        if (!fromText.isEmpty()) {
+            return fromText;
+        }
+        return item.section != null ? item.section : "";
+    }
+
+    @NonNull
+    private static String firstLinePreview(@Nullable String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        String line = text.split("\\R", 2)[0].trim();
+        if (line.length() > TITLE_MAX) {
+            return line.substring(0, TITLE_MAX - 1) + "…";
+        }
+        return line;
+    }
+
     @Nullable
-    private static String formatCreatedAt(@Nullable String createdAt) {
-        if (createdAt == null || createdAt.isEmpty()) {
+    private static String listSubtitle(@NonNull NewsListItem item) {
+        String datePart = formatListDate(item.time);
+        String group = item.group != null ? item.group.trim() : "";
+        if (!group.isEmpty() && datePart != null && !datePart.isEmpty()) {
+            return group + " · " + datePart;
+        }
+        if (!group.isEmpty()) {
+            return group;
+        }
+        return datePart;
+    }
+
+    @Nullable
+    private static String formatListDate(@Nullable String isoTime) {
+        if (isoTime == null || isoTime.isEmpty()) {
             return null;
         }
+        String s = isoTime.trim();
+        DateTimeFormatter out = DateTimeFormatter.ofPattern("dd.MM.yyyy", new Locale("ru"));
         try {
-            if (createdAt.length() >= 10) {
-                LocalDate d = LocalDate.parse(createdAt.substring(0, 10));
-                return d.format(DateTimeFormatter.ofPattern("dd.MM.yyyy", new Locale("ru")));
-            }
+            return OffsetDateTime.parse(s).format(out);
         } catch (DateTimeParseException ignored) {
         }
-        return createdAt.length() >= 10 ? createdAt.substring(0, 10) : createdAt;
+        try {
+            return Instant.parse(s).atZone(ZoneId.systemDefault()).format(out);
+        } catch (DateTimeParseException ignored) {
+        }
+        if (s.length() >= 10) {
+            return s.substring(0, 10);
+        }
+        return s;
     }
 
     static final class VH extends RecyclerView.ViewHolder {

@@ -76,11 +76,11 @@ public class NewsDetailFragment extends Fragment {
         if (result == null) return;
         if (result instanceof Result.Success) {
             NewsDetailsResponse data = ((Result.Success<NewsDetailsResponse>) result).data;
-            newsDetailName.setText(data.name != null ? data.name : "");
-            newsDetailTime.setText(formatTime(data.createdAt));
-            newsDetailDescription.setText(data.description != null ? data.description : "");
-            newsDetailDescription.setVisibility(
-                    data.description != null && !data.description.isEmpty() ? View.VISIBLE : View.GONE);
+            newsDetailName.setText(data.section != null ? data.section : "");
+            newsDetailTime.setText(formatTime(data.time));
+            String body = buildDetailBody(data);
+            newsDetailDescription.setText(body);
+            newsDetailDescription.setVisibility(!body.isEmpty() ? View.VISIBLE : View.GONE);
             return;
         }
         if (result instanceof Result.HttpError) {
@@ -110,6 +110,12 @@ public class NewsDetailFragment extends Fragment {
         if (isoStr == null || isoStr.isEmpty()) return "";
         String s = isoStr.trim();
         try {
+            return java.time.OffsetDateTime.parse(s)
+                    .atZoneSameInstant(ZoneId.systemDefault())
+                    .format(OUTPUT_FORMAT);
+        } catch (DateTimeParseException ignored) {
+        }
+        try {
             if (s.length() >= 19) {
                 LocalDateTime ldt = LocalDateTime.parse(s.substring(0, 19), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                 return ldt.format(OUTPUT_FORMAT);
@@ -123,5 +129,18 @@ public class NewsDetailFragment extends Fragment {
         } catch (DateTimeParseException ignored) {
         }
         return "";
+    }
+
+    @NonNull
+    private static String buildDetailBody(@NonNull NewsDetailsResponse data) {
+        String group = data.group != null ? data.group.trim() : "";
+        String text = data.text != null ? data.text : "";
+        if (group.isEmpty()) {
+            return text;
+        }
+        if (text.isEmpty()) {
+            return group;
+        }
+        return group + "\n\n" + text;
     }
 }

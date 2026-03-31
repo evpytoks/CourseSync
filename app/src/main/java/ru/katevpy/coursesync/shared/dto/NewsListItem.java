@@ -6,7 +6,12 @@ import java.util.UUID;
 
 public final class NewsListItem {
     public UUID id;
-    public String name;
-    @SerializedName("created_at")
-    public String createdAt;
+    @SerializedName("time")
+    public String time;
+    @SerializedName("group")
+    public String group;
+    @SerializedName("section")
+    public String section;
+    @SerializedName("text")
+    public String text;
 }

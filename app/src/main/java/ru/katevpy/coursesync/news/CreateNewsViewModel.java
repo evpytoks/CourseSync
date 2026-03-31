@@ -24,9 +24,9 @@ public class CreateNewsViewModel extends ViewModel {
         return createResult;
     }
 
-    public void createNews(String name, String description) {
+    public void createNews(String text) {
         io.execute(() -> {
-            Result<Void> r = repository.addNews(name, description != null ? description : "");
+            Result<Void> r = repository.addNews(text);
             if (r instanceof Result.Success) {
                 createResult.postValue(Result.success(null));
             } else if (r instanceof Result.HttpError) {
