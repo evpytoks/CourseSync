@@ -133,6 +133,12 @@
     <string name="add_news">Добавить новость</string>
     <string name="news_name_hint">Название новости</string>
     <string name="news_description_hint">Описание</string>
+    <string name="news_group_label">Группа</string>
+    <string name="news_text_full_hint">Текст новости</string>
+    <string name="news_no_owner_groups">Нет групп, где вы владелец — добавить новость нельзя</string>
+    <string name="news_owner_groups_load_error">Не удалось загрузить список групп. Попробуйте позже</string>
+    <string name="news_select_group_error">Выберите группу</string>
+    <string name="enter_news_text">Введите текст новости…</string>
     <string name="enter_news_name">Введите название новости…</string>
     <string name="news_name_max_length">Длина не более 50 символов</string>
     <string name="news_description_max_length">Длина не более 3000 символов</string>

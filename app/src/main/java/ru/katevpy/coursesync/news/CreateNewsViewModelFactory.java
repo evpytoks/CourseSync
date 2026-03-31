@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import ru.katevpy.coursesync.App;
+import ru.katevpy.coursesync.shared.repository.GroupRepository;
 import ru.katevpy.coursesync.shared.repository.NewsRepository;
 
 public final class CreateNewsViewModelFactory implements ViewModelProvider.Factory {
@@ -12,7 +13,8 @@ public final class CreateNewsViewModelFactory implements ViewModelProvider.Facto
     @NonNull
     @Override
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-        NewsRepository repo = new NewsRepository(App.getDeps().newsApi);
-        return (T) new CreateNewsViewModel(repo);
+        NewsRepository newsRepo = new NewsRepository(App.getDeps().newsApi);
+        GroupRepository groupRepo = new GroupRepository(App.getDeps().groupApi);
+        return (T) new CreateNewsViewModel(newsRepo, groupRepo);
     }
 }

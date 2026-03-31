@@ -11,12 +11,6 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import ru.katevpy.coursesync.ui.ErrorUi;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.Locale;
 import java.util.UUID;
 
 import ru.katevpy.coursesync.App;
@@ -26,7 +20,6 @@ import ru.katevpy.coursesync.shared.util.Result;
 
 public class NewsDetailFragment extends Fragment {
 
-    private TextView newsDetailName;
     private TextView newsDetailTime;
     private TextView newsDetailDescription;
     private UUID newsId;
@@ -39,7 +32,6 @@ public class NewsDetailFragment extends Fragment {
     public void onViewCreated(@NonNull android.view.View view, @Nullable android.os.Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        newsDetailName = view.findViewById(R.id.newsDetailName);
         newsDetailTime = view.findViewById(R.id.newsDetailTime);
         newsDetailDescription = view.findViewById(R.id.newsDetailDescription);
 
@@ -76,9 +68,14 @@ public class NewsDetailFragment extends Fragment {
         if (result == null) return;
         if (result instanceof Result.Success) {
             NewsDetailsResponse data = ((Result.Success<NewsDetailsResponse>) result).data;
-            newsDetailName.setText(data.section != null ? data.section : "");
-            newsDetailTime.setText(formatTime(data.time));
-            String body = buildDetailBody(data);
+            String timeStr = NewsDateTime.format(data.time);
+            if (timeStr == null || timeStr.isEmpty()) {
+                newsDetailTime.setVisibility(View.GONE);
+            } else {
+                newsDetailTime.setVisibility(View.VISIBLE);
+                newsDetailTime.setText(timeStr);
+            }
+            String body = data.text != null ? data.text : "";
             newsDetailDescription.setText(body);
             newsDetailDescription.setVisibility(!body.isEmpty() ? View.VISIBLE : View.GONE);
             return;
@@ -101,46 +98,5 @@ public class NewsDetailFragment extends Fragment {
             }
         }
         ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
-    }
-
-    private static final DateTimeFormatter OUTPUT_FORMAT =
-            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", new Locale("ru"));
-
-    private static String formatTime(String isoStr) {
-        if (isoStr == null || isoStr.isEmpty()) return "";
-        String s = isoStr.trim();
-        try {
-            return java.time.OffsetDateTime.parse(s)
-                    .atZoneSameInstant(ZoneId.systemDefault())
-                    .format(OUTPUT_FORMAT);
-        } catch (DateTimeParseException ignored) {
-        }
-        try {
-            if (s.length() >= 19) {
-                LocalDateTime ldt = LocalDateTime.parse(s.substring(0, 19), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                return ldt.format(OUTPUT_FORMAT);
-            }
-            if (s.length() >= 16 && s.charAt(10) == 'T') {
-                LocalDateTime ldt = LocalDateTime.parse(s.substring(0, 16), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
-                return ldt.format(OUTPUT_FORMAT);
-            }
-            Instant instant = Instant.parse(s);
-            return OUTPUT_FORMAT.withZone(ZoneId.systemDefault()).format(instant);
-        } catch (DateTimeParseException ignored) {
-        }
-        return "";
-    }
-
-    @NonNull
-    private static String buildDetailBody(@NonNull NewsDetailsResponse data) {
-        String group = data.group != null ? data.group.trim() : "";
-        String text = data.text != null ? data.text : "";
-        if (group.isEmpty()) {
-            return text;
-        }
-        if (text.isEmpty()) {
-            return group;
-        }
-        return group + "\n\n" + text;
     }
 }

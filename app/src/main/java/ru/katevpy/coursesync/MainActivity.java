@@ -34,6 +34,7 @@ import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModelFactory;
 import ru.katevpy.coursesync.shared.GroupState;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
 import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.OwnerGroupListResponse;
 import ru.katevpy.coursesync.shared.util.Result;
 import ru.katevpy.coursesync.shared.dto.UserSettingsResponse;
 import ru.katevpy.coursesync.shared.repository.GroupRepository;
@@ -147,6 +148,8 @@ public class MainActivity extends AppCompatActivity {
         applyEdgeToEdgeWindowInsets(toolbar, bottomNav);
 
         groupVm = new ViewModelProvider(this).get(SharedGroupViewModel.class);
+
+        groupVm.getOwnerOfAnyGroup().observe(this, v -> syncToolbarCreateButton());
 
         groupVm.getGroupState().observe(this, state -> {
             if (tvGroupIndicator == null) return;
@@ -283,11 +286,19 @@ public class MainActivity extends AppCompatActivity {
         GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
         new Thread(() -> {
             Result<GroupDetailsResponse> result = repo.getCurrentGroup();
+            Result<OwnerGroupListResponse> ownerResult = repo.getOwnerGroups();
             runOnUiThread(() -> {
+                boolean ownsAny = false;
+                if (ownerResult instanceof Result.Success) {
+                    OwnerGroupListResponse og = ((Result.Success<OwnerGroupListResponse>) ownerResult).data;
+                    ownsAny = og != null && og.groups != null && !og.groups.isEmpty();
+                }
+                groupVm.setOwnerOfAnyGroup(ownsAny);
+
                 if (result instanceof Result.Success && ((Result.Success<GroupDetailsResponse>) result).data != null) {
                     GroupDetailsResponse data = ((Result.Success<GroupDetailsResponse>) result).data;
                     if (data.name != null && !data.name.trim().isEmpty()) {
-                        groupVm.setGroup(data.name.trim(), data.role);
+                        groupVm.setGroup(data.name.trim(), data.role, data.id);
                         return;
                     }
                 }
@@ -325,12 +336,20 @@ public class MainActivity extends AppCompatActivity {
                 || destId == R.id.newsFragment
                 || destId == R.id.calendarFragment;
         GroupState gs = groupVm != null ? groupVm.getGroupState().getValue() : null;
+        if (destId == R.id.newsFragment) {
+            Boolean owns = groupVm != null ? groupVm.getOwnerOfAnyGroup().getValue() : null;
+            if (Boolean.TRUE.equals(owns)) {
+                btnToolbarCreate.setVisibility(View.VISIBLE);
+                btnToolbarCreate.setContentDescription(getString(R.string.add_news));
+            } else {
+                btnToolbarCreate.setVisibility(View.GONE);
+            }
+            return;
+        }
         if (onListTab && showOwnerToolbarActions(gs)) {
             btnToolbarCreate.setVisibility(View.VISIBLE);
             if (destId == R.id.coursesFragment) {
                 btnToolbarCreate.setContentDescription(getString(R.string.create_course));
-            } else if (destId == R.id.newsFragment) {
-                btnToolbarCreate.setContentDescription(getString(R.string.add_news));
             } else {
                 btnToolbarCreate.setContentDescription(getString(R.string.add_event));
             }

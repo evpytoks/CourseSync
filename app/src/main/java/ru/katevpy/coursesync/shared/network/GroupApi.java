@@ -17,11 +17,15 @@ import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupJoinRequest;
 import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
+import ru.katevpy.coursesync.shared.dto.OwnerGroupListResponse;
 
 public interface GroupApi {
 
     @GET("group/list")
     Call<GroupListResponse> listGroups();
+
+    @GET("group/owner-list")
+    Call<OwnerGroupListResponse> ownerListGroups();
 
     @GET("group/current")
     Call<GroupDetailsResponse> getCurrentGroup(@Query("_t") long timestamp);

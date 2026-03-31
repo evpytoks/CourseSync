@@ -61,9 +61,9 @@ public class NewsRepository {
         }
     }
 
-    public Result<Void> addNews(String text) {
+    public Result<Void> addNews(UUID groupId, String text) {
         try {
-            AddNewsRequest req = new AddNewsRequest(text);
+            AddNewsRequest req = new AddNewsRequest(groupId, text);
             Response<Void> r = api.addNews(req).execute();
             if (r.isSuccessful()) {
                 return Result.success(null);
