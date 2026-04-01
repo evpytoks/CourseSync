@@ -7,6 +7,8 @@ namespace CourseSync.Api.Tests;
 
 public sealed class CourseServiceTests
 {
+    private const string TestUsefulLinksJson = "[{\"title\":\"Сайт\",\"url\":\"https://example.edu/algebra\"}]";
+
     private static CourseService CreateSvc(TestDb tdb) =>
         new(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
 
@@ -29,7 +31,7 @@ public sealed class CourseServiceTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -82,7 +84,7 @@ public sealed class CourseServiceTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.AddRange(owner, participant);

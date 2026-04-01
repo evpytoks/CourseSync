@@ -52,26 +52,30 @@ public sealed record CourseListItem(
     [property: JsonPropertyName("name")] string Name);
 public sealed record CourseListResponse(IReadOnlyList<CourseListItem> Courses);
 
+public sealed record CourseUsefulLinkItem(
+    [property: JsonPropertyName("title")] string Title,
+    [property: JsonPropertyName("url")] string Url);
+
 public sealed record AddCourseRequest(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string? GeneralInfo,
-    [property: JsonPropertyName("useful_links")] string? UsefulLinks);
+    [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem>? UsefulLinks);
 public sealed record AddCourseResponse(
     Guid Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string GeneralInfo,
-    [property: JsonPropertyName("useful_links")] string UsefulLinks);
+    [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem> UsefulLinks);
 
 public sealed record CourseDetailsResponse(
     Guid Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string GeneralInfo,
-    [property: JsonPropertyName("useful_links")] string UsefulLinks);
+    [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem> UsefulLinks);
 
 public sealed record ChangeCourseRequest(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string? GeneralInfo,
-    [property: JsonPropertyName("useful_links")] string? UsefulLinks);
+    [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem>? UsefulLinks);
 
 public sealed record CourseMaterialListItem(
     Guid Id,

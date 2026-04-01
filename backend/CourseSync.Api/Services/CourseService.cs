@@ -1,6 +1,7 @@
 using CourseSync.Api.Data;
 using CourseSync.Api.Infrastructure;
 using CourseSync.Api.Infrastructure.Storage;
+using CourseSync.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseSync.Api.Services;
@@ -16,7 +17,13 @@ public sealed class CourseService
     public const decimal GradingScoreMax = 10m;
 
     private const int GeneralInfoMaxLength = 2000;
-    private const int UsefulLinksMaxLength = 1000;
+
+    public const int UsefulLinkTitleMinLength = 1;
+    public const int UsefulLinkTitleMaxLength = 50;
+    public const int UsefulLinkUrlMinLength = 1;
+    public const int UsefulLinkUrlMaxLength = 200;
+    public const int UsefulLinksMaxItems = 50;
+    private const int UsefulLinksStorageMaxLength = 8000;
 
     private readonly AppDbContext _db;
     private readonly NotificationService _notifications;
@@ -41,32 +48,48 @@ public sealed class CourseService
 
     public static (bool Valid, string? ErrorCode) ValidateGeneralInfo(string? value)
     {
-        if (value is null) return (false, "general_info_required");
-        var len = value.Length;
-        if (len > GeneralInfoMaxLength) return (false, "general_info_too_long");
+        if (value is null)
+            return (true, null);
+        if (value.Length > GeneralInfoMaxLength)
+            return (false, "general_info_too_long");
         return (true, null);
     }
 
-    public static (bool Valid, string? ErrorCode) ValidateUsefulLinks(string? value)
+    public static (bool Valid, string? ErrorCode) ValidateUsefulLinks(IReadOnlyList<CourseUsefulLinkItem>? items)
     {
-        if (value is null) return (false, "useful_links_required");
-        var len = value.Length;
-        if (len > UsefulLinksMaxLength) return (false, "useful_links_too_long");
+        if (items is null)
+            return (true, null);
+        if (items.Count > UsefulLinksMaxItems)
+            return (false, "useful_links_too_many");
+
+        foreach (var item in items)
+        {
+            var title = (item.Title ?? "").Trim();
+            var url = (item.Url ?? "").Trim();
+            if (title.Length < UsefulLinkTitleMinLength || title.Length > UsefulLinkTitleMaxLength)
+                return (false, "useful_link_title_invalid");
+            if (url.Length < UsefulLinkUrlMinLength || url.Length > UsefulLinkUrlMaxLength)
+                return (false, "useful_link_url_invalid");
+        }
+
+        var storage = UsefulLinksCodec.ToStorage(items);
+        if (storage.Length > UsefulLinksStorageMaxLength)
+            return (false, "useful_links_too_long");
         return (true, null);
     }
 
-    public async Task<(bool Ok, Guid? CourseId, string? Name, string GeneralInfo, string UsefulLinks, string? ErrorCode)> CreateCourseAsync(
+    public async Task<(bool Ok, Guid? CourseId, string? Name, string GeneralInfo, IReadOnlyList<CourseUsefulLinkItem> UsefulLinks, string? ErrorCode)> CreateCourseAsync(
         Guid userId,
         Guid groupId,
         string name,
         string generalInfo,
-        string usefulLinks,
+        IReadOnlyList<CourseUsefulLinkItem> usefulLinks,
         CancellationToken ct)
     {
         var member = await _db.GroupMembers
             .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
         if (member is null || member.Role != GroupRole.Owner)
-            return (false, null, null, "", "", "forbidden");
+            return (false, null, null, "", Array.Empty<CourseUsefulLinkItem>(), "forbidden");
 
         var course = new Course
         {
@@ -74,7 +97,7 @@ public sealed class CourseService
             GroupId = groupId,
             Name = name.Trim(),
             GeneralInfo = generalInfo ?? "",
-            UsefulLinks = usefulLinks ?? "",
+            UsefulLinks = UsefulLinksCodec.ToStorage(usefulLinks),
             CreatedAt = DateTimeOffset.UtcNow
         };
         _db.Courses.Add(course);
@@ -90,7 +113,7 @@ public sealed class CourseService
             NewsFormatting.DetailCourseCreatedInGroup(course.Name),
             ct);
 
-        return (true, course.Id, course.Name, course.GeneralInfo, course.UsefulLinks, null);
+        return (true, course.Id, course.Name, course.GeneralInfo, UsefulLinksCodec.FromStorage(course.UsefulLinks), null);
     }
 
     public async Task<List<CourseListDto>> GetByGroupIdAsync(Guid groupId, CancellationToken ct)
@@ -109,7 +132,7 @@ public sealed class CourseService
         Guid Id,
         string Name,
         string GeneralInfo,
-        string UsefulLinks);
+        IReadOnlyList<CourseUsefulLinkItem> UsefulLinks);
 
     public sealed record GradingElementDto(string Name, decimal Coefficient, int Count, decimal AverageScore);
     public sealed record GradingElementScoresRow(string Name, int Count, IReadOnlyList<decimal> Scores);
@@ -141,7 +164,11 @@ public sealed class CourseService
         if (course is null)
             return (false, null, "course_not_in_group");
 
-        return (true, new CourseDetailDto(course.Id, course.Name, course.GeneralInfo, course.UsefulLinks), null);
+        return (true, new CourseDetailDto(
+            course.Id,
+            course.Name,
+            course.GeneralInfo,
+            UsefulLinksCodec.FromStorage(course.UsefulLinks)), null);
     }
 
     public async Task<(bool Ok, string? ErrorCode)> UpdateCourseAsync(
@@ -150,7 +177,7 @@ public sealed class CourseService
         Guid courseId,
         string name,
         string generalInfo,
-        string usefulLinks,
+        IReadOnlyList<CourseUsefulLinkItem> usefulLinks,
         CancellationToken ct)
     {
         var member = await _db.GroupMembers
@@ -171,7 +198,7 @@ public sealed class CourseService
         var oldLinks = course.UsefulLinks ?? "";
         course.Name = name.Trim();
         course.GeneralInfo = generalInfo ?? "";
-        course.UsefulLinks = usefulLinks ?? "";
+        course.UsefulLinks = UsefulLinksCodec.ToStorage(usefulLinks);
 
         var nameChanged = TrimField(oldName) != TrimField(course.Name);
         var restChanged = NewsFormatting.BuildChangedCourseFieldsGeneralLinks(

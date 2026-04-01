@@ -11,6 +11,8 @@ namespace CourseSync.Api.Tests;
 
 public sealed class CourseControllerTests
 {
+    private const string TestUsefulLinksJson = "[{\"title\":\"Сайт\",\"url\":\"https://example.edu/algebra\"}]";
+
     private static CourseController CreateController(TestDb tdb, Guid? userId)
     {
         var notifications = new NotificationService(tdb.Db);
@@ -76,7 +78,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -117,7 +119,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.AddRange(owner, participant);
@@ -197,7 +199,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         var materialId = Guid.NewGuid();
@@ -250,7 +252,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(user);
@@ -290,7 +292,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -339,7 +341,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -380,7 +382,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             GradingText = "Final score is weighted sum.",
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -423,7 +425,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -489,7 +491,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.AddRange(currentUser, otherUser);
@@ -562,7 +564,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         var elementId = Guid.NewGuid();
@@ -623,7 +625,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         var elementId = Guid.NewGuid();
@@ -686,7 +688,7 @@ public sealed class CourseControllerTests
             GroupId = group.Id,
             Name = "Linear Algebra",
             GeneralInfo = "Core linear algebra theory and practice.",
-            UsefulLinks = "https://example.edu/algebra",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
