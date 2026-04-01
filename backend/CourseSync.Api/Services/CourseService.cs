@@ -87,7 +87,7 @@ public sealed class CourseService
             groupId,
             groupName,
             NewsFormatting.SectionCourses,
-            NewsFormatting.DetailCourseCreatedInGroup(groupName, course.Name),
+            NewsFormatting.DetailCourseCreatedInGroup(course.Name),
             ct);
 
         return (true, course.Id, course.Name, course.GeneralInfo, course.UsefulLinks, null);
@@ -187,11 +187,11 @@ public sealed class CourseService
             var groupName = await GetGroupNameAsync(groupId, ct);
             string detail;
             if (nameChanged && restChanged is null)
-                detail = NewsFormatting.DetailCourseRenamedInGroup(groupName, oldName, course.Name);
+                detail = NewsFormatting.DetailCourseRenamedInGroup(oldName, course.Name);
             else if (nameChanged && restChanged is not null)
-                detail = NewsFormatting.DetailCourseRenamedInGroup(groupName, oldName, course.Name) + "\n\n" + restChanged;
+                detail = NewsFormatting.DetailCourseRenamedInGroup(oldName, course.Name) + "\n\n" + restChanged;
             else
-                detail = NewsFormatting.DetailCourseFieldsUpdatedInGroup(groupName, course.Name, restChanged!);
+                detail = NewsFormatting.DetailCourseFieldsUpdatedInGroup(course.Name, restChanged!);
 
             await _notifications.CreateNewsAndPushAsync(
                 "course_updated",
@@ -364,7 +364,7 @@ public sealed class CourseService
                 groupId,
                 groupNameG,
                 NewsFormatting.SectionCourses,
-                NewsFormatting.DetailGradingChangedInGroup(groupNameG, course.Name),
+                NewsFormatting.DetailGradingChangedInGroup(course.Name),
                 ct);
         }
 

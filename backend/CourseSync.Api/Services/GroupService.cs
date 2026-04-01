@@ -189,7 +189,7 @@ public sealed class GroupService
             group.Id,
             group.Name,
             NewsFormatting.SectionGroups,
-            NewsFormatting.DetailMemberJoinedByCode(group.Name, joinerEmail),
+            NewsFormatting.DetailMemberJoinedByCode(joinerEmail),
             ct);
 
         return (group.Id, group.Name, "participant");
