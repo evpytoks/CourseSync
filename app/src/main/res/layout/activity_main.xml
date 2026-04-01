@@ -89,6 +89,9 @@
                     android:id="@+id/groupIndicatorContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingStart="@dimen/grid_1"
@@ -110,7 +113,7 @@
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:maxWidth="@dimen/toolbar_group_indicator_max_width"
-                        android:text="нет группы"
+                        android:text="@string/toolbar_no_group_label"
                         android:textAppearance="?attr/textAppearanceBodySmall" />
                 </LinearLayout>
             </LinearLayout>

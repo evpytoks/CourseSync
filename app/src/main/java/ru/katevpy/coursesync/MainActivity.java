@@ -3,13 +3,22 @@ package ru.katevpy.coursesync;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ImageSpan;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ListPopupWindow;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -22,23 +31,33 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.color.MaterialColors;
 import ru.katevpy.coursesync.ui.ErrorUi;
 
 import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModel;
 import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModelFactory;
 import ru.katevpy.coursesync.shared.GroupState;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
+import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
 import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.GroupListItem;
+import ru.katevpy.coursesync.shared.dto.GroupListResponse;
 import ru.katevpy.coursesync.shared.dto.OwnerGroupListResponse;
 import ru.katevpy.coursesync.shared.util.Result;
 import ru.katevpy.coursesync.shared.dto.UserSettingsResponse;
 import ru.katevpy.coursesync.shared.repository.GroupRepository;
 import ru.katevpy.coursesync.shared.repository.SettingsRepository;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -55,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
     private SharedGroupViewModel groupVm;
     private EventDetailToolbarViewModel eventDetailToolbarVm;
     private boolean appliedThemeFromServer;
+    @Nullable
+    private ListPopupWindow toolbarGroupListPopup;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,6 +97,8 @@ public class MainActivity extends AppCompatActivity {
 
         groupIndicatorContainer = findViewById(R.id.groupIndicatorContainer);
         tvGroupIndicator = findViewById(R.id.tvGroupIndicator);
+        groupIndicatorContainer.setContentDescription(getString(R.string.toolbar_group_switch_content_description));
+        groupIndicatorContainer.setOnClickListener(v -> openToolbarGroupPicker());
         btnEditCourse = findViewById(R.id.btnEditCourse);
         btnToolbarCreate = findViewById(R.id.btnToolbarCreate);
         btnToolbarGroup = findViewById(R.id.btnToolbarGroup);
@@ -154,10 +177,17 @@ public class MainActivity extends AppCompatActivity {
         groupVm.getGroupState().observe(this, state -> {
             if (tvGroupIndicator == null) return;
 
+            String nextLabel;
             if (state != null && state.hasGroup()) {
-                tvGroupIndicator.setText(state.groupNumber);
+                nextLabel = state.groupNumber != null ? state.groupNumber.trim() : "";
+                if (nextLabel.isEmpty()) {
+                    nextLabel = getString(R.string.toolbar_no_group_label);
+                }
             } else {
-                tvGroupIndicator.setText("Нет группы");
+                nextLabel = getString(R.string.toolbar_no_group_label);
+            }
+            if (!nextLabel.contentEquals(tvGroupIndicator.getText())) {
+                tvGroupIndicator.setText(nextLabel);
             }
 
             syncToolbarCreateButton();
@@ -305,6 +335,253 @@ public class MainActivity extends AppCompatActivity {
                 groupVm.clearGroup();
             });
         }).start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        dismissToolbarGroupPicker();
+        super.onDestroy();
+    }
+
+    private void dismissToolbarGroupPicker() {
+        if (toolbarGroupListPopup != null) {
+            try {
+                toolbarGroupListPopup.dismiss();
+            } catch (Exception ignored) {
+            }
+            toolbarGroupListPopup = null;
+        }
+    }
+
+    private void openToolbarGroupPicker() {
+        if (groupIndicatorContainer == null || groupIndicatorContainer.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        String token = App.getDeps().tokenStorage.getAccess();
+        if (token == null || token.isEmpty()) {
+            return;
+        }
+        dismissToolbarGroupPicker();
+        new Thread(() -> {
+            GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
+            Result<GroupListResponse> r = repo.getGroups();
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                if (!(r instanceof Result.Success)) {
+                    onToolbarGroupListLoadFailed(r);
+                    return;
+                }
+                GroupListResponse payload = ((Result.Success<GroupListResponse>) r).data;
+                List<GroupListItem> raw = payload != null ? payload.items : null;
+                List<GroupListItem> items = new ArrayList<>();
+                if (raw != null) {
+                    for (GroupListItem it : raw) {
+                        if (it != null && it.id != null) {
+                            items.add(it);
+                        }
+                    }
+                }
+                if (items.isEmpty()) {
+                    ErrorUi.show(this, findViewById(android.R.id.content), R.string.no_groups, ErrorUi.Duration.SHORT);
+                    return;
+                }
+                showToolbarGroupListPopup(items);
+            });
+        }).start();
+    }
+
+    private void onToolbarGroupListLoadFailed(@Nullable Result<GroupListResponse> r) {
+        if (r instanceof Result.HttpError) {
+            int code = ((Result.HttpError<GroupListResponse>) r).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                navigateToLoginClearingStack();
+                return;
+            }
+        }
+        if (r instanceof Result.NetworkError) {
+            ErrorUi.show(this, findViewById(android.R.id.content), R.string.network_error, ErrorUi.Duration.SHORT);
+            return;
+        }
+        ErrorUi.show(this, findViewById(android.R.id.content), R.string.groups_load_error, ErrorUi.Duration.SHORT);
+    }
+
+    private void showToolbarGroupListPopup(List<GroupListItem> items) {
+        dismissToolbarGroupPicker();
+        List<CharSequence> labels = new ArrayList<>(items.size());
+        for (GroupListItem g : items) {
+            labels.add(buildToolbarGroupPickTitle(g));
+        }
+        ListPopupWindow lpw = new ListPopupWindow(this);
+        ArrayAdapter<CharSequence> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_list_item_1,
+                android.R.id.text1,
+                labels);
+        lpw.setAdapter(adapter);
+        lpw.setAnchorView(groupIndicatorContainer);
+        lpw.setModal(true);
+        int minW = getResources().getDimensionPixelSize(R.dimen.toolbar_group_picker_min_width);
+        lpw.setContentWidth(Math.max(groupIndicatorContainer.getWidth(), minW));
+        int maxH = getResources().getDimensionPixelSize(R.dimen.toolbar_group_picker_max_height);
+        int rowH = getResources().getDimensionPixelSize(R.dimen.list_row_min_height);
+        int listPad = 2 * getResources().getDimensionPixelSize(R.dimen.grid_1);
+        int estimatedFull = items.size() * rowH + listPad;
+        lpw.setHeight(estimatedFull > maxH ? maxH : ViewGroup.LayoutParams.WRAP_CONTENT);
+        lpw.setOnItemClickListener((parent, view, position, id) -> {
+            lpw.dismiss();
+            if (position < 0 || position >= items.size()) {
+                return;
+            }
+            chooseGroupFromToolbar(items.get(position).id);
+        });
+        lpw.setOnDismissListener(() -> toolbarGroupListPopup = null);
+        toolbarGroupListPopup = lpw;
+        lpw.show();
+    }
+
+    @NonNull
+    private CharSequence buildToolbarGroupPickTitle(@NonNull GroupListItem g) {
+        String name = g.name != null ? g.name.trim() : "";
+        if (name.isEmpty()) {
+            name = "—";
+        }
+        if (!isToolbarGroupListItemOwner(g)) {
+            return name;
+        }
+        Drawable crown = ContextCompat.getDrawable(this, R.drawable.ic_crown);
+        if (crown == null) {
+            return name;
+        }
+        crown = DrawableCompat.wrap(crown.mutate());
+        int tint = MaterialColors.getColor(
+                this,
+                com.google.android.material.R.attr.colorPrimary,
+                ContextCompat.getColor(this, R.color.cs_primary));
+        DrawableCompat.setTint(crown, tint);
+        int iconPx = (int) (18 * getResources().getDisplayMetrics().scaledDensity + 0.5f);
+        crown.setBounds(0, 0, iconPx, iconPx);
+        SpannableString ss = new SpannableString(name + "\u00A0 ");
+        ImageSpan span;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            span = new ImageSpan(crown, ImageSpan.ALIGN_CENTER);
+        } else {
+            span = new ImageSpan(crown);
+        }
+        ss.setSpan(span, name.length(), name.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return ss;
+    }
+
+    private static boolean isToolbarGroupListItemOwner(@NonNull GroupListItem g) {
+        return g.role != null && "owner".equalsIgnoreCase(g.role.trim());
+    }
+
+    private void chooseGroupFromToolbar(@NonNull UUID groupId) {
+        new Thread(() -> {
+            GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
+            Result<ChooseGroupResponse> r = repo.chooseGroup(groupId);
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                if (r instanceof Result.Success) {
+                    popToRootTabIfNestedAfterToolbarGroupChange();
+                    refreshCurrentGroup();
+                    return;
+                }
+                if (r instanceof Result.HttpError) {
+                    int code = ((Result.HttpError<ChooseGroupResponse>) r).httpCode;
+                    if (code == 401) {
+                        App.getDeps().tokenStorage.clear();
+                        navigateToLoginClearingStack();
+                        return;
+                    }
+                    if (code == 403 || code == 500) {
+                        ErrorUi.show(this, findViewById(android.R.id.content), R.string.choose_group_error, ErrorUi.Duration.LONG);
+                        return;
+                    }
+                }
+                if (r instanceof Result.NetworkError) {
+                    ErrorUi.show(this, findViewById(android.R.id.content), R.string.network_error, ErrorUi.Duration.SHORT);
+                    return;
+                }
+                ErrorUi.show(this, findViewById(android.R.id.content), R.string.internal_error, ErrorUi.Duration.SHORT);
+            });
+        }).start();
+    }
+
+    private void navigateToLoginClearingStack() {
+        if (navController == null) {
+            return;
+        }
+        NavOptions opts = new NavOptions.Builder()
+                .setPopUpTo(R.id.nav_graph, true)
+                .build();
+        navController.navigate(R.id.loginFragment, null, opts);
+    }
+
+    private void popToRootTabIfNestedAfterToolbarGroupChange() {
+        if (navController == null || bottomNav == null) {
+            return;
+        }
+        NavDestination dest = navController.getCurrentDestination();
+        if (dest == null) {
+            return;
+        }
+        int destId = dest.getId();
+        if (isBottomNavRootScreen(destId)) {
+            return;
+        }
+        int rootTabId = rootTabIdForNestedDestination(destId);
+        if (rootTabId == 0) {
+            return;
+        }
+        if (!navController.popBackStack(rootTabId, false)) {
+            NavOptions opts = new NavOptions.Builder()
+                    .setPopUpTo(rootTabId, true)
+                    .setLaunchSingleTop(true)
+                    .build();
+            navController.navigate(rootTabId, null, opts);
+        }
+        bottomNav.setSelectedItemId(rootTabId);
+    }
+
+    private static boolean isBottomNavRootScreen(int destId) {
+        return destId == R.id.groupsFragment
+                || destId == R.id.coursesFragment
+                || destId == R.id.calendarFragment
+                || destId == R.id.newsFragment
+                || destId == R.id.settingsFragment;
+    }
+
+    private static int rootTabIdForNestedDestination(int destId) {
+        if (destId == R.id.createGroupFragment
+                || destId == R.id.joinGroupFragment
+                || destId == R.id.editGroupFragment) {
+            return R.id.groupsFragment;
+        }
+        if (destId == R.id.createCourseFragment
+                || destId == R.id.courseDetailFragment
+                || destId == R.id.editCourseFragment
+                || destId == R.id.courseSharedMaterialsFragment
+                || destId == R.id.coursePersonalMaterialsFragment
+                || destId == R.id.courseGradingFormulaFragment
+                || destId == R.id.editCourseGradingFormulaFragment
+                || destId == R.id.gradingElementScoresFragment) {
+            return R.id.coursesFragment;
+        }
+        if (destId == R.id.createCalendarEventFragment
+                || destId == R.id.calendarEventDetailFragment
+                || destId == R.id.editCalendarEventFragment) {
+            return R.id.calendarFragment;
+        }
+        if (destId == R.id.newsDetailFragment
+                || destId == R.id.createNewsFragment) {
+            return R.id.newsFragment;
+        }
+        return 0;
     }
 
     private static boolean showOwnerToolbarActions(@Nullable GroupState state) {

@@ -47,15 +47,17 @@ public class GroupRepository {
     public Result<GroupListResponse> getGroups() {
         try {
             Response<GroupListResponse> r = api.listGroups().execute();
-
-            if (r.isSuccessful() && r.body() != null) {
-                return Result.success(r.body());
+            if (r.isSuccessful()) {
+                GroupListResponse body = r.body();
+                if (body != null) {
+                    return Result.success(body);
+                }
             }
-
-            return Result.httpError(r.code(), null);
-
+            return Result.httpError(r.code(), parseError(r.errorBody()));
         } catch (IOException e) {
             return Result.networkError(e);
+        } catch (RuntimeException e) {
+            return Result.logicalError("Ошибка разбора ответа");
         }
     }
 
@@ -135,6 +137,8 @@ public class GroupRepository {
                 return Result.success(null);
             }
             return Result.networkError(e);
+        } catch (RuntimeException e) {
+            return Result.logicalError("Ошибка разбора ответа");
         }
     }
 

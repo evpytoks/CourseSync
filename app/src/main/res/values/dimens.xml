@@ -32,6 +32,8 @@
     <dimen name="toolbar_group_indicator_icon_size">16dp</dimen>
     <dimen name="toolbar_group_indicator_icon_text_gap">6dp</dimen>
     <dimen name="toolbar_group_indicator_max_width">200dp</dimen>
+    <dimen name="toolbar_group_picker_min_width">240dp</dimen>
+    <dimen name="toolbar_group_picker_max_height">288dp</dimen>
 
     <dimen name="login_above_bottom_nav">56dp</dimen>
     <dimen name="login_field_spacing">@dimen/grid_4</dimen>
