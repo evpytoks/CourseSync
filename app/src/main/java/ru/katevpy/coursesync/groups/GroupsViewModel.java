@@ -23,6 +23,7 @@ public class GroupsViewModel extends ViewModel {
 
     private final MutableLiveData<Result<List<GroupListItem>>> groupsResult = new MutableLiveData<>();
     private final MutableLiveData<Result<ChooseGroupResponse>> chooseResult = new MutableLiveData<>();
+    private final MutableLiveData<Result<Void>> deleteGroupResult = new MutableLiveData<>();
 
     public GroupsViewModel(GroupRepository repo) {
         this.repo = repo;
@@ -34,6 +35,15 @@ public class GroupsViewModel extends ViewModel {
 
     public LiveData<Result<ChooseGroupResponse>> getChooseResult() {
         return chooseResult;
+    }
+
+    public LiveData<Result<Void>> getDeleteGroupResult() {
+        return deleteGroupResult;
+    }
+
+    public void deleteGroup(UUID groupId) {
+        deleteGroupResult.postValue(null);
+        io.execute(() -> deleteGroupResult.postValue(repo.deleteGroup(groupId)));
     }
 
     public void chooseGroup(UUID groupId) {

@@ -2,6 +2,7 @@ package ru.katevpy.coursesync.shared.network;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.PUT;
 import retrofit2.http.POST;
@@ -41,4 +42,7 @@ public interface GroupApi {
 
     @PUT("group/{id}/change")
     Call<GroupChangeResponse> changeGroup(@Path("id") java.util.UUID id, @Body GroupChangeRequest request);
+
+    @DELETE("group/{id}")
+    Call<Void> deleteGroup(@Path("id") java.util.UUID id);
 }

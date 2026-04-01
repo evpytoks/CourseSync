@@ -9,6 +9,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -30,6 +31,8 @@ import ru.katevpy.coursesync.shared.repository.GroupRepository;
 import ru.katevpy.coursesync.shared.util.Result;
 import ru.katevpy.coursesync.ui.ErrorUi;
 import ru.katevpy.coursesync.ui.ListSpacingDecoration;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class GroupsFragment extends Fragment {
 
@@ -68,12 +71,22 @@ public class GroupsFragment extends Fragment {
             }
 
             @Override
-            public void onEditGroup(@NonNull UUID groupId, @NonNull String name) {
-                Bundle args = new Bundle();
-                args.putString("groupId", groupId.toString());
-                args.putString("groupName", name);
-                NavHostFragment.findNavController(GroupsFragment.this)
-                        .navigate(R.id.action_groupsFragment_to_editGroupFragment, args);
+            public void onOwnerGroupActions(@NonNull View anchor, @NonNull UUID groupId, @NonNull String name) {
+                PopupMenu popup = new PopupMenu(requireContext(), anchor);
+                popup.getMenuInflater().inflate(R.menu.group_owner_actions, popup.getMenu());
+                popup.setOnMenuItemClickListener(item -> {
+                    int itemId = item.getItemId();
+                    if (itemId == R.id.action_owner_edit_group) {
+                        openEditGroup(groupId, name);
+                        return true;
+                    }
+                    if (itemId == R.id.action_owner_delete_group) {
+                        showDeleteGroupDialog(groupId);
+                        return true;
+                    }
+                    return false;
+                });
+                popup.show();
             }
         });
         groupsRecycler.setAdapter(listAdapter);
@@ -85,8 +98,60 @@ public class GroupsFragment extends Fragment {
 
         viewModel.getGroupsResult().observe(getViewLifecycleOwner(), this::renderGroupsResult);
         viewModel.getChooseResult().observe(getViewLifecycleOwner(), this::onChooseResult);
+        viewModel.getDeleteGroupResult().observe(getViewLifecycleOwner(), this::onDeleteGroupResult);
 
         viewModel.loadGroups();
+    }
+
+    private void openEditGroup(@NonNull UUID groupId, @NonNull String name) {
+        Bundle args = new Bundle();
+        args.putString("groupId", groupId.toString());
+        args.putString("groupName", name);
+        NavHostFragment.findNavController(GroupsFragment.this)
+                .navigate(R.id.action_groupsFragment_to_editGroupFragment, args);
+    }
+
+    private void showDeleteGroupDialog(@NonNull UUID groupId) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setMessage(R.string.delete_group_dialog_message)
+                .setPositiveButton(R.string.event_yes, (dialog, which) -> viewModel.deleteGroup(groupId))
+                .setNegativeButton(R.string.event_no, null)
+                .show();
+    }
+
+    private void onDeleteGroupResult(@Nullable Result<Void> result) {
+        if (result == null) {
+            return;
+        }
+        if (result instanceof Result.Success) {
+            viewModel.loadGroups();
+            android.app.Activity a = requireActivity();
+            if (a instanceof MainActivity) {
+                ((MainActivity) a).refreshCurrentGroup();
+            }
+            return;
+        }
+        if (result instanceof Result.HttpError) {
+            int code = ((Result.HttpError<Void>) result).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavController nav = NavHostFragment.findNavController(this);
+                NavOptions opts = new NavOptions.Builder()
+                        .setPopUpTo(R.id.groupsFragment, true)
+                        .build();
+                nav.navigate(R.id.loginFragment, null, opts);
+                return;
+            }
+            if (code == 403 || code == 404 || code == 500) {
+                ErrorUi.show(this, R.string.delete_group_server_error, ErrorUi.Duration.LONG);
+                return;
+            }
+        }
+        if (result instanceof Result.NetworkError) {
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
+            return;
+        }
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 
     private void copyInviteCode(@NonNull UUID groupId) {

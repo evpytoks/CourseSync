@@ -37,6 +37,10 @@
     <string name="save">Сохранить</string>
     <string name="update_group_name_error">Не удалось обновить название группы. Попробуйте позже</string>
     <string name="edit_group_title">Изменить группу</string>
+    <string name="group_action_edit">Изменить</string>
+    <string name="group_action_delete">Удалить</string>
+    <string name="delete_group_dialog_message">Точно ли хотите удалить группу? Она удалится у всех участников, это необратимое действие.</string>
+    <string name="delete_group_server_error">Не удалось удалить группу. Попробуйте позже</string>
     <string name="group_role_owner">Владелец</string>
     <string name="group_role_member">Участник</string>
     <string name="courses_no_group">Упс…\nВыберите хотя бы одну группу…</string>

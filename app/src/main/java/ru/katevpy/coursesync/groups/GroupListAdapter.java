@@ -25,7 +25,7 @@ public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapte
 
         void onCopyInviteCode(@NonNull UUID groupId);
 
-        void onEditGroup(@NonNull UUID groupId, @NonNull String name);
+        void onOwnerGroupActions(@NonNull View anchor, @NonNull UUID groupId, @NonNull String name);
     }
 
     private final List<GroupListItem> items = new ArrayList<>();
@@ -67,7 +67,7 @@ public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapte
         if (owner && groupId != null) {
             h.actions.setVisibility(View.VISIBLE);
             h.copy.setOnClickListener(v -> listener.onCopyInviteCode(groupId));
-            h.edit.setOnClickListener(v -> listener.onEditGroup(groupId, name));
+            h.edit.setOnClickListener(v -> listener.onOwnerGroupActions(h.edit, groupId, name));
         } else {
             h.actions.setVisibility(View.GONE);
             h.copy.setOnClickListener(null);
