@@ -88,6 +88,11 @@ public class GroupsFragment extends Fragment {
                 });
                 popup.show();
             }
+
+            @Override
+            public void onLeaveGroup(@NonNull UUID groupId) {
+                showLeaveGroupDialog(groupId);
+            }
         });
         groupsRecycler.setAdapter(listAdapter);
 
@@ -99,6 +104,7 @@ public class GroupsFragment extends Fragment {
         viewModel.getGroupsResult().observe(getViewLifecycleOwner(), this::renderGroupsResult);
         viewModel.getChooseResult().observe(getViewLifecycleOwner(), this::onChooseResult);
         viewModel.getDeleteGroupResult().observe(getViewLifecycleOwner(), this::onDeleteGroupResult);
+        viewModel.getLeaveGroupResult().observe(getViewLifecycleOwner(), this::onLeaveGroupResult);
 
         viewModel.loadGroups();
     }
@@ -117,6 +123,49 @@ public class GroupsFragment extends Fragment {
                 .setPositiveButton(R.string.event_yes, (dialog, which) -> viewModel.deleteGroup(groupId))
                 .setNegativeButton(R.string.event_no, null)
                 .show();
+    }
+
+    private void showLeaveGroupDialog(@NonNull UUID groupId) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setMessage(R.string.leave_group_dialog_message)
+                .setPositiveButton(R.string.event_yes, (dialog, which) -> viewModel.leaveGroup(groupId))
+                .setNegativeButton(R.string.event_no, null)
+                .show();
+    }
+
+    private void onLeaveGroupResult(@Nullable Result<Void> result) {
+        if (result == null) {
+            return;
+        }
+        if (result instanceof Result.Success) {
+            viewModel.loadGroups();
+            android.app.Activity a = requireActivity();
+            if (a instanceof MainActivity) {
+                ((MainActivity) a).refreshCurrentGroup();
+            }
+            return;
+        }
+        if (result instanceof Result.HttpError) {
+            int code = ((Result.HttpError<Void>) result).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavController nav = NavHostFragment.findNavController(this);
+                NavOptions opts = new NavOptions.Builder()
+                        .setPopUpTo(R.id.groupsFragment, true)
+                        .build();
+                nav.navigate(R.id.loginFragment, null, opts);
+                return;
+            }
+            if (code == 403 || code == 404 || code == 500) {
+                ErrorUi.show(this, R.string.leave_group_server_error, ErrorUi.Duration.LONG);
+                return;
+            }
+        }
+        if (result instanceof Result.NetworkError) {
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
+            return;
+        }
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 
     private void onDeleteGroupResult(@Nullable Result<Void> result) {

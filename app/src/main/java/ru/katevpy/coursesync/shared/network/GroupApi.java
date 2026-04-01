@@ -40,6 +40,9 @@ public interface GroupApi {
     @POST("group/{id}/choose")
     Call<ChooseGroupResponse> chooseGroup(@Path("id") java.util.UUID id);
 
+    @POST("group/{id}/leave")
+    Call<Void> leaveGroup(@Path("id") java.util.UUID id);
+
     @PUT("group/{id}/change")
     Call<GroupChangeResponse> changeGroup(@Path("id") java.util.UUID id, @Body GroupChangeRequest request);
 

@@ -41,6 +41,9 @@
     <string name="group_action_delete">Удалить</string>
     <string name="delete_group_dialog_message">Точно ли хотите удалить группу? Она удалится у всех участников, это необратимое действие.</string>
     <string name="delete_group_server_error">Не удалось удалить группу. Попробуйте позже</string>
+    <string name="leave_group_content_description">Покинуть группу</string>
+    <string name="leave_group_dialog_message">Вы действительно хотите покинуть группу?</string>
+    <string name="leave_group_server_error">Не удалось покинуть группу. Попробуйте позже</string>
     <string name="group_role_owner">Владелец</string>
     <string name="group_role_member">Участник</string>
     <string name="courses_no_group">Упс…\nВыберите хотя бы одну группу…</string>

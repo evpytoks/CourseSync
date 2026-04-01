@@ -173,4 +173,18 @@ public class GroupRepository {
             return Result.logicalError("Ошибка разбора ответа");
         }
     }
+
+    public Result<Void> leaveGroup(UUID groupId) {
+        try {
+            Response<Void> r = api.leaveGroup(groupId).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        } catch (RuntimeException e) {
+            return Result.logicalError("Ошибка разбора ответа");
+        }
+    }
 }

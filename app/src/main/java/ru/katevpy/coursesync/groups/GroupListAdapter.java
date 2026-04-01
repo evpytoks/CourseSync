@@ -26,6 +26,8 @@ public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapte
         void onCopyInviteCode(@NonNull UUID groupId);
 
         void onOwnerGroupActions(@NonNull View anchor, @NonNull UUID groupId, @NonNull String name);
+
+        void onLeaveGroup(@NonNull UUID groupId);
     }
 
     private final List<GroupListItem> items = new ArrayList<>();
@@ -64,14 +66,27 @@ public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapte
                 listener.onSelectGroup(groupId);
             }
         });
-        if (owner && groupId != null) {
+        h.copy.setOnClickListener(null);
+        h.edit.setOnClickListener(null);
+        h.leave.setOnClickListener(null);
+        if (groupId == null) {
+            h.actions.setVisibility(View.GONE);
+            h.copy.setVisibility(View.GONE);
+            h.edit.setVisibility(View.GONE);
+            h.leave.setVisibility(View.GONE);
+        } else if (owner) {
             h.actions.setVisibility(View.VISIBLE);
+            h.copy.setVisibility(View.VISIBLE);
+            h.edit.setVisibility(View.VISIBLE);
+            h.leave.setVisibility(View.GONE);
             h.copy.setOnClickListener(v -> listener.onCopyInviteCode(groupId));
             h.edit.setOnClickListener(v -> listener.onOwnerGroupActions(h.edit, groupId, name));
         } else {
-            h.actions.setVisibility(View.GONE);
-            h.copy.setOnClickListener(null);
-            h.edit.setOnClickListener(null);
+            h.actions.setVisibility(View.VISIBLE);
+            h.copy.setVisibility(View.GONE);
+            h.edit.setVisibility(View.GONE);
+            h.leave.setVisibility(View.VISIBLE);
+            h.leave.setOnClickListener(v -> listener.onLeaveGroup(groupId));
         }
     }
 
@@ -86,6 +101,7 @@ public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapte
         final LinearLayout actions;
         final ImageButton copy;
         final ImageButton edit;
+        final ImageButton leave;
 
         VH(@NonNull View itemView) {
             super(itemView);
@@ -94,6 +110,7 @@ public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapte
             actions = itemView.findViewById(R.id.groupRowActions);
             copy = itemView.findViewById(R.id.groupRowCopy);
             edit = itemView.findViewById(R.id.groupRowEdit);
+            leave = itemView.findViewById(R.id.groupRowLeave);
         }
     }
 }
