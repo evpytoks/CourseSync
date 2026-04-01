@@ -1,7 +1,11 @@
 package ru.katevpy.coursesync.courses;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -12,18 +16,20 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import ru.katevpy.coursesync.ui.ErrorUi;
 
+import java.util.List;
 import java.util.UUID;
 
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseUsefulLinkItem;
 import ru.katevpy.coursesync.shared.util.Result;
 
 public class CourseDetailFragment extends Fragment {
 
     private TextView courseDetailName;
     private TextView courseDetailGeneral;
-    private TextView courseDetailUsefulLinks;
+    private LinearLayout courseDetailLinksList;
     private View courseDetailLinksCard;
     private UUID courseUuid;
     private String courseIdStr;
@@ -38,7 +44,7 @@ public class CourseDetailFragment extends Fragment {
 
         courseDetailName = view.findViewById(R.id.courseDetailName);
         courseDetailGeneral = view.findViewById(R.id.courseDetailGeneral);
-        courseDetailUsefulLinks = view.findViewById(R.id.courseDetailUsefulLinks);
+        courseDetailLinksList = view.findViewById(R.id.courseDetailLinksList);
         courseDetailLinksCard = view.findViewById(R.id.courseDetailLinksCard);
 
         if (getArguments() == null) {
@@ -99,12 +105,7 @@ public class CourseDetailFragment extends Fragment {
             if (data == null) return;
             courseDetailName.setText(data.name != null ? data.name : "");
             courseDetailGeneral.setText(data.generalInfo != null ? data.generalInfo : "");
-            String links = data.usefulLinks != null ? data.usefulLinks : "";
-            courseDetailUsefulLinks.setText(links);
-            boolean showLinks = !links.isEmpty();
-            if (courseDetailLinksCard != null) {
-                courseDetailLinksCard.setVisibility(showLinks ? View.VISIBLE : View.GONE);
-            }
+            bindUsefulLinks(data.usefulLinks);
             return;
         }
         if (result instanceof Result.HttpError) {
@@ -130,5 +131,52 @@ public class CourseDetailFragment extends Fragment {
             }
         }
         ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
+    }
+
+    private void bindUsefulLinks(@Nullable List<CourseUsefulLinkItem> links) {
+        courseDetailLinksList.removeAllViews();
+        if (links == null || links.isEmpty()) {
+            courseDetailLinksCard.setVisibility(View.GONE);
+            return;
+        }
+        courseDetailLinksCard.setVisibility(View.VISIBLE);
+        LayoutInflater inflater = LayoutInflater.from(requireContext());
+        for (CourseUsefulLinkItem item : links) {
+            if (item == null) {
+                continue;
+            }
+            String url = item.url != null ? item.url.trim() : "";
+            if (url.isEmpty()) {
+                continue;
+            }
+            View row = inflater.inflate(R.layout.item_course_useful_link, courseDetailLinksList, false);
+            TextView titleView = row.findViewById(R.id.courseUsefulLinkTitle);
+            String title = item.title != null ? item.title.trim() : "";
+            if (title.isEmpty()) {
+                title = getString(R.string.link_default_title);
+            }
+            titleView.setText(title);
+            row.setContentDescription(getString(R.string.course_useful_link_row_a11y, title));
+            row.setOnClickListener(v -> openExternalUrl(url));
+            courseDetailLinksList.addView(row);
+        }
+        if (courseDetailLinksList.getChildCount() == 0) {
+            courseDetailLinksCard.setVisibility(View.GONE);
+        }
+    }
+
+    private void openExternalUrl(@NonNull String raw) {
+        String u = raw.trim();
+        if (u.isEmpty()) {
+            return;
+        }
+        if (!u.matches("(?i)https?://.*")) {
+            u = "https://" + u;
+        }
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)));
+        } catch (Exception e) {
+            ErrorUi.show(this, R.string.link_open_error, ErrorUi.Duration.SHORT);
+        }
     }
 }

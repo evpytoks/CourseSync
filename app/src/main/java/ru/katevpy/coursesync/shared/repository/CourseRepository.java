@@ -18,6 +18,7 @@ import okhttp3.ResponseBody;
 import retrofit2.Response;
 
 import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
+import ru.katevpy.coursesync.shared.dto.CourseUsefulLinkItem;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementItem;
@@ -76,6 +77,8 @@ public class CourseRepository {
             return Result.httpError(r.code(), parseError(r.errorBody()));
         } catch (IOException e) {
             return Result.networkError(e);
+        } catch (RuntimeException e) {
+            return Result.logicalError("Ошибка разбора ответа");
         }
     }
 
@@ -291,12 +294,12 @@ public class CourseRepository {
         }
     }
 
-    public Result<Void> updateCourse(UUID courseId, String name, String generalInfo, String usefulLinks) {
+    public Result<Void> updateCourse(UUID courseId, String name, String generalInfo, List<CourseUsefulLinkItem> usefulLinks) {
         try {
             AddCourseRequest req = new AddCourseRequest(
                     name,
                     generalInfo != null ? generalInfo : "",
-                    usefulLinks != null ? usefulLinks : "");
+                    usefulLinks);
             Response<Void> r = api.changeCourse(courseId, req).execute();
             if (r.isSuccessful()) {
                 return Result.success(null);
@@ -310,12 +313,12 @@ public class CourseRepository {
         }
     }
 
-    public Result<Void> createCourse(String name, String generalInfo, String usefulLinks) {
+    public Result<Void> createCourse(String name, String generalInfo, List<CourseUsefulLinkItem> usefulLinks) {
         try {
             AddCourseRequest req = new AddCourseRequest(
                     name,
                     generalInfo != null ? generalInfo : "",
-                    usefulLinks != null ? usefulLinks : "");
+                    usefulLinks);
             Response<Void> r = api.addCourse(req).execute();
             if (r.isSuccessful()) {
                 return Result.success(null);

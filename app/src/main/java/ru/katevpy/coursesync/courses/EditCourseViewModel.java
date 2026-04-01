@@ -4,11 +4,13 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseUsefulLinkItem;
 import ru.katevpy.coursesync.shared.repository.CourseRepository;
 import ru.katevpy.coursesync.shared.util.Result;
 
@@ -35,7 +37,7 @@ public class EditCourseViewModel extends ViewModel {
         io.execute(() -> loadResult.postValue(repo.getCourse(id)));
     }
 
-    public void updateCourse(UUID id, String name, String generalInfo, String usefulLinks) {
+    public void updateCourse(UUID id, String name, String generalInfo, List<CourseUsefulLinkItem> usefulLinks) {
         io.execute(() -> updateResult.postValue(repo.updateCourse(id, name, generalInfo, usefulLinks)));
     }
 }
