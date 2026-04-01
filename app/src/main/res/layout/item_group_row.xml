@@ -78,6 +78,20 @@
                 android:scaleType="centerInside"
                 android:src="@drawable/ic_edit_toolbar"
                 app:tint="?attr/colorPrimary" />
+
+            <ImageButton
+                android:id="@+id/groupRowLeave"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_toolbar_action_add"
+                android:contentDescription="@string/leave_group_content_description"
+                android:padding="6dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_close_small"
+                android:visibility="gone"
+                app:tint="?attr/colorPrimary"
+                tools:visibility="visible" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
