@@ -47,4 +47,6 @@
     <dimen name="elevation_button_rest">1dp</dimen>
 
     <dimen name="dialog_grading_text_max_height">368dp</dimen>
+
+    <dimen name="course_form_links_list_max_height">240dp</dimen>
 </resources>

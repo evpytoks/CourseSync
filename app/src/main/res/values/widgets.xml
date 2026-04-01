@@ -7,6 +7,15 @@
         <item name="strokeWidth">0dp</item>
     </style>
 
+    <style name="Widget.CourseSync.CourseFormOutlinedFieldLike" parent="Widget.Material3.CardView.Outlined">
+        <item name="cardElevation">0dp</item>
+        <item name="cardUseCompatPadding">false</item>
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="strokeColor">?attr/colorOutline</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.CourseSync.Small</item>
+    </style>
+
     <style name="Widget.CourseSync.Button" parent="Widget.Material3.Button">
         <item name="android:minHeight">48dp</item>
         <item name="android:insetTop">0dp</item>

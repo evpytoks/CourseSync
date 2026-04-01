@@ -69,15 +69,15 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/useful_links_hint"
-                    android:textAppearance="?attr/textAppearanceBodySmall" />
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textColor="?attr/colorOnSurface" />
 
-                <TextView
-                    android:id="@+id/courseDetailUsefulLinks"
+                <LinearLayout
+                    android:id="@+id/courseDetailLinksList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/grid_2"
-                    android:textAppearance="?attr/textAppearanceBodyLarge"
-                    tools:text="Ссылки" />
+                    android:orientation="vertical" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
