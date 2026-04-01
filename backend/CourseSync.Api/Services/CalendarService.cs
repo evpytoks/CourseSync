@@ -105,7 +105,6 @@ public sealed class CalendarService
             groupName,
             NewsFormatting.SectionCalendar,
             NewsFormatting.DetailCalendarEventCreated(
-                groupName,
                 entity.Name,
                 entity.Date,
                 entity.Description ?? ""),
@@ -179,7 +178,6 @@ public sealed class CalendarService
                 groupNameU,
                 NewsFormatting.SectionCalendar,
                 NewsFormatting.DetailCalendarEventUpdated(
-                    groupNameU,
                     entity.Name,
                     entity.Date,
                     newDescription,
@@ -223,7 +221,7 @@ public sealed class CalendarService
             groupId,
             groupNameD,
             NewsFormatting.SectionCalendar,
-            NewsFormatting.DetailCalendarEventDeleted(groupNameD, delName, delDate, delDescription),
+            NewsFormatting.DetailCalendarEventDeleted(delName, delDate, delDescription),
             ct);
 
         return (true, null);

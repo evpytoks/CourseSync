@@ -9,12 +9,23 @@ public static class NewsFormatting
     public const string SectionCalendar = "Календарь";
     public const string SectionNews = "Новости";
 
-    public static string SingleState(string label, string value) => $"{label}: {value}";
+    private static string Q(string? s)
+    {
+        var t = Trim(s ?? "");
+        return string.IsNullOrEmpty(t) ? "«»" : $"«{t}»";
+    }
 
-    public static string WasOnly(string label, string value) => $"Было — {label}: {value}";
+    public static string SingleState(string label, string value) => $"{FieldTitle(label)}\n{FormatDiffBlock(value)}";
+
+    public static string WasOnly(string label, string value) =>
+        $"{FieldTitle(label)}\n{FormatDiffBlock(value)}";
 
     public static string BeforeAfter(string label, string before, string after) =>
-        $"Было — {label}: {before}\nСтало — {label}: {after}";
+        $"{FieldTitle(label)}\n\n" +
+        "Раньше\n" +
+        $"{FormatDiffBlock(before)}\n\n" +
+        "Теперь\n" +
+        FormatDiffBlock(after);
 
     public static string? BuildChangedCourseFields(
         string oldName,
@@ -50,6 +61,22 @@ public static class NewsFormatting
 
     private static string Trim(string s) => (s ?? "").Trim();
 
+    private static string FieldTitle(string label)
+    {
+        var t = Trim(label);
+        if (t.Length == 0) return t;
+        return char.ToUpperInvariant(t[0]) + (t.Length > 1 ? t[1..] : "");
+    }
+
+    private static string FormatDiffBlock(string? s)
+    {
+        var t = Trim(s ?? "");
+        if (string.IsNullOrEmpty(t)) return "—";
+        if (t.Contains('\n', StringComparison.Ordinal) || t.Length > 100)
+            return t;
+        return Q(t);
+    }
+
     public static string FormatGradingFormulaLines(IReadOnlyList<(string Name, decimal Coefficient)> elements, string gradingText)
     {
         var parts = new List<string>();
@@ -57,82 +84,78 @@ public static class NewsFormatting
         {
             var el = string.Join(
                 "; ",
-                elements.Select(e => $"{e.Name.Trim()} ({FormatCoeff(e.Coefficient)})"));
+                elements.Select(e => $"{Q(e.Name)} ({FormatCoeff(e.Coefficient)})"));
             parts.Add($"Элементы: {el}");
         }
         else
             parts.Add("Элементы: (нет)");
 
         var t = (gradingText ?? "").Trim();
-        parts.Add(t.Length == 0 ? "Пояснение к формуле: (пусто)" : $"Пояснение к формуле: {t}");
+        parts.Add(t.Length == 0 ? "Пояснение к формуле: (пусто)" : $"Пояснение к формуле: {Q(t)}");
         return string.Join("\n", parts);
     }
 
     private static string FormatCoeff(decimal c) => c.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
 
     public static string DetailGroupRenamed(string oldName, string newName) =>
-        $"Группа {Trim(oldName)} переименована в {Trim(newName)}";
+        $"Группа {Q(oldName)} переименована в {Q(newName)}";
 
-    public static string DetailMemberJoinedByCode(string groupName, string participantEmail) =>
-        $"К группе {Trim(groupName)} присоединился новый участник {Trim(participantEmail)}";
+    public static string DetailMemberJoinedByCode(string participantEmail) =>
+        $"Присоединился новый участник {Trim(participantEmail)}.";
 
-    public static string DetailCourseCreatedInGroup(string groupName, string courseName) =>
-        $"В группу {Trim(groupName)} добавлен новый курс {Trim(courseName)}";
+    public static string DetailCourseCreatedInGroup(string courseName) =>
+        $"Добавлен новый курс {Q(courseName)}.";
 
-    public static string DetailCourseRenamedInGroup(string groupName, string oldCourseName, string newCourseName) =>
-        $"В группе {Trim(groupName)} курс {Trim(oldCourseName)} переименован на {Trim(newCourseName)}";
+    public static string DetailCourseRenamedInGroup(string oldCourseName, string newCourseName) =>
+        $"Курс {Q(oldCourseName)} переименован на {Q(newCourseName)}.";
 
-    public static string DetailCourseFieldsUpdatedInGroup(string groupName, string courseName, string changedGeneralLinks) =>
-        $"В группе {Trim(groupName)} у курса {Trim(courseName)} изменены сведения о курсе.\n\n{changedGeneralLinks}";
+    public static string DetailCourseFieldsUpdatedInGroup(string courseName, string changedGeneralLinks) =>
+        $"У курса {Q(courseName)} изменены сведения о курсе.\n\n{changedGeneralLinks}";
 
     public static string DetailCourseDeleted(string courseName) =>
-        "Курс убрали из списка группы.\n\n" +
+        "Курс убрали из списка.\n\n" +
         WasOnly("Название", courseName);
 
-    public static string DetailGradingChangedInGroup(string groupName, string courseName) =>
-        $"В группе {Trim(groupName)} у курса {Trim(courseName)} изменена формула оценивания";
+    public static string DetailGradingChangedInGroup(string courseName) =>
+        $"У курса {Q(courseName)} изменена формула оценивания.";
 
-    public static string DetailCalendarEventCreated(string groupName, string eventName, DateTime dateUtc, string description)
-    {
-        var g = Trim(groupName);
-        var n = Trim(eventName);
-        var d = FormatCalendarDateTime(dateUtc);
-        var desc = Trim(description ?? "");
-        return $"В группе {g} добавлено событие {n}\nДата:{d}\nОписание:{desc}";
-    }
+    public static string DetailCalendarEventCreated(string eventName, DateTime dateUtc, string description) =>
+        $"Добавили событие.\n\n{FormatCalendarEventSnapshot(eventName, dateUtc, description)}";
 
     public static string DetailCalendarEventUpdated(
-        string groupName,
         string newName,
         DateTime newDateUtc,
         string newDescription,
         string oldName,
         DateTime oldDateUtc,
-        string oldDescription)
+        string oldDescription) =>
+        "Изменили событие.\n\n" +
+        "Сейчас\n" +
+        $"{FormatCalendarEventSnapshot(newName, newDateUtc, newDescription)}\n\n" +
+        "Раньше\n" +
+        FormatCalendarEventSnapshot(oldName, oldDateUtc, oldDescription);
+
+    public static string DetailCalendarEventDeleted(string eventName, DateTime dateUtc, string description) =>
+        $"Удалили событие.\n\n{FormatCalendarEventSnapshot(eventName, dateUtc, description)}";
+
+    private static string FormatCalendarEventSnapshot(string eventName, DateTime dateUtc, string? description)
     {
-        var g = Trim(groupName);
-        var newBlock =
-            $"{Trim(newName)}\nДата:{FormatCalendarDateTime(newDateUtc)}\nОписание:{Trim(newDescription ?? "")}";
-        var oldBlock =
-            $"{Trim(oldName)}\nДата:{FormatCalendarDateTime(oldDateUtc)}\nОписание:{Trim(oldDescription ?? "")}";
-        return $"В группе {g} изменено событие \n\n{newBlock}\n\nСтарая версия:\n{oldBlock}";
+        var desc = Trim(description ?? "");
+        return
+            $"Название: {Q(eventName)}\n" +
+            $"Дата и время: {FormatCalendarDateTime(dateUtc)}\n" +
+            $"Описание: {CalendarDescriptionLine(desc)}";
     }
 
-    public static string DetailCalendarEventDeleted(string groupName, string eventName, DateTime dateUtc, string description)
-    {
-        var g = Trim(groupName);
-        var n = Trim(eventName);
-        var d = FormatCalendarDateTime(dateUtc);
-        var desc = Trim(description ?? "");
-        return $"В группе {g} удалено событие {n}\nДата:{d}\nОписание:{desc}";
-    }
+    private static string CalendarDescriptionLine(string trimmedDescription) =>
+        trimmedDescription.Length == 0 ? "без описания" : Q(trimmedDescription);
 
     private static string FormatCalendarDateTime(DateTime dateUtc) =>
         dateUtc.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture);
 
     public static string DetailGeneralMaterialAdded(string courseName, string fileName) =>
-        $"В курсе {Trim(courseName)} появился новый материал {Trim(fileName)}";
+        $"В курсе {Q(courseName)} появился новый материал {Trim(fileName)}";
 
     public static string DetailPersonalMaterialAdded(string courseName, string authorEmail, string fileName) =>
-        $"В курсе {Trim(courseName)} {Trim(authorEmail)} загрузил новый материал {Trim(fileName)}";
+        $"В курсе {Q(courseName)} {Trim(authorEmail)} загрузил новый материал {Trim(fileName)}";
 }

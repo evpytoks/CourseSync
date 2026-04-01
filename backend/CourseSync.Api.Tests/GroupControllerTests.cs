@@ -2,6 +2,7 @@ using System.Security.Claims;
 using CourseSync.Api.Controllers;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
@@ -351,5 +352,83 @@ public sealed class GroupControllerTests
             user.Id);
         var res = await controller.Delete(Guid.NewGuid(), CancellationToken.None);
         Assert.IsType<NotFoundObjectResult>(res);
+    }
+
+    [Fact]
+    public async Task Leave_not_in_group_returns_404()
+    {
+        await using var tdb = new TestDb();
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        tdb.Db.Users.Add(user);
+        await tdb.Db.SaveChangesAsync();
+        var controller = CreateController(
+            new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
+            user.Id);
+        var res = await controller.Leave(Guid.NewGuid(), CancellationToken.None);
+        Assert.IsType<NotFoundObjectResult>(res);
+    }
+
+    [Fact]
+    public async Task Leave_participant_removes_membership_and_clears_current_group()
+    {
+        await using var tdb = new TestDb();
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, participant);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        Assert.NotNull(create);
+        await svc.JoinByCodeAsync(participant.Id, create.Value.Code, CancellationToken.None);
+        await svc.ChooseGroupAsync(participant.Id, create.Value.GroupId, CancellationToken.None);
+
+        var controller = CreateController(svc, participant.Id);
+        var res = await controller.Leave(create.Value.GroupId, CancellationToken.None);
+        Assert.IsType<NoContentResult>(res);
+
+        var p = await tdb.Db.Users.AsNoTracking().FirstAsync(u => u.Id == participant.Id);
+        Assert.Null(p.CurrentGroupId);
+        Assert.False(await tdb.Db.GroupMembers.AnyAsync(m => m.GroupId == create.Value.GroupId && m.UserId == participant.Id));
+    }
+
+    [Fact]
+    public async Task Leave_participant_keeps_current_group_when_other_group_selected()
+    {
+        await using var tdb = new TestDb();
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, participant);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var g1 = await svc.CreateGroupAsync(owner.Id, "A", CancellationToken.None);
+        var g2 = await svc.CreateGroupAsync(participant.Id, "B", CancellationToken.None);
+        Assert.NotNull(g1);
+        Assert.NotNull(g2);
+        await svc.JoinByCodeAsync(participant.Id, g1.Value.Code, CancellationToken.None);
+        await svc.ChooseGroupAsync(participant.Id, g2.Value.GroupId, CancellationToken.None);
+
+        var controller = CreateController(svc, participant.Id);
+        var res = await controller.Leave(g1.Value.GroupId, CancellationToken.None);
+        Assert.IsType<NoContentResult>(res);
+
+        var p = await tdb.Db.Users.AsNoTracking().FirstAsync(u => u.Id == participant.Id);
+        Assert.Equal(g2.Value.GroupId, p.CurrentGroupId);
+    }
+
+    [Fact]
+    public async Task Leave_owner_deletes_group_returns_204()
+    {
+        await using var tdb = new TestDb();
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        tdb.Db.Users.Add(user);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var create = await svc.CreateGroupAsync(user.Id, "G", CancellationToken.None);
+        Assert.NotNull(create);
+
+        var controller = CreateController(svc, user.Id);
+        var res = await controller.Leave(create.Value.GroupId, CancellationToken.None);
+        Assert.IsType<NoContentResult>(res);
+        Assert.False(await tdb.Db.Groups.AnyAsync(g => g.Id == create.Value.GroupId));
     }
 }
