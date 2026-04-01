@@ -27,6 +27,7 @@ public class CoursesFragment extends Fragment {
     private CoursesViewModel viewModel;
     private RecyclerView coursesRecycler;
     private TextView coursesNoGroupMessage;
+    private TextView coursesEmptyMessage;
     private View errorBanner;
     private CourseListAdapter listAdapter;
 
@@ -40,6 +41,7 @@ public class CoursesFragment extends Fragment {
 
         coursesRecycler = view.findViewById(R.id.coursesRecycler);
         coursesNoGroupMessage = view.findViewById(R.id.coursesNoGroupMessage);
+        coursesEmptyMessage = view.findViewById(R.id.coursesEmptyMessage);
         errorBanner = view.findViewById(R.id.errorBanner);
 
         coursesRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -63,12 +65,14 @@ public class CoursesFragment extends Fragment {
         groupVm.getGroupState().observe(getViewLifecycleOwner(), state -> {
             if (state != null && state.hasGroup()) {
                 coursesNoGroupMessage.setVisibility(View.GONE);
+                coursesEmptyMessage.setVisibility(View.GONE);
                 coursesRecycler.setVisibility(View.VISIBLE);
                 viewModel.loadCourses();
             } else {
                 ErrorUi.hideErrorBanner(errorBanner);
                 listAdapter.submitList(null);
                 coursesNoGroupMessage.setVisibility(View.VISIBLE);
+                coursesEmptyMessage.setVisibility(View.GONE);
                 coursesRecycler.setVisibility(View.GONE);
             }
         });
@@ -83,8 +87,13 @@ public class CoursesFragment extends Fragment {
             ErrorUi.hideErrorBanner(errorBanner);
             List<CourseListItem> items = ((Result.Success<List<CourseListItem>>) result).data;
             listAdapter.submitList(items);
+            boolean empty = items == null || items.isEmpty();
+            coursesEmptyMessage.setVisibility(empty ? View.VISIBLE : View.GONE);
+            coursesRecycler.setVisibility(empty ? View.GONE : View.VISIBLE);
             return;
         }
+
+        coursesEmptyMessage.setVisibility(View.GONE);
 
         if (result instanceof Result.HttpError) {
             int code = ((Result.HttpError<List<CourseListItem>>) result).httpCode;
@@ -96,12 +105,14 @@ public class CoursesFragment extends Fragment {
             }
             if (code == 500) {
                 listAdapter.submitList(null);
+                coursesRecycler.setVisibility(View.VISIBLE);
                 ErrorUi.showErrorBanner(errorBanner, R.string.courses_list_load_error, () -> viewModel.loadCourses());
                 return;
             }
         }
 
         listAdapter.submitList(null);
+        coursesRecycler.setVisibility(View.VISIBLE);
         ErrorUi.showErrorBanner(errorBanner, R.string.internal_error, () -> viewModel.loadCourses());
     }
 }
