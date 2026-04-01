@@ -30,6 +30,16 @@
             android:textAppearance="?attr/textAppearanceTitleLarge"
             android:visibility="gone" />
 
+        <TextView
+            android:id="@+id/coursesEmptyMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="@string/courses_empty"
+            android:textAppearance="?attr/textAppearanceTitleLarge"
+            android:visibility="gone" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/coursesRecycler"
             android:layout_width="match_parent"
