@@ -77,7 +77,7 @@ public sealed class CourseController : ControllerBase
             user.CurrentGroupId.Value,
             req.Name!.Trim(),
             req.GeneralInfo ?? "",
-            req.UsefulLinks ?? "",
+            req.UsefulLinks ?? Array.Empty<CourseUsefulLinkItem>(),
             ct);
 
         if (!ok)
@@ -117,11 +117,7 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
         }
 
-        return Ok(new CourseDetailsResponse(
-            data!.Id,
-            data.Name,
-            data.GeneralInfo,
-            data.UsefulLinks));
+        return Ok(new CourseDetailsResponse(data!.Id, data.Name, data.GeneralInfo, data.UsefulLinks));
     }
 
     [HttpPost("{id:guid}/grading")]
@@ -325,7 +321,7 @@ public sealed class CourseController : ControllerBase
             id,
             req.Name!.Trim(),
             req.GeneralInfo ?? "",
-            req.UsefulLinks ?? "",
+            req.UsefulLinks ?? Array.Empty<CourseUsefulLinkItem>(),
             ct);
 
         if (!ok)

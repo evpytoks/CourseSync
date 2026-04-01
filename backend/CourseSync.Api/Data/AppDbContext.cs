@@ -161,7 +161,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
             e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
             e.Property(x => x.GeneralInfo).HasColumnName("general_info").IsRequired().HasMaxLength(2000);
-            e.Property(x => x.UsefulLinks).HasColumnName("useful_links").IsRequired().HasMaxLength(1000);
+            e.Property(x => x.UsefulLinks).HasColumnName("useful_links").IsRequired().HasMaxLength(8000);
             e.Property(x => x.GradingText).HasColumnName("grading_text").IsRequired().HasMaxLength(3000).HasDefaultValue("");
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 

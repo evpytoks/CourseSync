@@ -1,3 +1,5 @@
+using System.Linq;
+using CourseSync.Api.Models;
 using CourseSync.Api.Services;
 using Xunit;
 
@@ -6,33 +8,42 @@ namespace CourseSync.Api.Tests;
 public sealed class ValidationRulesTests
 {
     [Fact]
-    public void Course_general_info_is_required_but_allows_empty_string()
+    public void Course_general_info_allows_null_and_empty_and_enforces_max_length()
     {
-        var nullResult = CourseService.ValidateGeneralInfo(null);
-        Assert.False(nullResult.Valid);
-        Assert.Equal("general_info_required", nullResult.ErrorCode);
+        Assert.True(CourseService.ValidateGeneralInfo(null).Valid);
+        Assert.True(CourseService.ValidateGeneralInfo("").Valid);
 
-        var emptyResult = CourseService.ValidateGeneralInfo("");
-        Assert.True(emptyResult.Valid);
-        Assert.Null(emptyResult.ErrorCode);
+        var ok2000 = CourseService.ValidateGeneralInfo(new string('x', 2000));
+        Assert.True(ok2000.Valid);
+
+        var tooLong = CourseService.ValidateGeneralInfo(new string('x', 2001));
+        Assert.False(tooLong.Valid);
+        Assert.Equal("general_info_too_long", tooLong.ErrorCode);
     }
 
     [Fact]
-    public void Course_useful_links_is_required_and_has_1000_max()
+    public void Course_useful_links_validates_list_and_lengths()
     {
-        var nullResult = CourseService.ValidateUsefulLinks(null);
-        Assert.False(nullResult.Valid);
-        Assert.Equal("useful_links_required", nullResult.ErrorCode);
+        Assert.True(CourseService.ValidateUsefulLinks(null).Valid);
+        Assert.True(CourseService.ValidateUsefulLinks(Array.Empty<CourseUsefulLinkItem>()).Valid);
 
-        var emptyResult = CourseService.ValidateUsefulLinks("");
-        Assert.True(emptyResult.Valid);
+        Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("", "https://a.com") }).Valid);
+        Assert.Equal("useful_link_title_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("", "https://a.com") }).ErrorCode);
 
-        var maxResult = CourseService.ValidateUsefulLinks(new string('x', 1000));
-        Assert.True(maxResult.Valid);
+        Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("A", "") }).Valid);
+        Assert.Equal("useful_link_url_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("A", "") }).ErrorCode);
 
-        var overResult = CourseService.ValidateUsefulLinks(new string('x', 1001));
-        Assert.False(overResult.Valid);
-        Assert.Equal("useful_links_too_long", overResult.ErrorCode);
+        Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem(new string('t', 51), "https://a.com") }).Valid);
+        Assert.Equal("useful_link_title_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem(new string('t', 51), "https://a.com") }).ErrorCode);
+
+        Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("A", new string('u', 201)) }).Valid);
+        Assert.Equal("useful_link_url_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("A", new string('u', 201)) }).ErrorCode);
+
+        var many = Enumerable.Range(0, CourseService.UsefulLinksMaxItems + 1)
+            .Select(i => new CourseUsefulLinkItem("L" + i, "https://x.co/" + i))
+            .ToArray();
+        Assert.False(CourseService.ValidateUsefulLinks(many).Valid);
+        Assert.Equal("useful_links_too_many", CourseService.ValidateUsefulLinks(many).ErrorCode);
     }
 
     [Fact]
