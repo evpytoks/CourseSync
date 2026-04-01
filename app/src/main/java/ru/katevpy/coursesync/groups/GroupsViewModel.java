@@ -52,6 +52,8 @@ public class GroupsViewModel extends ViewModel {
                 groupsResult.postValue(Result.httpError(((Result.HttpError<GroupListResponse>) r).httpCode, ((Result.HttpError<GroupListResponse>) r).error));
             } else if (r instanceof Result.NetworkError) {
                 groupsResult.postValue(Result.networkError(((Result.NetworkError<GroupListResponse>) r).t));
+            } else if (r instanceof Result.LogicalError) {
+                groupsResult.postValue(Result.logicalError(((Result.LogicalError<GroupListResponse>) r).message));
             } else {
                 groupsResult.postValue(Result.logicalError("Неизвестная ошибка"));
             }

@@ -32,6 +32,8 @@
         <item name="materialCardViewStyle">@style/Widget.CourseSync.CardView</item>
         <item name="materialButtonStyle">@style/Widget.CourseSync.Button</item>
 
+        <item name="android:listPopupWindowStyle">@style/Widget.CourseSync.ListPopupWindow</item>
+
         <item name="snackbarStyle">@style/Widget.CourseSync.Snackbar</item>
         <item name="snackbarTextViewStyle">@style/TextAppearance.CourseSync.Snackbar</item>
 
@@ -46,6 +48,8 @@
     </style>
 
     <style name="Theme.CourseSync" parent="Base.Theme.CourseSync" />
+
+    <style name="Widget.CourseSync.ListPopupWindow" parent="Widget.Material3.PopupMenu.ListPopupWindow" />
 
     <style name="Widget.CourseSync.Snackbar" parent="Widget.Material3.Snackbar">
         <item name="backgroundTint">@color/cs_surface_variant</item>
