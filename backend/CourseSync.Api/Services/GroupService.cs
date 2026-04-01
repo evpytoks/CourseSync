@@ -239,6 +239,24 @@ public sealed class GroupService
         return (true, groupId, member.Group!.Name);
     }
 
+    public async Task<(bool Ok, string? ErrorCode)> LeaveGroupAsync(Guid userId, Guid groupId, CancellationToken ct)
+    {
+        var member = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (member is null)
+            return (false, "not_in_group");
+
+        if (member.Role == GroupRole.Owner)
+            return await DeleteGroupAsync(userId, groupId, ct);
+
+        _db.GroupMembers.Remove(member);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is not null && user.CurrentGroupId == groupId)
+            user.CurrentGroupId = null;
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
     public async Task<(bool Ok, string? ErrorCode)> DeleteGroupAsync(Guid userId, Guid groupId, CancellationToken ct)
     {
         var groupExists = await _db.Groups.AnyAsync(g => g.Id == groupId, ct);

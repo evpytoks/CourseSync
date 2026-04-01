@@ -114,6 +114,28 @@ public sealed class GroupController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("{id:guid}/leave")]
+    public async Task<IActionResult> Leave(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var (ok, errorCode) = await _groupService.LeaveGroupAsync(userId.Value, id, ct);
+        if (!ok)
+        {
+            if (errorCode == "not_in_group")
+                return NotFound(new ErrorEnvelope(new ApiError("not_in_group")));
+            if (errorCode == "forbidden")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            if (errorCode == "group_not_found")
+                return NotFound(new ErrorEnvelope(new ApiError("group_not_found")));
+            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
+        }
+
+        return NoContent();
+    }
+
     [HttpPost("{id:guid}/choose")]
     public async Task<IActionResult> Choose(Guid id, CancellationToken ct)
     {
