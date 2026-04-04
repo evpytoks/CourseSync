@@ -32,6 +32,17 @@
                 android:gravity="center_vertical"
                 android:minHeight="?attr/actionBarSize">
 
+                <TextView
+                    android:id="@+id/tvToolbarNewsSection"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/toolbar_icon_margin_start"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:maxWidth="@dimen/toolbar_group_indicator_max_width"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:visibility="gone" />
+
                 <ImageButton
                     android:id="@+id/btnEditCourse"
                     android:layout_width="48dp"

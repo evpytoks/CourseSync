@@ -64,6 +64,43 @@ public class NewsDetailFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onPause() {
+        clearToolbarSection();
+        super.onPause();
+    }
+
+    private void applyToolbarSection(@Nullable String section) {
+        TextView tv = requireActivity().findViewById(R.id.tvToolbarNewsSection);
+        if (tv == null) {
+            return;
+        }
+        String s = section != null ? section.trim() : "";
+        if (s.isEmpty()) {
+            tv.setVisibility(View.GONE);
+            tv.setText("");
+            tv.setContentDescription(null);
+            return;
+        }
+        tv.setText(s);
+        tv.setVisibility(View.VISIBLE);
+        tv.setContentDescription(s);
+    }
+
+    private void clearToolbarSection() {
+        android.app.Activity a = getActivity();
+        if (a == null) {
+            return;
+        }
+        TextView tv = a.findViewById(R.id.tvToolbarNewsSection);
+        if (tv == null) {
+            return;
+        }
+        tv.setVisibility(View.GONE);
+        tv.setText("");
+        tv.setContentDescription(null);
+    }
+
     private void onLoadResult(@Nullable Result<NewsDetailsResponse> result) {
         if (result == null) return;
         if (result instanceof Result.Success) {
@@ -78,6 +115,9 @@ public class NewsDetailFragment extends Fragment {
             String body = data.text != null ? data.text : "";
             newsDetailDescription.setText(body);
             newsDetailDescription.setVisibility(!body.isEmpty() ? View.VISIBLE : View.GONE);
+            if (isAdded()) {
+                applyToolbarSection(data.section);
+            }
             return;
         }
         if (result instanceof Result.HttpError) {
