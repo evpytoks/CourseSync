@@ -10,9 +10,12 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import ru.katevpy.coursesync.ui.ErrorUi;
 
@@ -33,6 +36,8 @@ public class CourseDetailFragment extends Fragment {
     private View courseDetailLinksCard;
     private UUID courseUuid;
     private String courseIdStr;
+    private String loadedCourseName;
+    private CourseDetailViewModel viewModel;
 
     public CourseDetailFragment() {
         super(R.layout.fragment_course_detail);
@@ -64,6 +69,11 @@ public class CourseDetailFragment extends Fragment {
         }
         courseIdStr = idStr;
 
+        viewModel = new ViewModelProvider(this, new CourseDetailViewModelFactory())
+                .get(CourseDetailViewModel.class);
+        viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
+        viewModel.getDeleteCourseResult().observe(getViewLifecycleOwner(), this::onDeleteCourseResult);
+
         view.findViewById(R.id.courseMaterialsShared).setOnClickListener(v -> {
             Bundle args = new Bundle();
             args.putString("courseId", courseIdStr);
@@ -82,20 +92,105 @@ public class CourseDetailFragment extends Fragment {
             NavHostFragment.findNavController(CourseDetailFragment.this)
                     .navigate(R.id.action_courseDetailFragment_to_courseGradingFormulaFragment, args);
         });
-
-        CourseDetailViewModel viewModel = new ViewModelProvider(this, new CourseDetailViewModelFactory())
-                .get(CourseDetailViewModel.class);
-        viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        attachCourseToolbarMenu();
         if (courseUuid != null) {
-            CourseDetailViewModel vm = new ViewModelProvider(this, new CourseDetailViewModelFactory())
-                    .get(CourseDetailViewModel.class);
-            vm.loadCourse(courseUuid);
+            viewModel.loadCourse(courseUuid);
         }
+    }
+
+    @Override
+    public void onPause() {
+        detachCourseToolbarMenu();
+        super.onPause();
+    }
+
+    private void attachCourseToolbarMenu() {
+        if (courseUuid == null) {
+            return;
+        }
+        View btn = requireActivity().findViewById(R.id.btnEditCourse);
+        if (btn != null) {
+            btn.setOnClickListener(this::onCourseToolbarEditClick);
+        }
+    }
+
+    private void detachCourseToolbarMenu() {
+        View btn = requireActivity().findViewById(R.id.btnEditCourse);
+        if (btn != null) {
+            btn.setOnClickListener(null);
+        }
+    }
+
+    private void onCourseToolbarEditClick(@NonNull View anchor) {
+        PopupMenu popup = new PopupMenu(requireContext(), anchor);
+        popup.getMenuInflater().inflate(R.menu.course_owner_actions, popup.getMenu());
+        popup.setOnMenuItemClickListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.action_owner_edit_course) {
+                Bundle args = new Bundle();
+                args.putString("courseId", courseIdStr);
+                NavHostFragment.findNavController(CourseDetailFragment.this)
+                        .navigate(R.id.action_courseDetailFragment_to_editCourseFragment, args);
+                return true;
+            }
+            if (itemId == R.id.action_owner_delete_course) {
+                showDeleteCourseDialog();
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
+    private void showDeleteCourseDialog() {
+        if (courseUuid == null) {
+            return;
+        }
+        String raw = loadedCourseName;
+        String display = (raw != null && !raw.trim().isEmpty())
+                ? raw.trim()
+                : getString(R.string.delete_course_unnamed_placeholder);
+        new MaterialAlertDialogBuilder(requireContext())
+                .setMessage(getString(R.string.delete_course_dialog_message, display))
+                .setPositiveButton(R.string.event_yes, (dialog, which) -> viewModel.deleteCourse(courseUuid))
+                .setNegativeButton(R.string.event_no, null)
+                .show();
+    }
+
+    private void onDeleteCourseResult(@Nullable Result<Void> result) {
+        if (result == null) {
+            return;
+        }
+        if (result instanceof Result.Success) {
+            NavHostFragment.findNavController(this).navigateUp();
+            return;
+        }
+        if (result instanceof Result.HttpError) {
+            int code = ((Result.HttpError<Void>) result).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
+                return;
+            }
+            if (code == 403 || code == 404 || code == 500) {
+                ErrorUi.show(this, R.string.delete_course_server_error, ErrorUi.Duration.LONG);
+                return;
+            }
+            if (code == 400) {
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
+                return;
+            }
+        }
+        if (result instanceof Result.NetworkError) {
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
+            return;
+        }
+        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 
     private void onLoadResult(@Nullable Result<CourseDetailsResponse> result) {
@@ -103,6 +198,7 @@ public class CourseDetailFragment extends Fragment {
         if (result instanceof Result.Success) {
             CourseDetailsResponse data = ((Result.Success<CourseDetailsResponse>) result).data;
             if (data == null) return;
+            loadedCourseName = data.name;
             courseDetailName.setText(data.name != null ? data.name : "");
             courseDetailGeneral.setText(data.generalInfo != null ? data.generalInfo : "");
             bindUsefulLinks(data.usefulLinks);
