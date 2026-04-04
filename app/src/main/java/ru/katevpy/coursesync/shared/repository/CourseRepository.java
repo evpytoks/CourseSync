@@ -331,4 +331,18 @@ public class CourseRepository {
             return Result.networkError(e);
         }
     }
+
+    public Result<Void> deleteCourse(UUID courseId) {
+        try {
+            Response<Void> r = api.deleteCourse(courseId).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        } catch (RuntimeException e) {
+            return Result.logicalError("Ошибка разбора ответа");
+        }
+    }
 }

@@ -91,4 +91,7 @@ public interface CourseApi {
 
     @PUT("course/{id}/change")
     Call<Void> changeCourse(@Path("id") UUID id, @Body AddCourseRequest request);
+
+    @DELETE("course/{id}")
+    Call<Void> deleteCourse(@Path("id") UUID id);
 }

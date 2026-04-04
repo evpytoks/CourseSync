@@ -140,20 +140,6 @@ public class MainActivity extends AppCompatActivity {
             popup.show();
         });
 
-        btnEditCourse.setOnClickListener(v -> {
-            if (navController.getCurrentDestination() != null
-                    && navController.getCurrentDestination().getId() == R.id.courseDetailFragment
-                    && navController.getCurrentBackStackEntry() != null
-                    && navController.getCurrentBackStackEntry().getArguments() != null) {
-                String courseId = navController.getCurrentBackStackEntry().getArguments().getString("courseId");
-                if (courseId != null && !courseId.isEmpty()) {
-                    Bundle args = new Bundle();
-                    args.putString("courseId", courseId);
-                    navController.navigate(R.id.action_courseDetailFragment_to_editCourseFragment, args);
-                }
-            }
-        });
-
         btnEditEvent.setOnClickListener(v -> {
             if (navController.getCurrentBackStackEntry() != null && navController.getCurrentBackStackEntry().getArguments() != null) {
                 String eventId = navController.getCurrentBackStackEntry().getArguments().getString("eventId");
