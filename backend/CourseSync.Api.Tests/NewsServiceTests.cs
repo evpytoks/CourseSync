@@ -66,5 +66,52 @@ public sealed class NewsServiceTests
         Assert.Equal(2, list.Count);
         Assert.Equal(n2.Id, list[0].Id);
         Assert.Equal(n1.Id, list[1].Id);
+        Assert.False(list[0].IsRead);
+        Assert.False(list[1].IsRead);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_marks_news_read()
+    {
+        await using var tdb = new TestDb();
+        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var g = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "G",
+            Code = "aaaaaa",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var n = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "s",
+            Detail = "d",
+            Type = "manual"
+        };
+        tdb.Db.Users.Add(user);
+        tdb.Db.Groups.Add(g);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = g.Id,
+            UserId = user.Id,
+            Role = GroupRole.Participant,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.News.Add(n);
+        await tdb.Db.SaveChangesAsync();
+
+        var svc = CreateSvc(tdb);
+        Assert.False((await svc.GetAllForUserAsync(user.Id, CancellationToken.None)).Single().IsRead);
+
+        var (ok, _, err) = await svc.GetByIdAsync(user.Id, n.Id, CancellationToken.None);
+        Assert.True(ok);
+        Assert.Null(err);
+
+        Assert.True((await svc.GetAllForUserAsync(user.Id, CancellationToken.None)).Single().IsRead);
     }
 }

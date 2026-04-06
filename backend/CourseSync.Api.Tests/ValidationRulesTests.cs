@@ -22,6 +22,20 @@ public sealed class ValidationRulesTests
     }
 
     [Fact]
+    public void Course_contacts_allows_null_and_empty_and_enforces_max_length()
+    {
+        Assert.True(CourseService.ValidateContacts(null).Valid);
+        Assert.True(CourseService.ValidateContacts("").Valid);
+
+        var ok2000 = CourseService.ValidateContacts(new string('x', 2000));
+        Assert.True(ok2000.Valid);
+
+        var tooLong = CourseService.ValidateContacts(new string('x', 2001));
+        Assert.False(tooLong.Valid);
+        Assert.Equal("contacts_too_long", tooLong.ErrorCode);
+    }
+
+    [Fact]
     public void Course_useful_links_validates_list_and_lengths()
     {
         Assert.True(CourseService.ValidateUsefulLinks(null).Valid);

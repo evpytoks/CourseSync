@@ -42,7 +42,7 @@ public sealed class GroupController : ControllerBase
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
         var dtos = await _groupService.GetUserGroupsAsync(userId.Value, ct);
-        var items = dtos.Select(d => new GroupListItem(d.Id, d.Name, d.Role, d.GroupCode)).ToList();
+        var items = dtos.Select(d => new GroupListItem(d.Id, d.Name, d.Role, d.GroupCode, d.CreatorEmail)).ToList();
         return Ok(new GroupListResponse(items));
     }
 

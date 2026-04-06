@@ -89,6 +89,7 @@ public sealed class GroupControllerTests
         Assert.Single(payload.Groups);
         Assert.Equal("G1", payload.Groups[0].Name);
         Assert.Equal("owner", payload.Groups[0].Role);
+        Assert.Equal("u@edu.hse.ru", payload.Groups[0].CreatorEmail);
     }
 
     [Fact]

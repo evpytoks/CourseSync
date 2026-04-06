@@ -68,15 +68,20 @@ public sealed class CourseController : ControllerBase
         if (!generalInfoValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(generalInfoValidation.ErrorCode!)));
 
+        var contactsValidation = CourseService.ValidateContacts(req.Contacts);
+        if (!contactsValidation.Valid)
+            return BadRequest(new ErrorEnvelope(new ApiError(contactsValidation.ErrorCode!)));
+
         var usefulLinksValidation = CourseService.ValidateUsefulLinks(req.UsefulLinks);
         if (!usefulLinksValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(usefulLinksValidation.ErrorCode!)));
 
-        var (ok, courseId, name, generalInfo, usefulLinks, errorCode) = await _courseService.CreateCourseAsync(
+        var (ok, courseId, name, generalInfo, contacts, usefulLinks, errorCode) = await _courseService.CreateCourseAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             req.Name!.Trim(),
             req.GeneralInfo ?? "",
+            req.Contacts ?? "",
             req.UsefulLinks ?? Array.Empty<CourseUsefulLinkItem>(),
             ct);
 
@@ -117,7 +122,7 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
         }
 
-        return Ok(new CourseDetailsResponse(data!.Id, data.Name, data.GeneralInfo, data.UsefulLinks));
+        return Ok(new CourseDetailsResponse(data!.Id, data.Name, data.GeneralInfo, data.Contacts, data.UsefulLinks));
     }
 
     [HttpPost("{id:guid}/grading")]
@@ -311,6 +316,10 @@ public sealed class CourseController : ControllerBase
         if (!generalInfoValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(generalInfoValidation.ErrorCode!)));
 
+        var contactsValidation = CourseService.ValidateContacts(req.Contacts);
+        if (!contactsValidation.Valid)
+            return BadRequest(new ErrorEnvelope(new ApiError(contactsValidation.ErrorCode!)));
+
         var usefulLinksValidation = CourseService.ValidateUsefulLinks(req.UsefulLinks);
         if (!usefulLinksValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(usefulLinksValidation.ErrorCode!)));
@@ -321,6 +330,7 @@ public sealed class CourseController : ControllerBase
             id,
             req.Name!.Trim(),
             req.GeneralInfo ?? "",
+            req.Contacts ?? "",
             req.UsefulLinks ?? Array.Empty<CourseUsefulLinkItem>(),
             ct);
 

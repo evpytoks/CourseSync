@@ -52,6 +52,10 @@ public sealed class GroupService
     public async Task<(Guid GroupId, string Name, string Code)?> CreateGroupAsync(Guid ownerId, string name, CancellationToken ct)
     {
         var nameTrimmed = name.Trim();
+        var creatorEmail = await _db.Users.AsNoTracking()
+            .Where(u => u.Id == ownerId)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync(ct) ?? "";
         for (var attempt = 0; attempt < CodeCollisionRetryCount; attempt++)
         {
             var group = new CourseSync.Api.Data.Group
@@ -60,7 +64,8 @@ public sealed class GroupService
                 Name = nameTrimmed,
                 Code = GenerateCode(),
                 CodeGeneratedAt = DateTimeOffset.UtcNow,
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
+                CreatorEmail = creatorEmail
             };
             _db.Groups.Add(group);
             _db.GroupMembers.Add(new GroupMember
@@ -126,7 +131,8 @@ public sealed class GroupService
                 m.Group!.Id,
                 m.Group.Name,
                 m.Role == GroupRole.Owner ? "owner" : "participant",
-                codeStr
+                codeStr,
+                m.Group.CreatorEmail ?? ""
             ));
         }
         return result;
@@ -151,7 +157,7 @@ public sealed class GroupService
         return new string(chars);
     }
 
-    public sealed record GroupListDto(Guid Id, string Name, string Role, string? GroupCode);
+    public sealed record GroupListDto(Guid Id, string Name, string Role, string? GroupCode, string CreatorEmail);
 
     public sealed record OwnerGroupListDto(Guid Id, string Name);
 
@@ -190,7 +196,8 @@ public sealed class GroupService
             group.Name,
             NewsFormatting.SectionGroups,
             NewsFormatting.DetailMemberJoinedByCode(joinerEmail),
-            ct);
+            ct,
+            userId);
 
         return (group.Id, group.Name, "participant");
     }

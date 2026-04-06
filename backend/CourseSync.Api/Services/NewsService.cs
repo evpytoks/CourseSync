@@ -23,7 +23,7 @@ public sealed class NewsService
             .AsNoTracking()
             .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId))
             .OrderByDescending(n => n.CreatedAt)
-            .Select(n => new NewsListDto(n.Id, n.CreatedAt, n.GroupName, n.Section, n.Detail))
+            .Select(n => new NewsListDto(n.Id, n.CreatedAt, n.GroupName, n.Section, n.Detail, _db.NewsReads.Any(r => r.UserId == userId && r.NewsId == n.Id)))
             .ToListAsync(ct);
     }
 
@@ -43,7 +43,24 @@ public sealed class NewsService
         if (!isMember)
             return (false, null, "forbidden");
 
+        await MarkAsReadIfNeededAsync(userId, newsId, ct);
+
         return (true, new NewsDetailsDto(news.Id, news.CreatedAt, news.GroupName, news.Section, news.Detail), null);
+    }
+
+    private async Task MarkAsReadIfNeededAsync(Guid userId, Guid newsId, CancellationToken ct)
+    {
+        var exists = await _db.NewsReads.AnyAsync(r => r.UserId == userId && r.NewsId == newsId, ct);
+        if (exists)
+            return;
+
+        _db.NewsReads.Add(new NewsRead
+        {
+            UserId = userId,
+            NewsId = newsId,
+            ReadAt = DateTimeOffset.UtcNow
+        });
+        await _db.SaveChangesAsync(ct);
     }
 
     public static (bool Valid, string? ErrorCode) ValidateNewsText(string? text)
@@ -81,6 +98,6 @@ public sealed class NewsService
         return (true, null);
     }
 
-    public sealed record NewsListDto(Guid Id, DateTimeOffset Time, string Group, string Section, string Text);
+    public sealed record NewsListDto(Guid Id, DateTimeOffset Time, string Group, string Section, string Text, bool IsRead);
     public sealed record NewsDetailsDto(Guid Id, DateTimeOffset Time, string Group, string Section, string Text);
 }

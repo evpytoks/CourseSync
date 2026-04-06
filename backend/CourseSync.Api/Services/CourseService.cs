@@ -17,6 +17,7 @@ public sealed class CourseService
     public const decimal GradingScoreMax = 10m;
 
     private const int GeneralInfoMaxLength = 2000;
+    private const int ContactsMaxLength = 2000;
 
     public const int UsefulLinkTitleMinLength = 1;
     public const int UsefulLinkTitleMaxLength = 50;
@@ -55,6 +56,15 @@ public sealed class CourseService
         return (true, null);
     }
 
+    public static (bool Valid, string? ErrorCode) ValidateContacts(string? value)
+    {
+        if (value is null)
+            return (true, null);
+        if (value.Length > ContactsMaxLength)
+            return (false, "contacts_too_long");
+        return (true, null);
+    }
+
     public static (bool Valid, string? ErrorCode) ValidateUsefulLinks(IReadOnlyList<CourseUsefulLinkItem>? items)
     {
         if (items is null)
@@ -78,18 +88,19 @@ public sealed class CourseService
         return (true, null);
     }
 
-    public async Task<(bool Ok, Guid? CourseId, string? Name, string GeneralInfo, IReadOnlyList<CourseUsefulLinkItem> UsefulLinks, string? ErrorCode)> CreateCourseAsync(
+    public async Task<(bool Ok, Guid? CourseId, string? Name, string GeneralInfo, string Contacts, IReadOnlyList<CourseUsefulLinkItem> UsefulLinks, string? ErrorCode)> CreateCourseAsync(
         Guid userId,
         Guid groupId,
         string name,
         string generalInfo,
+        string contacts,
         IReadOnlyList<CourseUsefulLinkItem> usefulLinks,
         CancellationToken ct)
     {
         var member = await _db.GroupMembers
             .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
         if (member is null || member.Role != GroupRole.Owner)
-            return (false, null, null, "", Array.Empty<CourseUsefulLinkItem>(), "forbidden");
+            return (false, null, null, "", "", Array.Empty<CourseUsefulLinkItem>(), "forbidden");
 
         var course = new Course
         {
@@ -97,6 +108,7 @@ public sealed class CourseService
             GroupId = groupId,
             Name = name.Trim(),
             GeneralInfo = generalInfo ?? "",
+            Contacts = contacts ?? "",
             UsefulLinks = UsefulLinksCodec.ToStorage(usefulLinks),
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -113,7 +125,7 @@ public sealed class CourseService
             NewsFormatting.DetailCourseCreatedInGroup(course.Name),
             ct);
 
-        return (true, course.Id, course.Name, course.GeneralInfo, UsefulLinksCodec.FromStorage(course.UsefulLinks), null);
+        return (true, course.Id, course.Name, course.GeneralInfo, course.Contacts, UsefulLinksCodec.FromStorage(course.UsefulLinks), null);
     }
 
     public async Task<List<CourseListDto>> GetByGroupIdAsync(Guid groupId, CancellationToken ct)
@@ -132,6 +144,7 @@ public sealed class CourseService
         Guid Id,
         string Name,
         string GeneralInfo,
+        string Contacts,
         IReadOnlyList<CourseUsefulLinkItem> UsefulLinks);
 
     public sealed record GradingElementDto(string Name, decimal Coefficient, int Count, decimal AverageScore);
@@ -168,6 +181,7 @@ public sealed class CourseService
             course.Id,
             course.Name,
             course.GeneralInfo,
+            course.Contacts,
             UsefulLinksCodec.FromStorage(course.UsefulLinks)), null);
     }
 
@@ -177,6 +191,7 @@ public sealed class CourseService
         Guid courseId,
         string name,
         string generalInfo,
+        string contacts,
         IReadOnlyList<CourseUsefulLinkItem> usefulLinks,
         CancellationToken ct)
     {
@@ -195,15 +210,19 @@ public sealed class CourseService
 
         var oldName = course.Name;
         var oldGeneral = course.GeneralInfo ?? "";
+        var oldContacts = course.Contacts ?? "";
         var oldLinks = course.UsefulLinks ?? "";
         course.Name = name.Trim();
         course.GeneralInfo = generalInfo ?? "";
+        course.Contacts = contacts ?? "";
         course.UsefulLinks = UsefulLinksCodec.ToStorage(usefulLinks);
 
         var nameChanged = TrimField(oldName) != TrimField(course.Name);
         var restChanged = NewsFormatting.BuildChangedCourseFieldsGeneralLinks(
             oldGeneral,
             course.GeneralInfo,
+            oldContacts,
+            course.Contacts,
             oldLinks,
             course.UsefulLinks);
 
