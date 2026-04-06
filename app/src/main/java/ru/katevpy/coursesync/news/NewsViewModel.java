@@ -19,6 +19,7 @@ public class NewsViewModel extends ViewModel {
     private final NewsRepository repo;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final MutableLiveData<Result<List<NewsListItem>>> loadResult = new MutableLiveData<>();
+    private final MutableLiveData<Integer> unreadCount = new MutableLiveData<>(0);
 
     public NewsViewModel(NewsRepository repo) {
         this.repo = repo;
@@ -28,18 +29,31 @@ public class NewsViewModel extends ViewModel {
         return loadResult;
     }
 
+    public LiveData<Integer> getUnreadCount() {
+        return unreadCount;
+    }
+
     public void loadNews() {
         io.execute(() -> {
             Result<NewsListResponse> r = repo.getNewsList();
             if (r instanceof Result.Success) {
-                List<NewsListItem> items = ((Result.Success<NewsListResponse>) r).data.news;
-                loadResult.postValue(Result.success(items != null ? items : Collections.emptyList()));
+                NewsListResponse data = ((Result.Success<NewsListResponse>) r).data;
+                List<NewsListItem> items = data != null && data.news != null ? data.news : Collections.emptyList();
+                int u = 0;
+                if (data != null && data.unreadCount != null && data.unreadCount > 0) {
+                    u = data.unreadCount;
+                }
+                unreadCount.postValue(u);
+                loadResult.postValue(Result.success(items));
             } else if (r instanceof Result.HttpError) {
+                unreadCount.postValue(0);
                 Result.HttpError<NewsListResponse> he = (Result.HttpError<NewsListResponse>) r;
                 loadResult.postValue(Result.httpError(he.httpCode, he.error));
             } else if (r instanceof Result.NetworkError) {
+                unreadCount.postValue(0);
                 loadResult.postValue(Result.networkError(((Result.NetworkError<NewsListResponse>) r).t));
             } else {
+                unreadCount.postValue(0);
                 loadResult.postValue(Result.logicalError("Неизвестная ошибка"));
             }
         });

@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 import ru.katevpy.coursesync.App;
+import ru.katevpy.coursesync.MainActivity;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
 import ru.katevpy.coursesync.shared.dto.NewsListItem;
@@ -58,6 +59,14 @@ public class NewsFragment extends Fragment {
         groupVm.getGroupState().observe(getViewLifecycleOwner(), state -> viewModel.loadNews());
 
         viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
+        viewModel.getUnreadCount().observe(getViewLifecycleOwner(), count -> {
+            if (count == null) {
+                return;
+            }
+            if (requireActivity() instanceof MainActivity) {
+                ((MainActivity) requireActivity()).updateNewsUnreadBadge(count);
+            }
+        });
     }
 
     @Override

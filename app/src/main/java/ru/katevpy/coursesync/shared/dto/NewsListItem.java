@@ -14,4 +14,6 @@ public final class NewsListItem {
     public String section;
     @SerializedName("text")
     public String text;
+    @SerializedName(value = "is_read", alternate = {"IsRead", "isRead"})
+    public boolean isRead;
 }
