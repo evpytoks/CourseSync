@@ -20,7 +20,6 @@ import ru.katevpy.coursesync.shared.util.Result;
 
 public class NewsDetailFragment extends Fragment {
 
-    private TextView newsDetailTime;
     private TextView newsDetailDescription;
     private UUID newsId;
 
@@ -32,7 +31,6 @@ public class NewsDetailFragment extends Fragment {
     public void onViewCreated(@NonNull android.view.View view, @Nullable android.os.Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        newsDetailTime = view.findViewById(R.id.newsDetailTime);
         newsDetailDescription = view.findViewById(R.id.newsDetailDescription);
 
         if (getArguments() == null) {
@@ -58,6 +56,7 @@ public class NewsDetailFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        clearToolbarNewsDetail();
         if (newsId != null) {
             NewsDetailViewModel vm = new ViewModelProvider(this, new NewsDetailViewModelFactory()).get(NewsDetailViewModel.class);
             vm.loadNews(newsId);
@@ -66,39 +65,82 @@ public class NewsDetailFragment extends Fragment {
 
     @Override
     public void onPause() {
-        clearToolbarSection();
+        clearToolbarNewsDetail();
         super.onPause();
     }
 
-    private void applyToolbarSection(@Nullable String section) {
-        TextView tv = requireActivity().findViewById(R.id.tvToolbarNewsSection);
+    @Nullable
+    private static String trimmedOrNull(@Nullable String s) {
+        if (s == null) {
+            return null;
+        }
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    @Nullable
+    private static String formatGroupSectionMeta(@Nullable String group, @Nullable String section) {
+        String g = trimmedOrNull(group);
+        String sec = trimmedOrNull(section);
+        if (g != null && sec != null) {
+            return g + " · " + sec;
+        }
+        if (g != null) {
+            return g;
+        }
+        return sec;
+    }
+
+    private void applyToolbarNewsDetailTime(@Nullable String timeStr) {
+        TextView tv = requireActivity().findViewById(R.id.tvToolbarNewsDetailTime);
         if (tv == null) {
             return;
         }
-        String s = section != null ? section.trim() : "";
-        if (s.isEmpty()) {
+        if (timeStr == null || timeStr.isEmpty()) {
             tv.setVisibility(View.GONE);
             tv.setText("");
             tv.setContentDescription(null);
             return;
         }
-        tv.setText(s);
+        tv.setText(timeStr);
         tv.setVisibility(View.VISIBLE);
-        tv.setContentDescription(s);
+        tv.setContentDescription(timeStr);
     }
 
-    private void clearToolbarSection() {
+    private void applyToolbarNewsDetailMeta(@Nullable String group, @Nullable String section) {
+        TextView tv = requireActivity().findViewById(R.id.tvToolbarNewsDetailMeta);
+        if (tv == null) {
+            return;
+        }
+        String meta = formatGroupSectionMeta(group, section);
+        if (meta == null) {
+            tv.setVisibility(View.GONE);
+            tv.setText("");
+            tv.setContentDescription(null);
+            return;
+        }
+        tv.setText(meta);
+        tv.setVisibility(View.VISIBLE);
+        tv.setContentDescription(meta);
+    }
+
+    private void clearToolbarNewsDetail() {
         android.app.Activity a = getActivity();
         if (a == null) {
             return;
         }
-        TextView tv = a.findViewById(R.id.tvToolbarNewsSection);
-        if (tv == null) {
-            return;
+        TextView timeTv = a.findViewById(R.id.tvToolbarNewsDetailTime);
+        if (timeTv != null) {
+            timeTv.setVisibility(View.GONE);
+            timeTv.setText("");
+            timeTv.setContentDescription(null);
         }
-        tv.setVisibility(View.GONE);
-        tv.setText("");
-        tv.setContentDescription(null);
+        TextView metaTv = a.findViewById(R.id.tvToolbarNewsDetailMeta);
+        if (metaTv != null) {
+            metaTv.setVisibility(View.GONE);
+            metaTv.setText("");
+            metaTv.setContentDescription(null);
+        }
     }
 
     private void onLoadResult(@Nullable Result<NewsDetailsResponse> result) {
@@ -106,18 +148,13 @@ public class NewsDetailFragment extends Fragment {
         if (result instanceof Result.Success) {
             NewsDetailsResponse data = ((Result.Success<NewsDetailsResponse>) result).data;
             String timeStr = NewsDateTime.format(data.time);
-            if (timeStr == null || timeStr.isEmpty()) {
-                newsDetailTime.setVisibility(View.GONE);
-            } else {
-                newsDetailTime.setVisibility(View.VISIBLE);
-                newsDetailTime.setText(timeStr);
+            if (isAdded()) {
+                applyToolbarNewsDetailTime(timeStr);
+                applyToolbarNewsDetailMeta(data.group, data.section);
             }
             String body = data.text != null ? data.text : "";
             newsDetailDescription.setText(body);
             newsDetailDescription.setVisibility(!body.isEmpty() ? View.VISIBLE : View.GONE);
-            if (isAdded()) {
-                applyToolbarSection(data.section);
-            }
             return;
         }
         if (result instanceof Result.HttpError) {

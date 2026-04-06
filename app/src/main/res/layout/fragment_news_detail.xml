@@ -16,18 +16,9 @@
         android:orientation="vertical">
 
         <TextView
-            android:id="@+id/newsDetailTime"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="12 марта 08:00" />
-
-        <TextView
             android:id="@+id/newsDetailDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/grid_2"
             android:textAppearance="?attr/textAppearanceBodyLarge"
             tools:text="Полный текст новости" />
     </LinearLayout>
