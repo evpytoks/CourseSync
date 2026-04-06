@@ -164,10 +164,6 @@ public class CreateCourseFragment extends Fragment {
             courseNameLayout.setError(getString(R.string.enter_course_name));
             return;
         }
-        if (generalInfoTrimmed.isEmpty()) {
-            generalInfoLayout.setError(getString(R.string.enter_general_info));
-            return;
-        }
         int linksErr = CourseUsefulLinksForm.validateForSubmit(editingLinks);
         if (linksErr != 0) {
             setLinksError(getString(linksErr));

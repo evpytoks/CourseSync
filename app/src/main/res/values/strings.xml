@@ -52,6 +52,7 @@
     <string name="create_course">Создать курс</string>
     <string name="course_name_hint">Название курса</string>
     <string name="general_info_hint">Общая информация</string>
+    <string name="general_info_hint_optional">Общая информация (необязательно)</string>
     <string name="enter_course_name">Введите название курса…</string>
     <string name="enter_general_info">Введите общую информацию…</string>
     <string name="course_name_max_length">Длина не более 20 символов</string>
