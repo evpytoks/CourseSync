@@ -3,6 +3,7 @@ using System;
 using CourseSync.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CourseSync.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260406204926_RenameCourseNakopToCumulativeGrade")]
+    partial class RenameCourseNakopToCumulativeGrade
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -193,21 +196,21 @@ namespace CourseSync.Api.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("CourseGradingElementId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("course_grading_element_id");
-
                     b.Property<Guid>("CourseId")
                         .HasColumnType("uuid")
                         .HasColumnName("course_id");
+
+                    b.Property<string>("ElementName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("element_name");
 
                     b.Property<int>("Position")
                         .HasColumnType("integer")
                         .HasColumnName("position");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CourseGradingElementId");
 
                     b.HasIndex("CourseId");
 
@@ -771,12 +774,6 @@ namespace CourseSync.Api.Migrations
 
             modelBuilder.Entity("CourseSync.Api.Data.CourseCumulativeGradeElement", b =>
                 {
-                    b.HasOne("CourseSync.Api.Data.CourseGradingElement", "GradingElement")
-                        .WithMany()
-                        .HasForeignKey("CourseGradingElementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("CourseSync.Api.Data.CourseCumulativeGrade", "CumulativeGrade")
                         .WithMany("Elements")
                         .HasForeignKey("CourseId")
@@ -784,8 +781,6 @@ namespace CourseSync.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("CumulativeGrade");
-
-                    b.Navigation("GradingElement");
                 });
 
             modelBuilder.Entity("CourseSync.Api.Data.CourseGeneralMaterial", b =>

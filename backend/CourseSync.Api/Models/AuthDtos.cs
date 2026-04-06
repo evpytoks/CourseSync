@@ -103,7 +103,8 @@ public sealed record CoursePersonalMaterialListResponse(
 
 public sealed record CourseGradingElementRequest(
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("coefficient")] decimal Coefficient);
+    [property: JsonPropertyName("coefficient")] decimal Coefficient,
+    [property: JsonPropertyName("block_grade")] decimal? Block);
 
 public sealed record SaveCourseGradingRequest(
     [property: JsonPropertyName("text")] string? Text,
@@ -112,11 +113,33 @@ public sealed record SaveCourseGradingRequest(
 public sealed record CourseGradingTextResponse(
     [property: JsonPropertyName("text")] string Text);
 
+public sealed record CourseGradingElementOptionItem(
+    Guid Id,
+    [property: JsonPropertyName("name")] string Name);
+
+public sealed record CourseGradingElementListResponse(
+    [property: JsonPropertyName("elements")] IReadOnlyList<CourseGradingElementOptionItem> Elements);
+
+public sealed record SaveCourseCumulativeGradeRequest(
+    [property: JsonPropertyName("element_ids")] IReadOnlyList<Guid>? ElementIds,
+    [property: JsonPropertyName("block_grade")] decimal? Block,
+    [property: JsonPropertyName("auto_grade")] decimal? Automatic);
+
+public sealed record CourseCumulativeGradeResponse(
+    [property: JsonPropertyName("value")] decimal Value,
+    [property: JsonPropertyName("block_grade")] decimal Block,
+    [property: JsonPropertyName("auto_grade")] decimal? Automatic,
+    [property: JsonPropertyName("is_blocked")] bool IsBlocked,
+    [property: JsonPropertyName("is_auto")] bool? IsAuto,
+    [property: JsonPropertyName("element_names")] IReadOnlyList<string> ElementNames);
+
 public sealed record CourseGradingElementResponse(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("coefficient")] decimal Coefficient,
+    [property: JsonPropertyName("block_grade")] decimal Block,
     [property: JsonPropertyName("count")] int Count,
-    [property: JsonPropertyName("average_score")] decimal AverageScore);
+    [property: JsonPropertyName("average_score")] decimal AverageScore,
+    [property: JsonPropertyName("is_blocked")] bool IsBlocked);
 
 public sealed record CourseGradingResponse(
     [property: JsonPropertyName("elements")] IReadOnlyList<CourseGradingElementResponse> Elements,
@@ -184,3 +207,6 @@ public sealed record NewsDetailsResponse(
 public sealed record AddNewsRequest(
     [property: JsonPropertyName("group_id")] Guid GroupId,
     [property: JsonPropertyName("text")] string? Text);
+
+public sealed record MarkAllNewsReadResponse(
+    [property: JsonPropertyName("marked_count")] int MarkedCount);

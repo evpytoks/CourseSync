@@ -313,8 +313,8 @@ public sealed class CourseControllerTests
             "How final grade is computed",
             new[]
             {
-                new CourseGradingElementRequest("Tests", 0.3m),
-                new CourseGradingElementRequest("Exam", 0.5m)
+                new CourseGradingElementRequest("Tests", 0.3m, null),
+                new CourseGradingElementRequest("Exam", 0.5m, null)
             });
 
         var res = await controller.SaveGrading(course.Id, req, CancellationToken.None);
@@ -711,7 +711,7 @@ public sealed class CourseControllerTests
                 "",
                 new[]
                 {
-                    new CourseGradingElementRequest("Tests", 1m)
+                    new CourseGradingElementRequest("Tests", 1m, null)
                 }),
             CancellationToken.None);
 
@@ -767,7 +767,7 @@ public sealed class CourseControllerTests
         var controller = CreateController(tdb, owner.Id);
         await controller.SaveGrading(
             course.Id,
-            new SaveCourseGradingRequest("", new[] { new CourseGradingElementRequest("Tests", 0.3m), new CourseGradingElementRequest("Exam", 0.7m) }),
+            new SaveCourseGradingRequest("", new[] { new CourseGradingElementRequest("Tests", 0.3m, null), new CourseGradingElementRequest("Exam", 0.7m, null) }),
             CancellationToken.None);
 
         await controller.UpdateGradingScores(
@@ -826,8 +826,8 @@ public sealed class CourseControllerTests
                 "",
                 new[]
                 {
-                    new CourseGradingElementRequest("A", 0.5m),
-                    new CourseGradingElementRequest("B", 0.5m)
+                    new CourseGradingElementRequest("A", 0.5m, null),
+                    new CourseGradingElementRequest("B", 0.5m, null)
                 }),
             CancellationToken.None);
 
@@ -883,8 +883,8 @@ public sealed class CourseControllerTests
                 "",
                 new[]
                 {
-                    new CourseGradingElementRequest("Тесты", 0.5m),
-                    new CourseGradingElementRequest("ДЗ", 0.5m)
+                    new CourseGradingElementRequest("Тесты", 0.5m, null),
+                    new CourseGradingElementRequest("ДЗ", 0.5m, null)
                 }),
             CancellationToken.None);
 
@@ -961,7 +961,7 @@ public sealed class CourseControllerTests
         var ownerCtl = CreateController(tdb, owner.Id);
         await ownerCtl.SaveGrading(
             course.Id,
-            new SaveCourseGradingRequest("", new[] { new CourseGradingElementRequest("Tests", 1m) }),
+            new SaveCourseGradingRequest("", new[] { new CourseGradingElementRequest("Tests", 1m, null) }),
             CancellationToken.None);
 
         var studentCtl = CreateController(tdb, student.Id);
@@ -978,5 +978,81 @@ public sealed class CourseControllerTests
         var ownerGrading = Assert.IsType<CourseGradingResponse>(
             Assert.IsType<OkObjectResult>(await ownerCtl.GetGrading(course.Id, CancellationToken.None)).Value);
         Assert.Equal(0m, ownerGrading.Elements[0].AverageScore);
+    }
+
+    [Fact]
+    public async Task Cumulative_grade_and_grading_elements_list_and_block_on_element()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "G",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "C",
+            GeneralInfo = "",
+            UsefulLinks = "",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        tdb.Db.Users.Add(owner);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = owner.Id,
+            Role = GroupRole.Owner,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.Courses.Add(course);
+        owner.CurrentGroupId = group.Id;
+        await tdb.Db.SaveChangesAsync();
+
+        var ctl = CreateController(tdb, owner.Id);
+        await ctl.SaveGrading(
+            course.Id,
+            new SaveCourseGradingRequest(
+                "",
+                new[]
+                {
+                    new CourseGradingElementRequest("Tests", 0.2m, 4m),
+                    new CourseGradingElementRequest("KR", 0.3m, 0m),
+                    new CourseGradingElementRequest("DZ", 0.5m, null)
+                }),
+            CancellationToken.None);
+
+        var elRes = await ctl.GradingElements(course.Id, CancellationToken.None);
+        var elList = Assert.IsType<CourseGradingElementListResponse>(Assert.IsType<OkObjectResult>(elRes).Value);
+        Assert.Equal(3, elList.Elements.Count);
+        var elementIds = elList.Elements.Select(e => e.Id).ToList();
+
+        Assert.IsType<NoContentResult>(await ctl.SaveCumulativeGrade(
+            course.Id,
+            new SaveCourseCumulativeGradeRequest(elementIds, 2m, 8m),
+            CancellationToken.None));
+
+        await ctl.UpdateGradingScores(course.Id, new UpdateCourseGradingScoresRequest("Tests", new[] { 8m }), CancellationToken.None);
+        await ctl.UpdateGradingScores(course.Id, new UpdateCourseGradingScoresRequest("KR", new[] { 10m }), CancellationToken.None);
+        await ctl.UpdateGradingScores(course.Id, new UpdateCourseGradingScoresRequest("DZ", new[] { 6m }), CancellationToken.None);
+
+        var grading = Assert.IsType<CourseGradingResponse>(Assert.IsType<OkObjectResult>(await ctl.GetGrading(course.Id, CancellationToken.None)).Value);
+        var testsEl = grading.Elements.Single(e => e.Name == "Tests");
+        Assert.Equal(4m, testsEl.Block);
+        Assert.False(testsEl.IsBlocked);
+
+        var cumulative = Assert.IsType<CourseCumulativeGradeResponse>(Assert.IsType<OkObjectResult>(await ctl.GetCumulativeGrade(course.Id, CancellationToken.None)).Value);
+        Assert.Equal(7.6m, cumulative.Value);
+        Assert.False(cumulative.IsBlocked);
+        Assert.Equal(2m, cumulative.Block);
+        Assert.Equal(8m, cumulative.Automatic);
+        Assert.False(cumulative.IsAuto!.Value);
+        Assert.Equal(new[] { "Tests", "KR", "DZ" }, cumulative.ElementNames);
     }
 }

@@ -114,4 +114,55 @@ public sealed class NewsServiceTests
 
         Assert.True((await svc.GetAllForUserAsync(user.Id, CancellationToken.None)).Single().IsRead);
     }
+
+    [Fact]
+    public async Task MarkAllReadAsync_marks_all_unread_visible_news()
+    {
+        await using var tdb = new TestDb();
+        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var g = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "G",
+            Code = "aaaaaa",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var n1 = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow.AddHours(-1),
+            GroupName = g.Name,
+            Section = "a",
+            Detail = "d1",
+            Type = "manual"
+        };
+        var n2 = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "b",
+            Detail = "d2",
+            Type = "manual"
+        };
+        tdb.Db.Users.Add(user);
+        tdb.Db.Groups.Add(g);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = g.Id,
+            UserId = user.Id,
+            Role = GroupRole.Participant,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.News.AddRange(n1, n2);
+        await tdb.Db.SaveChangesAsync();
+
+        var svc = CreateSvc(tdb);
+        Assert.Equal(2, await svc.MarkAllReadAsync(user.Id, CancellationToken.None));
+        Assert.True((await svc.GetAllForUserAsync(user.Id, CancellationToken.None)).All(x => x.IsRead));
+        Assert.Equal(0, await svc.MarkAllReadAsync(user.Id, CancellationToken.None));
+    }
 }

@@ -14,6 +14,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<CourseGradingElement> CourseGradingElements => Set<CourseGradingElement>();
     public DbSet<CourseGradingScore> CourseGradingScores => Set<CourseGradingScore>();
+    public DbSet<CourseCumulativeGrade> CourseCumulativeGrades => Set<CourseCumulativeGrade>();
+    public DbSet<CourseCumulativeGradeElement> CourseCumulativeGradeElements => Set<CourseCumulativeGradeElement>();
     public DbSet<CourseGeneralMaterial> CourseGeneralMaterials => Set<CourseGeneralMaterial>();
     public DbSet<CoursePersonalMaterial> CoursePersonalMaterials => Set<CoursePersonalMaterial>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
@@ -185,6 +187,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.CourseId).HasColumnName("course_id").IsRequired();
             e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
             e.Property(x => x.Coefficient).HasColumnName("coefficient").HasColumnType("numeric(5,4)").IsRequired();
+            e.Property(x => x.Block).HasColumnName("block").HasColumnType("numeric(6,2)").IsRequired().HasDefaultValue(0m);
             e.Property(x => x.Position).HasColumnName("position").IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
@@ -194,6 +197,47 @@ public sealed class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(x => x.CourseId);
+            e.HasIndex(x => new { x.CourseId, x.Position });
+        });
+
+        b.Entity<CourseCumulativeGrade>(e =>
+        {
+            e.ToTable("course_cumulative_grade");
+            e.HasKey(x => x.CourseId);
+
+            e.Property(x => x.CourseId).HasColumnName("course_id");
+            e.Property(x => x.Block).HasColumnName("block").HasColumnType("numeric(6,2)");
+            e.Property(x => x.AutomaticThreshold).HasColumnName("automatic_threshold").HasColumnType("numeric(6,2)");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
+
+            e.HasOne(x => x.Course)
+                .WithOne()
+                .HasForeignKey<CourseCumulativeGrade>(x => x.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<CourseCumulativeGradeElement>(e =>
+        {
+            e.ToTable("course_cumulative_grade_elements");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.CourseId).HasColumnName("course_id").IsRequired();
+            e.Property(x => x.CourseGradingElementId).HasColumnName("course_grading_element_id").IsRequired();
+            e.Property(x => x.Position).HasColumnName("position").IsRequired();
+
+            e.HasOne(x => x.CumulativeGrade)
+                .WithMany(x => x.Elements)
+                .HasForeignKey(x => x.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.GradingElement)
+                .WithMany()
+                .HasForeignKey(x => x.CourseGradingElementId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.CourseId);
+            e.HasIndex(x => x.CourseGradingElementId);
             e.HasIndex(x => new { x.CourseId, x.Position });
         });
 

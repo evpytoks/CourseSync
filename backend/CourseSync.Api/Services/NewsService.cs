@@ -48,6 +48,33 @@ public sealed class NewsService
         return (true, new NewsDetailsDto(news.Id, news.CreatedAt, news.GroupName, news.Section, news.Detail), null);
     }
 
+    public async Task<int> MarkAllReadAsync(Guid userId, CancellationToken ct)
+    {
+        var toMark = await _db.News
+            .AsNoTracking()
+            .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId))
+            .Where(n => !_db.NewsReads.Any(r => r.UserId == userId && r.NewsId == n.Id))
+            .Select(n => n.Id)
+            .ToListAsync(ct);
+
+        if (toMark.Count == 0)
+            return 0;
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var id in toMark)
+        {
+            _db.NewsReads.Add(new NewsRead
+            {
+                UserId = userId,
+                NewsId = id,
+                ReadAt = now
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return toMark.Count;
+    }
+
     private async Task MarkAsReadIfNeededAsync(Guid userId, Guid newsId, CancellationToken ct)
     {
         var exists = await _db.NewsReads.AnyAsync(r => r.UserId == userId && r.NewsId == newsId, ct);

@@ -82,4 +82,57 @@ public sealed class NewsControllerTests
         var forbidden = Assert.IsType<ObjectResult>(res);
         Assert.Equal(403, forbidden.StatusCode);
     }
+
+    [Fact]
+    public async Task Read_all_returns_marked_count_and_clears_unread()
+    {
+        await using var tdb = new TestDb();
+        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var g = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "G",
+            Code = "aaaaaa",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var n = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "s",
+            Detail = "d",
+            Type = "manual"
+        };
+        tdb.Db.Users.Add(user);
+        tdb.Db.Groups.Add(g);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = g.Id,
+            UserId = user.Id,
+            Role = GroupRole.Participant,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.News.Add(n);
+        await tdb.Db.SaveChangesAsync();
+
+        var newsSvc = new NewsService(tdb.Db, new NotificationService(tdb.Db));
+        var userSvc = new UserService(tdb.Db);
+        var controller = CreateController(newsSvc, userSvc, user.Id);
+
+        var listBeforeRes = await controller.List(CancellationToken.None);
+        var listBeforeOk = Assert.IsType<OkObjectResult>(listBeforeRes.Result);
+        Assert.Equal(1, Assert.IsType<NewsListResponse>(listBeforeOk.Value!).UnreadCount);
+
+        var readRes = await controller.MarkAllRead(CancellationToken.None);
+        var readOk = Assert.IsType<OkObjectResult>(readRes.Result);
+        var body = Assert.IsType<MarkAllNewsReadResponse>(readOk.Value);
+        Assert.Equal(1, body.MarkedCount);
+
+        var listAfterRes = await controller.List(CancellationToken.None);
+        var listAfterOk = Assert.IsType<OkObjectResult>(listAfterRes.Result);
+        Assert.Equal(0, Assert.IsType<NewsListResponse>(listAfterOk.Value!).UnreadCount);
+    }
 }
