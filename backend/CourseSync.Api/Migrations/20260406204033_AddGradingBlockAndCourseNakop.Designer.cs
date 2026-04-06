@@ -3,6 +3,7 @@ using System;
 using CourseSync.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CourseSync.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260406204033_AddGradingBlockAndCourseNakop")]
+    partial class AddGradingBlockAndCourseNakop
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -163,59 +166,6 @@ namespace CourseSync.Api.Migrations
                     b.ToTable("courses", (string)null);
                 });
 
-            modelBuilder.Entity("CourseSync.Api.Data.CourseCumulativeGrade", b =>
-                {
-                    b.Property<Guid>("CourseId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("course_id");
-
-                    b.Property<decimal?>("AutomaticThreshold")
-                        .HasColumnType("numeric(6,2)")
-                        .HasColumnName("automatic_threshold");
-
-                    b.Property<decimal?>("Block")
-                        .HasColumnType("numeric(6,2)")
-                        .HasColumnName("block");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("CourseId");
-
-                    b.ToTable("course_cumulative_grade", (string)null);
-                });
-
-            modelBuilder.Entity("CourseSync.Api.Data.CourseCumulativeGradeElement", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("CourseGradingElementId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("course_grading_element_id");
-
-                    b.Property<Guid>("CourseId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("course_id");
-
-                    b.Property<int>("Position")
-                        .HasColumnType("integer")
-                        .HasColumnName("position");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseGradingElementId");
-
-                    b.HasIndex("CourseId");
-
-                    b.HasIndex("CourseId", "Position");
-
-                    b.ToTable("course_cumulative_grade_elements", (string)null);
-                });
-
             modelBuilder.Entity("CourseSync.Api.Data.CourseGeneralMaterial", b =>
                 {
                     b.Property<Guid>("Id")
@@ -343,6 +293,59 @@ namespace CourseSync.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("course_grading_scores", (string)null);
+                });
+
+            modelBuilder.Entity("CourseSync.Api.Data.CourseNakop", b =>
+                {
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("course_id");
+
+                    b.Property<decimal?>("AutomaticThreshold")
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("automatic_threshold");
+
+                    b.Property<decimal?>("Block")
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("block");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("CourseId");
+
+                    b.ToTable("course_nakop", (string)null);
+                });
+
+            modelBuilder.Entity("CourseSync.Api.Data.CourseNakopElement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("course_id");
+
+                    b.Property<string>("ElementName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("element_name");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("CourseId", "Position");
+
+                    b.ToTable("course_nakop_elements", (string)null);
                 });
 
             modelBuilder.Entity("CourseSync.Api.Data.CoursePersonalMaterial", b =>
@@ -758,36 +761,6 @@ namespace CourseSync.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("CourseSync.Api.Data.CourseCumulativeGrade", b =>
-                {
-                    b.HasOne("CourseSync.Api.Data.Course", "Course")
-                        .WithOne()
-                        .HasForeignKey("CourseSync.Api.Data.CourseCumulativeGrade", "CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-                });
-
-            modelBuilder.Entity("CourseSync.Api.Data.CourseCumulativeGradeElement", b =>
-                {
-                    b.HasOne("CourseSync.Api.Data.CourseGradingElement", "GradingElement")
-                        .WithMany()
-                        .HasForeignKey("CourseGradingElementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CourseSync.Api.Data.CourseCumulativeGrade", "CumulativeGrade")
-                        .WithMany("Elements")
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CumulativeGrade");
-
-                    b.Navigation("GradingElement");
-                });
-
             modelBuilder.Entity("CourseSync.Api.Data.CourseGeneralMaterial", b =>
                 {
                     b.HasOne("CourseSync.Api.Data.User", null)
@@ -833,6 +806,28 @@ namespace CourseSync.Api.Migrations
                     b.Navigation("Element");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CourseSync.Api.Data.CourseNakop", b =>
+                {
+                    b.HasOne("CourseSync.Api.Data.Course", "Course")
+                        .WithOne()
+                        .HasForeignKey("CourseSync.Api.Data.CourseNakop", "CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("CourseSync.Api.Data.CourseNakopElement", b =>
+                {
+                    b.HasOne("CourseSync.Api.Data.CourseNakop", "Nakop")
+                        .WithMany("Elements")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Nakop");
                 });
 
             modelBuilder.Entity("CourseSync.Api.Data.CoursePersonalMaterial", b =>
@@ -942,7 +937,7 @@ namespace CourseSync.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("CourseSync.Api.Data.CourseCumulativeGrade", b =>
+            modelBuilder.Entity("CourseSync.Api.Data.CourseNakop", b =>
                 {
                     b.Navigation("Elements");
                 });

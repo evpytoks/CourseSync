@@ -42,6 +42,21 @@ public sealed class NewsController : ControllerBase
         return Ok(new NewsListResponse(news, unreadCount));
     }
 
+    [HttpPost("read-all")]
+    public async Task<ActionResult<MarkAllNewsReadResponse>> MarkAllRead(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var marked = await _newsService.MarkAllReadAsync(userId.Value, ct);
+        return Ok(new MarkAllNewsReadResponse(marked));
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<NewsDetailsResponse>> Get(Guid id, CancellationToken ct)
     {

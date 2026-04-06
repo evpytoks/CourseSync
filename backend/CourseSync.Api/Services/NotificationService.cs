@@ -1,3 +1,4 @@
+using CourseSync.Api;
 using CourseSync.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -168,6 +169,29 @@ public sealed class NotificationService
             });
         }
 
+        await _db.SaveChangesAsync(ct);
+        await PruneExcessNewsForGroupAsync(groupId, ct);
+    }
+
+    private async Task PruneExcessNewsForGroupAsync(Guid groupId, CancellationToken ct)
+    {
+        var max = NewsLimits.MaxPerGroup;
+        var total = await _db.News.CountAsync(n => n.GroupId == groupId, ct);
+        if (total <= max)
+            return;
+
+        var toRemove = total - max;
+        var oldestRows = await _db.News
+            .Where(n => n.GroupId == groupId)
+            .OrderBy(n => n.CreatedAt)
+            .ThenBy(n => n.Id)
+            .Take(toRemove)
+            .ToListAsync(ct);
+
+        if (oldestRows.Count == 0)
+            return;
+
+        _db.News.RemoveRange(oldestRows);
         await _db.SaveChangesAsync(ct);
     }
 }

@@ -140,7 +140,7 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
         var elements = (req.Elements ?? Array.Empty<CourseGradingElementRequest>())
-            .Select(e => (e.Name ?? "", e.Coefficient))
+            .Select(e => (e.Name ?? "", e.Coefficient, e.Block ?? 0m))
             .ToList();
 
         var (ok, errorCode) = await _courseService.SaveGradingAsync(
@@ -183,6 +183,33 @@ public sealed class CourseController : ControllerBase
         return Ok(new CourseGradingTextResponse(text ?? ""));
     }
 
+    [HttpGet("{id:guid}/grading/elements")]
+    public async Task<IActionResult> GradingElements(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, items, errorCode) = await _courseService.GetGradingElementOptionsAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            ct);
+
+        if (!ok)
+            return GradingError(errorCode!);
+
+        var list = items!.Select(x => new CourseGradingElementOptionItem(x.Id, x.Name)).ToList();
+        return Ok(new CourseGradingElementListResponse(list));
+    }
+
     [HttpGet("{id:guid}/grading")]
     public async Task<IActionResult> GetGrading(Guid id, CancellationToken ct)
     {
@@ -207,7 +234,13 @@ public sealed class CourseController : ControllerBase
             return GradingError(errorCode!);
 
         var payload = (elements ?? Array.Empty<CourseService.GradingElementDto>())
-            .Select(e => new CourseGradingElementResponse(e.Name, e.Coefficient, e.Count, e.AverageScore))
+            .Select(e => new CourseGradingElementResponse(
+                e.Name,
+                e.Coefficient,
+                e.Block,
+                e.Count,
+                e.AverageScore,
+                e.IsBlocked))
             .ToList();
         var averageGrade = payload.Count == 0
             ? 0m
@@ -292,6 +325,67 @@ public sealed class CourseController : ControllerBase
             return GradingError(errorCode!);
 
         return NoContent();
+    }
+
+    [HttpPut("{id:guid}/cumulative-grades")]
+    public async Task<IActionResult> SaveCumulativeGrade(Guid id, [FromBody] SaveCourseCumulativeGradeRequest req, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, errorCode) = await _courseService.SaveCumulativeGradeAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            req.ElementIds,
+            req.Block,
+            req.Automatic,
+            ct);
+
+        if (!ok)
+            return GradingError(errorCode!);
+
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/cumulative-grades")]
+    public async Task<IActionResult> GetCumulativeGrade(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, data, errorCode) = await _courseService.GetCumulativeGradeAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            ct);
+
+        if (!ok)
+            return GradingError(errorCode!);
+
+        return Ok(new CourseCumulativeGradeResponse(
+            data!.Value,
+            data.Block,
+            data.Automatic,
+            data.IsBlocked,
+            data.IsAuto,
+            data.ElementNames));
     }
 
     [HttpPut("{id:guid}/change")]
@@ -657,6 +751,8 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
         if (errorCode == "grading_element_not_found")
             return NotFound(new ErrorEnvelope(new ApiError("grading_element_not_found")));
+        if (errorCode == "cumulative_grade_not_configured")
+            return NotFound(new ErrorEnvelope(new ApiError("cumulative_grade_not_configured")));
         return BadRequest(new ErrorEnvelope(new ApiError(errorCode)));
     }
 
