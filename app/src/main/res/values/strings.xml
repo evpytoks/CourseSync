@@ -46,6 +46,7 @@
     <string name="leave_group_server_error">Не удалось покинуть группу. Попробуйте позже</string>
     <string name="group_role_owner">Владелец</string>
     <string name="group_role_member">Участник</string>
+    <string name="group_members_title">Список участников</string>
     <string name="courses_no_group">Упс…\nВыберите хотя бы одну группу…</string>
     <string name="courses_empty">Пока тут нет ни одного курса…</string>
     <string name="create_course">Создать курс</string>

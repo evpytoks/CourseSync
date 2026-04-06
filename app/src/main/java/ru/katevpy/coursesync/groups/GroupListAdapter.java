@@ -21,7 +21,7 @@ import ru.katevpy.coursesync.shared.dto.GroupListItem;
 public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapter.VH> {
 
     public interface Listener {
-        void onSelectGroup(@NonNull UUID groupId);
+        void onGroupCardClick(@NonNull UUID groupId, boolean isOwner);
 
         void onCopyInviteCode(@NonNull UUID groupId);
 
@@ -58,14 +58,23 @@ public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapte
         String name = g.name != null ? g.name : "";
         h.title.setText(name);
         boolean owner = g.role != null && "owner".equalsIgnoreCase(g.role.trim());
-        h.subtitle.setText(owner ? h.itemView.getContext().getString(R.string.group_role_owner)
-                : h.itemView.getContext().getString(R.string.group_role_member));
+        if (owner) {
+            h.subtitle.setText(h.itemView.getContext().getString(R.string.group_role_owner));
+        } else {
+            String member = h.itemView.getContext().getString(R.string.group_role_member);
+            String email = g.creatorEmail != null ? g.creatorEmail.trim() : "";
+            h.subtitle.setText(email.isEmpty() ? member : member + " · " + email);
+        }
         UUID groupId = g.id;
-        h.itemView.setOnClickListener(v -> {
-            if (groupId != null) {
-                listener.onSelectGroup(groupId);
-            }
-        });
+        if (owner && groupId != null) {
+            h.itemView.setClickable(true);
+            h.itemView.setFocusable(true);
+            h.itemView.setOnClickListener(v -> listener.onGroupCardClick(groupId, true));
+        } else {
+            h.itemView.setClickable(false);
+            h.itemView.setFocusable(false);
+            h.itemView.setOnClickListener(null);
+        }
         h.copy.setOnClickListener(null);
         h.edit.setOnClickListener(null);
         h.leave.setOnClickListener(null);

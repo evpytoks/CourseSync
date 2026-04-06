@@ -24,7 +24,6 @@ import java.util.UUID;
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.MainActivity;
 import ru.katevpy.coursesync.R;
-import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
 import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListItem;
 import ru.katevpy.coursesync.shared.repository.GroupRepository;
@@ -61,8 +60,14 @@ public class GroupsFragment extends Fragment {
 
         listAdapter = new GroupListAdapter(new GroupListAdapter.Listener() {
             @Override
-            public void onSelectGroup(@NonNull UUID groupId) {
-                viewModel.chooseGroup(groupId);
+            public void onGroupCardClick(@NonNull UUID groupId, boolean isOwner) {
+                if (!isOwner) {
+                    return;
+                }
+                Bundle args = new Bundle();
+                args.putString("groupId", groupId.toString());
+                NavHostFragment.findNavController(GroupsFragment.this)
+                        .navigate(R.id.action_groupsFragment_to_groupMembersFragment, args);
             }
 
             @Override
@@ -102,7 +107,6 @@ public class GroupsFragment extends Fragment {
         ).get(GroupsViewModel.class);
 
         viewModel.getGroupsResult().observe(getViewLifecycleOwner(), this::renderGroupsResult);
-        viewModel.getChooseResult().observe(getViewLifecycleOwner(), this::onChooseResult);
         viewModel.getDeleteGroupResult().observe(getViewLifecycleOwner(), this::onDeleteGroupResult);
         viewModel.getLeaveGroupResult().observe(getViewLifecycleOwner(), this::onLeaveGroupResult);
 
@@ -222,37 +226,6 @@ public class GroupsFragment extends Fragment {
                 }
             }
         }).start();
-    }
-
-    private void onChooseResult(@Nullable Result<ChooseGroupResponse> result) {
-        if (result == null) return;
-
-        if (result instanceof Result.Success) {
-            android.app.Activity a = requireActivity();
-            if (a instanceof MainActivity) {
-                ((MainActivity) a).refreshCurrentGroup();
-            }
-            return;
-        }
-
-        if (result instanceof Result.HttpError) {
-            int code = ((Result.HttpError<ChooseGroupResponse>) result).httpCode;
-            if (code == 401) {
-                App.getDeps().tokenStorage.clear();
-                NavController nav = NavHostFragment.findNavController(this);
-                NavOptions opts = new NavOptions.Builder()
-                        .setPopUpTo(R.id.groupsFragment, true)
-                        .build();
-                nav.navigate(R.id.loginFragment, null, opts);
-                return;
-            }
-            if (code == 500) {
-                ErrorUi.show(this, R.string.choose_group_error, ErrorUi.Duration.LONG);
-                return;
-            }
-        }
-
-        ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.LONG);
     }
 
     @Override

@@ -191,12 +191,12 @@ public class MainActivity extends AppCompatActivity {
             int id = destination.getId();
 
             boolean isLogin = (id == R.id.loginFragment);
-            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.createCourseFragment || id == R.id.createNewsFragment || id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment || id == R.id.newsDetailFragment || id == R.id.editCourseFragment || id == R.id.editCourseGradingFormulaFragment);
+            boolean isCreateOrJoinGroup = (id == R.id.createGroupFragment || id == R.id.joinGroupFragment || id == R.id.editGroupFragment || id == R.id.groupMembersFragment || id == R.id.createCourseFragment || id == R.id.createNewsFragment || id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment || id == R.id.newsDetailFragment || id == R.id.editCourseFragment || id == R.id.editCourseGradingFormulaFragment);
             boolean isEventScreen = (id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment);
             boolean isNewsScreenWithGroup = (id == R.id.newsDetailFragment || id == R.id.createNewsFragment);
             boolean isCourseScreenWithGroup = (id == R.id.courseDetailFragment || id == R.id.editCourseFragment || id == R.id.editCourseGradingFormulaFragment);
             boolean hideGroupIndicator = isLogin || id == R.id.settingsFragment || id == R.id.newsFragment
-                    || id == R.id.newsDetailFragment
+                    || id == R.id.newsDetailFragment || id == R.id.groupsFragment
                     || (isCreateOrJoinGroup && !isEventScreen && !isNewsScreenWithGroup && !isCourseScreenWithGroup);
 
             if (isLogin) {
@@ -546,7 +546,8 @@ public class MainActivity extends AppCompatActivity {
     private static int rootTabIdForNestedDestination(int destId) {
         if (destId == R.id.createGroupFragment
                 || destId == R.id.joinGroupFragment
-                || destId == R.id.editGroupFragment) {
+                || destId == R.id.editGroupFragment
+                || destId == R.id.groupMembersFragment) {
             return R.id.groupsFragment;
         }
         if (destId == R.id.createCourseFragment
