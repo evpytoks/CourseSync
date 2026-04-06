@@ -29,6 +29,7 @@ public class NewsFragment extends Fragment {
     private NewsViewModel viewModel;
     private RecyclerView newsRecycler;
     private View errorBanner;
+    private View newsEmptyText;
     private NewsListAdapter listAdapter;
 
     public NewsFragment() {
@@ -41,6 +42,7 @@ public class NewsFragment extends Fragment {
 
         newsRecycler = view.findViewById(R.id.newsRecycler);
         errorBanner = view.findViewById(R.id.errorBanner);
+        newsEmptyText = view.findViewById(R.id.newsEmptyText);
 
         newsRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         int spacing = getResources().getDimensionPixelSize(R.dimen.grid_1);
@@ -82,7 +84,11 @@ public class NewsFragment extends Fragment {
         if (result instanceof Result.Success) {
             ErrorUi.hideErrorBanner(errorBanner);
             List<NewsListItem> items = ((Result.Success<List<NewsListItem>>) result).data;
-            listAdapter.submitList(items);
+            List<NewsListItem> list = items != null ? items : Collections.emptyList();
+            listAdapter.submitList(list);
+            boolean empty = list.isEmpty();
+            newsEmptyText.setVisibility(empty ? View.VISIBLE : View.GONE);
+            newsRecycler.setVisibility(empty ? View.GONE : View.VISIBLE);
             return;
         }
         if (result instanceof Result.HttpError) {
@@ -97,15 +103,21 @@ public class NewsFragment extends Fragment {
             if (code == 400 && isNoGroupSelected(he)) {
                 ErrorUi.hideErrorBanner(errorBanner);
                 listAdapter.submitList(Collections.emptyList());
+                newsEmptyText.setVisibility(View.GONE);
+                newsRecycler.setVisibility(View.VISIBLE);
                 return;
             }
             if (code == 500) {
                 listAdapter.submitList(null);
+                newsEmptyText.setVisibility(View.GONE);
+                newsRecycler.setVisibility(View.VISIBLE);
                 ErrorUi.showErrorBanner(errorBanner, R.string.news_load_error, () -> viewModel.loadNews());
                 return;
             }
         }
         listAdapter.submitList(null);
+        newsEmptyText.setVisibility(View.GONE);
+        newsRecycler.setVisibility(View.VISIBLE);
         ErrorUi.showErrorBanner(errorBanner, R.string.internal_error, () -> viewModel.loadNews());
     }
 
