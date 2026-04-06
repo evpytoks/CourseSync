@@ -30,6 +30,18 @@
         <action
             android:id="@+id/action_groupsFragment_to_editGroupFragment"
             app:destination="@id/editGroupFragment" />
+        <action
+            android:id="@+id/action_groupsFragment_to_groupMembersFragment"
+            app:destination="@id/groupMembersFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/groupMembersFragment"
+        android:name="ru.katevpy.coursesync.groups.GroupMembersFragment"
+        android:label="@string/group_members_title">
+        <argument
+            android:name="groupId"
+            app:argType="string" />
     </fragment>
 
     <fragment

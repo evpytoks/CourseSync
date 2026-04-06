@@ -13,4 +13,6 @@ public class GroupListItem {
     public String role;
     @SerializedName(value = "GroupCode", alternate = {"group_code", "groupCode"})
     public String groupCode;
+    @SerializedName(value = "creator_email", alternate = {"creatorEmail", "CreatorEmail"})
+    public String creatorEmail;
 }
