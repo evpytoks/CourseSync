@@ -196,6 +196,7 @@ public class MainActivity extends AppCompatActivity {
             boolean isNewsScreenWithGroup = (id == R.id.newsDetailFragment || id == R.id.createNewsFragment);
             boolean isCourseScreenWithGroup = (id == R.id.courseDetailFragment || id == R.id.editCourseFragment || id == R.id.editCourseGradingFormulaFragment);
             boolean hideGroupIndicator = isLogin || id == R.id.settingsFragment || id == R.id.newsFragment
+                    || id == R.id.newsDetailFragment
                     || (isCreateOrJoinGroup && !isEventScreen && !isNewsScreenWithGroup && !isCourseScreenWithGroup);
 
             if (isLogin) {
