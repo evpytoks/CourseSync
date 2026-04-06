@@ -12,6 +12,10 @@
     app:cardUseCompatPadding="true"
     app:strokeWidth="0dp">
 
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -64,4 +68,17 @@
             android:textSize="14sp"
             tools:text="В курсе Семинары появился новый материал…" />
     </LinearLayout>
+
+        <View
+            android:id="@+id/newsReadIndicator"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="@dimen/grid_1"
+            android:layout_marginEnd="@dimen/grid_1"
+            android:background="@drawable/news_read_dot"
+            android:importantForAccessibility="no"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

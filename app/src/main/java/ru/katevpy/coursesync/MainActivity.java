@@ -37,6 +37,7 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.color.MaterialColors;
 import ru.katevpy.coursesync.ui.ErrorUi;
@@ -201,6 +202,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (isLogin) {
                 appliedThemeFromServer = false;
+                updateNewsUnreadBadge(0);
             }
 
             bottomNav.setVisibility((isLogin || isCreateOrJoinGroup) ? View.GONE : View.VISIBLE);
@@ -642,6 +644,23 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         ErrorUi.show(this, findViewById(android.R.id.content), R.string.internal_error, ErrorUi.Duration.SHORT);
+    }
+
+    public void updateNewsUnreadBadge(int count) {
+        if (bottomNav == null) {
+            return;
+        }
+        if (count <= 0) {
+            bottomNav.removeBadge(R.id.newsFragment);
+            return;
+        }
+        BadgeDrawable badge = bottomNav.getOrCreateBadge(R.id.newsFragment);
+        badge.setVisible(true);
+        badge.setBadgeGravity(BadgeDrawable.TOP_END);
+        badge.setBackgroundColor(ContextCompat.getColor(this, R.color.cs_primary));
+        badge.setBadgeTextColor(ContextCompat.getColor(this, R.color.cs_on_primary));
+        badge.clearNumber();
+        badge.setText("+" + count);
     }
 
     private void refreshSettingsAndApplyTheme() {

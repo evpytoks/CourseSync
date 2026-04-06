@@ -68,6 +68,7 @@ public final class NewsListAdapter extends RecyclerView.Adapter<NewsListAdapter.
             h.body.setVisibility(View.VISIBLE);
             h.body.setText(body);
         }
+        h.readIndicator.setVisibility(!item.isRead ? View.VISIBLE : View.GONE);
         h.itemView.setOnClickListener(v -> {
             if (item.id != null) {
                 listener.onNewsClick(item.id);
@@ -97,12 +98,14 @@ public final class NewsListAdapter extends RecyclerView.Adapter<NewsListAdapter.
         final TextView meta;
         final TextView time;
         final TextView body;
+        final View readIndicator;
 
         VH(@NonNull View itemView) {
             super(itemView);
             meta = itemView.findViewById(R.id.newsItemMeta);
             time = itemView.findViewById(R.id.newsItemTime);
             body = itemView.findViewById(R.id.newsItemBody);
+            readIndicator = itemView.findViewById(R.id.newsReadIndicator);
         }
     }
 }
