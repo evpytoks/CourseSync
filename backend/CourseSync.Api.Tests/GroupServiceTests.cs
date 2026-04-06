@@ -85,6 +85,7 @@ public sealed class GroupServiceTests
         Assert.Equal("owner", list[0].Role);
         Assert.NotNull(list[0].GroupCode);
         Assert.Equal(6, list[0].GroupCode!.Length);
+        Assert.Equal("owner@edu.hse.ru", list[0].CreatorEmail);
     }
 
     [Fact]

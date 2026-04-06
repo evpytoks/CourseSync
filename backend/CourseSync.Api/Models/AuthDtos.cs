@@ -21,7 +21,8 @@ public sealed record GroupListItem(
     Guid Id,
     string Name,
     [property: JsonPropertyName("role")] string Role,
-    [property: JsonPropertyName("group_code")] string? GroupCode);
+    [property: JsonPropertyName("group_code")] string? GroupCode,
+    [property: JsonPropertyName("creator_email")] string CreatorEmail);
 public sealed record GroupListResponse(IReadOnlyList<GroupListItem> Groups);
 
 public sealed record OwnerGroupListItem(Guid Id, string Name);
@@ -59,22 +60,26 @@ public sealed record CourseUsefulLinkItem(
 public sealed record AddCourseRequest(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string? GeneralInfo,
+    [property: JsonPropertyName("contacts")] string? Contacts,
     [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem>? UsefulLinks);
 public sealed record AddCourseResponse(
     Guid Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string GeneralInfo,
+    [property: JsonPropertyName("contacts")] string Contacts,
     [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem> UsefulLinks);
 
 public sealed record CourseDetailsResponse(
     Guid Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string GeneralInfo,
+    [property: JsonPropertyName("contacts")] string Contacts,
     [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem> UsefulLinks);
 
 public sealed record ChangeCourseRequest(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string? GeneralInfo,
+    [property: JsonPropertyName("contacts")] string? Contacts,
     [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem>? UsefulLinks);
 
 public sealed record CourseMaterialListItem(
@@ -162,9 +167,12 @@ public sealed record NewsListItem(
     [property: JsonPropertyName("time")] DateTimeOffset Time,
     [property: JsonPropertyName("group")] string Group,
     [property: JsonPropertyName("section")] string Section,
-    [property: JsonPropertyName("text")] string Text);
+    [property: JsonPropertyName("text")] string Text,
+    [property: JsonPropertyName("is_read")] bool IsRead);
 
-public sealed record NewsListResponse(IReadOnlyList<NewsListItem> News);
+public sealed record NewsListResponse(
+    IReadOnlyList<NewsListItem> News,
+    [property: JsonPropertyName("unread_count")] int UnreadCount);
 
 public sealed record NewsDetailsResponse(
     Guid Id,

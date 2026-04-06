@@ -48,12 +48,16 @@ public static class NewsFormatting
     public static string? BuildChangedCourseFieldsGeneralLinks(
         string oldGeneral,
         string newGeneral,
+        string oldContacts,
+        string newContacts,
         string oldLinksRaw,
         string newLinksRaw)
     {
         var lines = new List<string>();
         if (Trim(oldGeneral) != Trim(newGeneral))
             lines.Add(BeforeAfter("общая информация", Trim(oldGeneral), Trim(newGeneral)));
+        if (Trim(oldContacts) != Trim(newContacts))
+            lines.Add(BeforeAfter("контакты", Trim(oldContacts), Trim(newContacts)));
         if (Trim(oldLinksRaw) != Trim(newLinksRaw))
             lines.Add(BeforeAfter(
                 "полезные ссылки",

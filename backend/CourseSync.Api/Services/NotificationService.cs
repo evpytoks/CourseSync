@@ -37,6 +37,7 @@ public sealed class NotificationService
                     .Select(m => m.UserId)
                     .ToListAsync(token);
             },
+            markAsReadForUserId: actorUserId,
             ct);
     }
 
@@ -62,6 +63,7 @@ public sealed class NotificationService
                     .Select(m => m.UserId)
                     .ToListAsync(token);
             },
+            markAsReadForUserId: exceptUserId,
             ct);
     }
 
@@ -71,7 +73,8 @@ public sealed class NotificationService
         string groupName,
         string section,
         string detail,
-        CancellationToken ct)
+        CancellationToken ct,
+        Guid? markAsReadForUserId = null)
     {
         return CreateNewsAndPushToRecipientsAsync(
             type,
@@ -86,6 +89,7 @@ public sealed class NotificationService
                     .Select(m => m.UserId)
                     .ToListAsync(token);
             },
+            markAsReadForUserId,
             ct);
     }
 
@@ -96,6 +100,7 @@ public sealed class NotificationService
         string section,
         string detail,
         Func<CancellationToken, Task<List<Guid>>> resolveRecipients,
+        Guid? markAsReadForUserId,
         CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
@@ -128,6 +133,16 @@ public sealed class NotificationService
             CreatedAt = now
         };
         _db.News.Add(news);
+
+        if (markAsReadForUserId is { } readUid)
+        {
+            _db.NewsReads.Add(new NewsRead
+            {
+                UserId = readUid,
+                NewsId = news.Id,
+                ReadAt = now
+            });
+        }
 
         if (detailValue.Length > NotificationBodyMaxLength)
             throw new ArgumentException($"News detail length must be <= {NotificationBodyMaxLength}.", nameof(detail));

@@ -35,10 +35,11 @@ public sealed class NewsController : ControllerBase
         var items = await _newsService.GetAllForUserAsync(userId.Value, ct);
 
         var news = items
-            .Select(n => new NewsListItem(n.Id, n.Time, n.Group, n.Section, n.Text))
+            .Select(n => new NewsListItem(n.Id, n.Time, n.Group, n.Section, n.Text, n.IsRead))
             .ToList();
 
-        return Ok(new NewsListResponse(news));
+        var unreadCount = items.Count(x => !x.IsRead);
+        return Ok(new NewsListResponse(news, unreadCount));
     }
 
     [HttpGet("{id:guid}")]

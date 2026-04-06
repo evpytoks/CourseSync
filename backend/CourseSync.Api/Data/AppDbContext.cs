@@ -20,6 +20,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<UserDevice> UserDevices => Set<UserDevice>();
     public DbSet<News> News => Set<News>();
+    public DbSet<NewsRead> NewsReads => Set<NewsRead>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -126,6 +127,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.Code).HasColumnName("code").IsRequired().HasMaxLength(6);
             e.Property(x => x.CodeGeneratedAt).HasColumnName("code_generated_at").IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            e.Property(x => x.CreatorEmail).HasColumnName("creator_email").IsRequired().HasMaxLength(320);
 
             e.HasIndex(x => x.Name);
             e.HasIndex(x => x.Code).IsUnique();
@@ -161,6 +163,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
             e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
             e.Property(x => x.GeneralInfo).HasColumnName("general_info").IsRequired().HasMaxLength(2000);
+            e.Property(x => x.Contacts).HasColumnName("contacts").IsRequired().HasMaxLength(2000);
             e.Property(x => x.UsefulLinks).HasColumnName("useful_links").IsRequired().HasMaxLength(8000);
             e.Property(x => x.GradingText).HasColumnName("grading_text").IsRequired().HasMaxLength(3000).HasDefaultValue("");
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
@@ -362,6 +365,28 @@ public sealed class AppDbContext : DbContext
 
             e.HasIndex(x => x.GroupId);
             e.HasIndex(x => x.CreatedAt);
+        });
+
+        b.Entity<NewsRead>(e =>
+        {
+            e.ToTable("news_reads");
+            e.HasKey(x => new { x.UserId, x.NewsId });
+
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.NewsId).HasColumnName("news_id").IsRequired();
+            e.Property(x => x.ReadAt).HasColumnName("read_at").IsRequired();
+
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.News)
+                .WithMany()
+                .HasForeignKey(x => x.NewsId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.NewsId);
         });
     }
 }
