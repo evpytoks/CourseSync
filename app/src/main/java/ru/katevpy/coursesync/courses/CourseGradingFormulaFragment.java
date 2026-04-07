@@ -9,10 +9,12 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.content.res.ColorStateList;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
@@ -222,14 +224,38 @@ public class CourseGradingFormulaFragment extends Fragment {
             left.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             left.setText(getString(R.string.grading_element_score_line_left, name, count));
 
-            TextView right = new TextView(requireContext());
-            LinearLayout.LayoutParams rightLp = new LinearLayout.LayoutParams(
+            LinearLayout scoreWrap = new LinearLayout(requireContext());
+            scoreWrap.setOrientation(LinearLayout.HORIZONTAL);
+            scoreWrap.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams scoreWrapLp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT);
-            rightLp.setMarginEnd(res.getDimensionPixelSize(R.dimen.grid_1));
-            right.setLayoutParams(rightLp);
+            scoreWrapLp.setMarginEnd(res.getDimensionPixelSize(R.dimen.grid_1));
+            scoreWrap.setLayoutParams(scoreWrapLp);
+
+            int lockPx = res.getDimensionPixelSize(R.dimen.grading_lock_icon_size);
+            ImageView lockBelow = new ImageView(requireContext());
+            lockBelow.setLayoutParams(new LinearLayout.LayoutParams(lockPx, lockPx));
+            lockBelow.setImageResource(R.drawable.ic_lock_closed_small);
+            lockBelow.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(
+                    requireContext(), android.R.color.holo_red_dark)));
+            lockBelow.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            lockBelow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            boolean belowThreshold = isAverageBelowBlockThreshold(item);
+            lockBelow.setVisibility(belowThreshold ? View.VISIBLE : View.GONE);
+            LinearLayout.LayoutParams lockLp = (LinearLayout.LayoutParams) lockBelow.getLayoutParams();
+            lockLp.setMarginEnd(belowThreshold ? res.getDimensionPixelSize(R.dimen.grid_1) : 0);
+            lockBelow.setLayoutParams(lockLp);
+
+            TextView right = new TextView(requireContext());
+            right.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
             right.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             right.setText(avgDisplay);
+
+            scoreWrap.addView(lockBelow);
+            scoreWrap.addView(right);
 
             int iconPx = res.getDimensionPixelSize(R.dimen.grid_3);
             ImageView chevron = new ImageView(requireContext());
@@ -241,7 +267,7 @@ public class CourseGradingFormulaFragment extends Fragment {
             chevron.setFocusable(false);
 
             row.addView(left);
-            row.addView(right);
+            row.addView(scoreWrap);
             row.addView(chevron);
 
             row.setOnClickListener(v -> {
@@ -265,6 +291,22 @@ public class CourseGradingFormulaFragment extends Fragment {
             return "—";
         }
         return nf.format(value);
+    }
+
+    private static boolean isAverageBelowBlockThreshold(@Nullable CourseGradingElementItem item) {
+        if (item == null) {
+            return false;
+        }
+        Double block = item.blockGrade;
+        double blockVal = block != null ? block : 0.0;
+        if (blockVal <= 0.0) {
+            return false;
+        }
+        Double avg = item.averageScore;
+        if (avg == null) {
+            return false;
+        }
+        return avg < blockVal;
     }
 
     private void renderGradingElements(@Nullable List<CourseGradingElementItem> items) {
@@ -297,15 +339,60 @@ public class CourseGradingFormulaFragment extends Fragment {
             nameCol.setText(item.name != null ? item.name : "");
 
             TextView coefCol = new TextView(requireContext());
-            coefCol.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            LinearLayout.LayoutParams coefLp = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            coefLp.setMarginEnd(colGap);
+            coefCol.setLayoutParams(coefLp);
             coefCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             coefCol.setText(formatCoefficient(item.coefficient, nf));
 
+            LinearLayout blockCol = createBlockColumn(item != null ? item.blockGrade : null);
+
             row.addView(nameCol);
             row.addView(coefCol);
+            row.addView(blockCol);
             gradingElementsRows.addView(row);
         }
+    }
+
+    @NonNull
+    private LinearLayout createBlockColumn(@Nullable Double blockGradeRaw) {
+        double blockGrade = blockGradeRaw != null ? blockGradeRaw : 0.0;
+        if (blockGrade < 0.0) {
+            blockGrade = 0.0;
+        }
+        LinearLayout blockCol = new LinearLayout(requireContext());
+        blockCol.setOrientation(LinearLayout.HORIZONTAL);
+        blockCol.setLayoutParams(new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        blockCol.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        boolean unlocked = Math.abs(blockGrade) < 0.0001;
+        ImageView lock = new ImageView(requireContext());
+        int iconSize = getResources().getDimensionPixelSize(R.dimen.grading_lock_icon_size);
+        LinearLayout.LayoutParams lockLp = new LinearLayout.LayoutParams(iconSize, iconSize);
+        lock.setLayoutParams(lockLp);
+        lock.setImageResource(unlocked ? R.drawable.ic_lock_open_small : R.drawable.ic_lock_closed_small);
+        lock.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(
+                requireContext(),
+                unlocked ? android.R.color.holo_green_dark : android.R.color.holo_red_dark)));
+        lock.setContentDescription(null);
+        blockCol.addView(lock);
+
+        if (!unlocked) {
+            TextView value = new TextView(requireContext());
+            LinearLayout.LayoutParams valueLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            valueLp.setMarginStart(getResources().getDimensionPixelSize(R.dimen.grid_1));
+            value.setLayoutParams(valueLp);
+            value.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
+            NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
+            value.setText(nf.format(blockGrade));
+            value.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark));
+            blockCol.addView(value);
+        }
+        return blockCol;
     }
 
     private static String formatCoefficient(@Nullable Double c, NumberFormat nf) {

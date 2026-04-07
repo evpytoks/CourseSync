@@ -139,7 +139,8 @@ public class CourseRepository {
             for (CourseGradingElementItem e : elements) {
                 String name = e != null && e.name != null ? e.name : "";
                 Double c = e != null ? e.coefficient : null;
-                reqElements.add(new CourseGradingElementRequest(name, c != null ? c : 0.0));
+                Double b = e != null ? e.blockGrade : null;
+                reqElements.add(new CourseGradingElementRequest(name, c != null ? c : 0.0, b != null ? b : 0));
             }
         }
         try {
