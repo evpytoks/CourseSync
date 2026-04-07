@@ -165,6 +165,13 @@ public class EditCourseGradingFormulaFragment extends Fragment {
             ErrorUi.show(this, R.string.grading_coeff_sum_must_be_one, ErrorUi.Duration.SHORT);
             return;
         }
+        for (CourseGradingElementItem item : editableElements) {
+            double b = item != null && item.blockGrade != null ? item.blockGrade : 0.0;
+            if (b < 0.0 || b > 10.0) {
+                ErrorUi.show(this, R.string.grading_block_invalid_range, ErrorUi.Duration.SHORT);
+                return;
+            }
+        }
         String text = descriptionLayout.getEditText().getText().toString();
         viewModel.saveGrading(courseId, text, editableElements);
     }
@@ -214,6 +221,19 @@ public class EditCourseGradingFormulaFragment extends Fragment {
         coefLayout.addView(coefInput);
         root.addView(coefLayout);
 
+        TextInputLayout blockLayout = new TextInputLayout(requireContext());
+        LinearLayout.LayoutParams blockLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        blockLp.topMargin = fieldGap;
+        blockLayout.setLayoutParams(blockLp);
+        TextInputEditText blockInput = new TextInputEditText(requireContext());
+        blockInput.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        blockLayout.setHint(getString(R.string.grading_element_block_hint));
+        blockLayout.addView(blockInput);
+        root.addView(blockLayout);
+
         AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.grading_add_element_title)
                 .setView(root)
@@ -224,9 +244,11 @@ public class EditCourseGradingFormulaFragment extends Fragment {
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             nameLayout.setError(null);
             coefLayout.setError(null);
+            blockLayout.setError(null);
 
             String name = nameInput.getText() != null ? nameInput.getText().toString().trim() : "";
             String coefRaw = coefInput.getText() != null ? coefInput.getText().toString().trim() : "";
+            String blockRaw = blockInput.getText() != null ? blockInput.getText().toString().trim() : "";
             if (name.isEmpty()) {
                 nameLayout.setError(getString(R.string.grading_invalid_element_name));
                 return;
@@ -243,9 +265,22 @@ public class EditCourseGradingFormulaFragment extends Fragment {
                 return;
             }
 
+            Double blockGrade;
+            try {
+                blockGrade = blockRaw.isEmpty() ? 0.0 : Double.parseDouble(blockRaw.replace(',', '.'));
+            } catch (Exception e) {
+                blockLayout.setError(getString(R.string.grading_block_invalid_range));
+                return;
+            }
+            if (blockGrade < 0.0 || blockGrade > 10.0) {
+                blockLayout.setError(getString(R.string.grading_block_invalid_range));
+                return;
+            }
+
             CourseGradingElementItem item = new CourseGradingElementItem();
             item.name = name;
             item.coefficient = coefficient;
+            item.blockGrade = blockGrade;
             editableElements.add(item);
             renderGradingElements(editableElements);
             dialog.dismiss();
@@ -310,10 +345,20 @@ public class EditCourseGradingFormulaFragment extends Fragment {
             nameCol.setText(item.name != null ? item.name : "");
 
             TextView coefCol = new TextView(requireContext());
-            coefCol.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            LinearLayout.LayoutParams coefLp = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            coefLp.setMarginEnd(colGap);
+            coefCol.setLayoutParams(coefLp);
             coefCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
             coefCol.setText(formatCoefficient(item.coefficient, nf));
+
+            TextView blockCol = new TextView(requireContext());
+            LinearLayout.LayoutParams blockColLp = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            blockColLp.setMarginEnd(colGap);
+            blockCol.setLayoutParams(blockColLp);
+            blockCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
+            blockCol.setText(formatBlockGradeDisplay(item != null ? item.blockGrade : null));
 
             MaterialButton deleteBtn = new MaterialButton(
                     requireContext(),
@@ -334,9 +379,19 @@ public class EditCourseGradingFormulaFragment extends Fragment {
 
             row.addView(nameCol);
             row.addView(coefCol);
+            row.addView(blockCol);
             row.addView(deleteBtn);
             gradingElementsRows.addView(row);
         }
+    }
+
+    @NonNull
+    private static String formatBlockGradeDisplay(@Nullable Double value) {
+        if (value == null) {
+            return "0";
+        }
+        NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
+        return nf.format(value);
     }
 
     private static String formatCoefficient(@Nullable Double c, NumberFormat nf) {

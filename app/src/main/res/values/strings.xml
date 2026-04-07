@@ -103,6 +103,7 @@
     <string name="grading_add_element_title">Новый элемент контроля</string>
     <string name="grading_element_name_hint">Элемент контроля</string>
     <string name="grading_element_coefficient_hint">Коэффициент (0..1)</string>
+    <string name="grading_element_block_hint">Блок (0..10)</string>
     <string name="grading_invalid_element_name">Введите название элемента контроля</string>
     <string name="grading_invalid_element_coefficient">Введите число от 0 до 1</string>
     <string name="grading_coeff_sum_must_be_one">Сумма коэфициентов должна быть 1</string>
@@ -117,6 +118,8 @@
     <string name="grading_scores_save_forbidden">Сохранять оценки может только владелец группы</string>
     <string name="grading_scores_need_at_least_one">Нужна хотя бы одна оценка</string>
     <string name="grading_scores_invalid_range">Каждая оценка должна быть от 0 до 10</string>
+    <string name="grading_block_column">Блок</string>
+    <string name="grading_block_invalid_range">Блок должен быть от 0 до 10</string>
     <string name="grading_score_fix_field_error">Исправьте оценки в таблице</string>
     <string name="grading_scores_screen_title">Оценки элемента</string>
     <string name="grading_row_open_scores_hint">Подробнее об оценках элемента</string>
