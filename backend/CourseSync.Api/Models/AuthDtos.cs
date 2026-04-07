@@ -61,9 +61,6 @@ public sealed record UpdateCalendarEventTypeColorItem(
     [property: JsonPropertyName("type")] string? Type,
     [property: JsonPropertyName("color")] string? Color);
 
-public sealed record UpdateCalendarEventTypeColorsRequest(
-    [property: JsonPropertyName("items")] IReadOnlyList<UpdateCalendarEventTypeColorItem>? Items);
-
 public sealed record CourseListItem(
     Guid Id,
     [property: JsonPropertyName("name")] string Name);

@@ -130,13 +130,15 @@ public sealed class SettingsControllerTests
     }
 
     [Fact]
-    public async Task UpdateCalendarEventTypeColors_updates_selected_type()
+    public async Task Update_with_only_colors_changes_nothing_else()
     {
         await using var tdb = new TestDb();
         var user = new User
         {
             Id = Guid.NewGuid(),
-            Email = "user@edu.hse.ru"
+            Email = "user@edu.hse.ru",
+            NotificationsOn = false,
+            DarkThemeOn = true
         };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
@@ -144,21 +146,26 @@ public sealed class SettingsControllerTests
         var users = new UserService(tdb.Db);
         var controller = CreateController(users, user.Id);
 
-        var req = new UpdateCalendarEventTypeColorsRequest(new[]
-        {
-            new UpdateCalendarEventTypeColorItem("Тест", "#112233")
-        });
+        var req = new UpdateUserSettingsRequest(
+            NotificationsOn: null,
+            DarkThemeOn: null,
+            CalendarEventTypeColors: new[]
+            {
+                new UpdateCalendarEventTypeColorItem("Тест", "#112233")
+            });
 
-        var res = await controller.UpdateCalendarEventTypeColors(req, CancellationToken.None);
-        var ok = Assert.IsType<OkObjectResult>(res.Result);
-        var payload = Assert.IsType<CalendarEventTypeColorsResponse>(ok.Value);
+        var res = await controller.Update(req, CancellationToken.None);
+        Assert.IsType<OkResult>(res);
 
-        var testItem = Assert.Single(payload.Items.Where(x => x.Type == "Тест"));
-        Assert.Equal("#112233", testItem.Color);
+        var reloaded = await users.FindByIdAsync(user.Id, CancellationToken.None);
+        Assert.False(reloaded!.NotificationsOn);
+        Assert.True(reloaded.DarkThemeOn);
+        var testColor = users.GetResolvedCalendarEventTypeColors(reloaded).Single(x => x.Type == "Тест");
+        Assert.Equal("#112233", testColor.Color);
     }
 
     [Fact]
-    public async Task UpdateCalendarEventTypeColors_rejects_invalid_color()
+    public async Task Update_rejects_invalid_calendar_color()
     {
         await using var tdb = new TestDb();
         var user = new User
@@ -172,13 +179,16 @@ public sealed class SettingsControllerTests
         var users = new UserService(tdb.Db);
         var controller = CreateController(users, user.Id);
 
-        var req = new UpdateCalendarEventTypeColorsRequest(new[]
-        {
-            new UpdateCalendarEventTypeColorItem("Тест", "blue")
-        });
+        var req = new UpdateUserSettingsRequest(
+            NotificationsOn: null,
+            DarkThemeOn: null,
+            CalendarEventTypeColors: new[]
+            {
+                new UpdateCalendarEventTypeColorItem("Тест", "blue")
+            });
 
-        var res = await controller.UpdateCalendarEventTypeColors(req, CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        var res = await controller.Update(req, CancellationToken.None);
+        var bad = Assert.IsType<BadRequestObjectResult>(res);
         var err = Assert.IsType<ErrorEnvelope>(bad.Value);
         Assert.Equal("calendar_event_color_invalid", err.Error.Code);
     }

@@ -122,22 +122,6 @@ public sealed class UserService
         return items;
     }
 
-    public async Task<(bool Ok, IReadOnlyList<(string Type, string Color)>? Colors, string? ErrorCode)> UpdateCalendarEventTypeColorsAsync(
-        Guid userId,
-        IReadOnlyList<UpdateCalendarEventTypeColorItem>? items,
-        CancellationToken ct = default)
-    {
-        var (ok, err) = await UpdateUserSettingsAsync(userId, null, null, items, ct);
-        if (!ok)
-            return (false, null, err);
-
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
-        if (user is null)
-            return (false, null, "unauthorized");
-
-        return (true, GetResolvedCalendarEventTypeColors(user).ToList(), null);
-    }
-
     public async Task<User> GetOrCreateByEmailAsync(string email, CancellationToken ct = default)
     {
         email = email.Trim().ToLowerInvariant();

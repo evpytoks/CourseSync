@@ -64,32 +64,6 @@ public sealed class SettingsController : ControllerBase
         return Ok();
     }
 
-    [HttpPut("calendar-event-type-colors")]
-    [ProducesResponseType(typeof(CalendarEventTypeColorsResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<CalendarEventTypeColorsResponse>> UpdateCalendarEventTypeColors(
-        [FromBody] UpdateCalendarEventTypeColorsRequest req,
-        CancellationToken ct)
-    {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var (ok, colors, errorCode) = await _users.UpdateCalendarEventTypeColorsAsync(userId.Value, req.Items, ct);
-        if (!ok)
-        {
-            if (errorCode == "unauthorized")
-                return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
-
-        var respItems = colors!
-            .Select(x => new CalendarEventTypeColorItem(x.Type, x.Color))
-            .ToList();
-        return Ok(new CalendarEventTypeColorsResponse(respItems));
-    }
-
     private Guid? GetCurrentUserId()
     {
         var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
