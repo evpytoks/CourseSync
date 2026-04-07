@@ -17,13 +17,16 @@ import retrofit2.http.Query;
 import retrofit2.http.Streaming;
 
 import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
+import ru.katevpy.coursesync.shared.dto.CourseCumulativeGradeResponse;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseGradingElementListResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingScoresResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingTextResponse;
 import ru.katevpy.coursesync.shared.dto.CourseListResponse;
 import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListResponse;
+import ru.katevpy.coursesync.shared.dto.SaveCourseCumulativeGradeRequest;
 import ru.katevpy.coursesync.shared.dto.SaveCourseGradingRequest;
 import ru.katevpy.coursesync.shared.dto.UpdateCourseGradingScoresRequest;
 
@@ -40,6 +43,17 @@ public interface CourseApi {
 
     @GET("course/{id}/grading")
     Call<CourseGradingElementsResponse> getGrading(@Path("id") UUID id);
+
+    @GET("course/{id}/grading/elements")
+    Call<CourseGradingElementListResponse> getGradingElementOptions(@Path("id") UUID id);
+
+    @GET("course/{id}/cumulative-grades")
+    Call<CourseCumulativeGradeResponse> getCumulativeGrade(@Path("id") UUID id);
+
+    @PUT("course/{id}/cumulative-grades")
+    Call<Void> saveCumulativeGrade(
+            @Path("id") UUID id,
+            @Body SaveCourseCumulativeGradeRequest body);
 
     @GET("course/{id}/grading/scores")
     Call<CourseGradingScoresResponse> getGradingScores(

@@ -20,7 +20,10 @@ import retrofit2.Response;
 import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
 import ru.katevpy.coursesync.shared.dto.CourseUsefulLinkItem;
 import ru.katevpy.coursesync.shared.dto.ApiError;
+import ru.katevpy.coursesync.shared.dto.CourseCumulativeGradeResponse;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.CourseGradingElementListResponse;
+import ru.katevpy.coursesync.shared.dto.CumulativeGradeState;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementItem;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingScoresResponse;
@@ -32,6 +35,7 @@ import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListItem;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListResponse;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
+import ru.katevpy.coursesync.shared.dto.SaveCourseCumulativeGradeRequest;
 import ru.katevpy.coursesync.shared.dto.SaveCourseGradingRequest;
 import ru.katevpy.coursesync.shared.dto.UpdateCourseGradingScoresRequest;
 import ru.katevpy.coursesync.shared.network.CourseApi;
@@ -102,6 +106,58 @@ public class CourseRepository {
             }
             return Result.httpError(r.code(), parseError(r.errorBody()));
         } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<CumulativeGradeState> getCumulativeGrade(UUID courseId) {
+        try {
+            Response<CourseCumulativeGradeResponse> r = api.getCumulativeGrade(courseId).execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(new CumulativeGradeState(true, r.body()));
+            }
+            if (r.code() == 404) {
+                ApiError err = parseError(r.errorBody());
+                if (err != null && "cumulative_grade_not_configured".equals(err.code)) {
+                    return Result.success(new CumulativeGradeState(false, null));
+                }
+                return Result.httpError(404, err);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<CourseGradingElementListResponse> getGradingElementOptions(UUID courseId) {
+        try {
+            Response<CourseGradingElementListResponse> r = api.getGradingElementOptions(courseId).execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<Void> saveCumulativeGrade(
+            UUID courseId,
+            List<String> elementIds,
+            Double blockGrade,
+            Double automatic) {
+        try {
+            Response<Void> resp = api.saveCumulativeGrade(
+                    courseId,
+                    new SaveCourseCumulativeGradeRequest(elementIds, blockGrade, automatic)).execute();
+            if (resp.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(resp.code(), parseError(resp.errorBody()));
+        } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
             return Result.networkError(e);
         }
     }
