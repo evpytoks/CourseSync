@@ -21,7 +21,7 @@ public sealed class RefreshTokenServiceTests
     public async Task RotateAsync_empty_token_returns_Invalid()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var (status, _, _, _) = await CreateService(tdb.Db).RotateAsync("", CancellationToken.None);
@@ -32,7 +32,7 @@ public sealed class RefreshTokenServiceTests
     public async Task EstablishSingleSessionAsync_returns_token_and_bumps_version()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var (refreshToken, expiresAt, tokenVersion) = await CreateService(tdb.Db).EstablishSingleSessionAsync(user.Id, CancellationToken.None);
@@ -45,7 +45,7 @@ public sealed class RefreshTokenServiceTests
     public async Task RevokeAsync_invalidates_token()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = CreateService(tdb.Db);

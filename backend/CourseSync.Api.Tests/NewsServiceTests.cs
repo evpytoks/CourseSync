@@ -13,7 +13,7 @@ public sealed class NewsServiceTests
     public async Task GetAllForUserAsync_returns_news_from_all_groups_user_belongs_to()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         var g1 = new Group
         {
             Id = Guid.NewGuid(),
@@ -38,8 +38,8 @@ public sealed class NewsServiceTests
             GroupId = g1.Id,
             CreatedAt = t1,
             GroupName = g1.Name,
-            Section = "s1",
-            Detail = "d1",
+            Section = "секция1",
+            Detail = "деталь1",
             Type = "manual"
         };
         var n2 = new News
@@ -48,8 +48,8 @@ public sealed class NewsServiceTests
             GroupId = g2.Id,
             CreatedAt = t2,
             GroupName = g2.Name,
-            Section = "s2",
-            Detail = "d2",
+            Section = "секция2",
+            Detail = "деталь2",
             Type = "manual"
         };
         tdb.Db.Users.Add(user);
@@ -74,11 +74,11 @@ public sealed class NewsServiceTests
     public async Task GetByIdAsync_marks_news_read()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         var g = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "Учебная группа 2026",
             Code = "aaaaaa",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -89,8 +89,8 @@ public sealed class NewsServiceTests
             GroupId = g.Id,
             CreatedAt = DateTimeOffset.UtcNow,
             GroupName = g.Name,
-            Section = "s",
-            Detail = "d",
+            Section = "Новости",
+            Detail = "подробности новости",
             Type = "manual"
         };
         tdb.Db.Users.Add(user);
@@ -119,11 +119,11 @@ public sealed class NewsServiceTests
     public async Task MarkAllReadAsync_marks_all_unread_visible_news()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         var g = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "Учебная группа 2026",
             Code = "aaaaaa",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -134,8 +134,8 @@ public sealed class NewsServiceTests
             GroupId = g.Id,
             CreatedAt = DateTimeOffset.UtcNow.AddHours(-1),
             GroupName = g.Name,
-            Section = "a",
-            Detail = "d1",
+            Section = "Курсы",
+            Detail = "деталь1",
             Type = "manual"
         };
         var n2 = new News
@@ -144,8 +144,8 @@ public sealed class NewsServiceTests
             GroupId = g.Id,
             CreatedAt = DateTimeOffset.UtcNow,
             GroupName = g.Name,
-            Section = "b",
-            Detail = "d2",
+            Section = "Календарь",
+            Detail = "деталь2",
             Type = "manual"
         };
         tdb.Db.Users.Add(user);

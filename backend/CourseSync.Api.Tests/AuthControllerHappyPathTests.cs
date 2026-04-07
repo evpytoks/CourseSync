@@ -20,7 +20,7 @@ public sealed class AuthControllerHappyPathTests
         await using var tdb = new TestDb();
         var (controller, emailSender) = CreateController(tdb.Db);
 
-        var email = "name.surname@edu.hse.ru";
+        var email = "user@edu.hse.ru";
 
         var send = await controller.SendCode(new SendCodeRequest(email), CancellationToken.None);
         var sendOk = Assert.IsType<OkObjectResult>(send.Result);
@@ -42,8 +42,8 @@ public sealed class AuthControllerHappyPathTests
         Assert.False(string.IsNullOrWhiteSpace(refreshPayload.RefreshToken));
         Assert.NotEqual(loginPayload.RefreshToken, refreshPayload.RefreshToken);
 
-        var reuseOld = await controller.Refresh(new RefreshRequest(loginPayload.RefreshToken), CancellationToken.None);
-        var reuseUnauthorized = Assert.IsType<UnauthorizedObjectResult>(reuseOld.Result);
+        var reusedRefresh = await controller.Refresh(new RefreshRequest(loginPayload.RefreshToken), CancellationToken.None);
+        var reuseUnauthorized = Assert.IsType<UnauthorizedObjectResult>(reusedRefresh.Result);
         Assert.Equal("refresh_reused", Assert.IsType<ErrorEnvelope>(reuseUnauthorized.Value).Error.Code);
     }
 

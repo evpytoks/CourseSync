@@ -57,7 +57,10 @@ public static class NewsFormatting
         if (Trim(oldGeneral) != Trim(newGeneral))
             lines.Add(BeforeAfter("общая информация", Trim(oldGeneral), Trim(newGeneral)));
         if (Trim(oldContacts) != Trim(newContacts))
-            lines.Add(BeforeAfter("контакты", Trim(oldContacts), Trim(newContacts)));
+            lines.Add(BeforeAfter(
+                "контакты",
+                ContactsCodec.FormatForDisplay(oldContacts),
+                ContactsCodec.FormatForDisplay(newContacts)));
         if (Trim(oldLinksRaw) != Trim(newLinksRaw))
             lines.Add(BeforeAfter(
                 "полезные ссылки",

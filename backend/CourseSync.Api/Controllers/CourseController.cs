@@ -81,7 +81,7 @@ public sealed class CourseController : ControllerBase
             user.CurrentGroupId.Value,
             req.Name!.Trim(),
             req.GeneralInfo ?? "",
-            req.Contacts ?? "",
+            req.Contacts ?? Array.Empty<CourseContactPersonItem>(),
             req.UsefulLinks ?? Array.Empty<CourseUsefulLinkItem>(),
             ct);
 
@@ -424,7 +424,7 @@ public sealed class CourseController : ControllerBase
             id,
             req.Name!.Trim(),
             req.GeneralInfo ?? "",
-            req.Contacts ?? "",
+            req.Contacts ?? Array.Empty<CourseContactPersonItem>(),
             req.UsefulLinks ?? Array.Empty<CourseUsefulLinkItem>(),
             ct);
 

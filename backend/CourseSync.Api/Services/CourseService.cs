@@ -18,6 +18,8 @@ public sealed class CourseService
 
     private const int GeneralInfoMaxLength = 2000;
     private const int ContactsMaxLength = 2000;
+    public const int ContactsMaxPeople = 10;
+    public const int ContactMethodsMaxPerPerson = 10;
 
     public const int UsefulLinkTitleMinLength = 1;
     public const int UsefulLinkTitleMaxLength = 50;
@@ -56,12 +58,40 @@ public sealed class CourseService
         return (true, null);
     }
 
-    public static (bool Valid, string? ErrorCode) ValidateContacts(string? value)
+    public static (bool Valid, string? ErrorCode) ValidateContacts(IReadOnlyList<CourseContactPersonItem>? people)
     {
-        if (value is null)
-            return (true, null);
-        if (value.Length > ContactsMaxLength)
+        if (people is null)
+            return (false, "contacts_required");
+
+        if (people.Count > ContactsMaxPeople)
+            return (false, "contacts_too_many_people");
+
+        foreach (var person in people)
+        {
+            var personName = (person.Name ?? "").Trim();
+            if (personName.Length == 0)
+                return (false, "contact_person_name_required");
+
+            var methods = person.ContactMethods;
+            if (methods is null)
+                return (false, "contact_methods_required");
+            if (methods.Count > ContactMethodsMaxPerPerson)
+                return (false, "contact_methods_too_many");
+
+            foreach (var method in methods)
+            {
+                if (method.Type is null)
+                    return (false, "contact_method_type_required");
+                var value = (method.Value ?? "").Trim();
+                if (value.Length == 0)
+                    return (false, "contact_method_value_required");
+            }
+        }
+
+        var storage = ContactsCodec.ToStorage(people);
+        if (storage.Length > ContactsMaxLength)
             return (false, "contacts_too_long");
+
         return (true, null);
     }
 
@@ -76,31 +106,49 @@ public sealed class CourseService
         {
             var title = (item.Title ?? "").Trim();
             var url = (item.Url ?? "").Trim();
-            if (title.Length < UsefulLinkTitleMinLength || title.Length > UsefulLinkTitleMaxLength)
-                return (false, "useful_link_title_invalid");
             if (url.Length < UsefulLinkUrlMinLength || url.Length > UsefulLinkUrlMaxLength)
                 return (false, "useful_link_url_invalid");
+            if (title.Length > 0 && (title.Length < UsefulLinkTitleMinLength || title.Length > UsefulLinkTitleMaxLength))
+                return (false, "useful_link_title_invalid");
         }
 
-        var storage = UsefulLinksCodec.ToStorage(items);
+        var storage = UsefulLinksCodec.ToStorage(NormalizeUsefulLinks(items));
         if (storage.Length > UsefulLinksStorageMaxLength)
             return (false, "useful_links_too_long");
         return (true, null);
     }
 
-    public async Task<(bool Ok, Guid? CourseId, string? Name, string GeneralInfo, string Contacts, IReadOnlyList<CourseUsefulLinkItem> UsefulLinks, string? ErrorCode)> CreateCourseAsync(
+    public static IReadOnlyList<CourseUsefulLinkItem> NormalizeUsefulLinks(IReadOnlyList<CourseUsefulLinkItem>? items)
+    {
+        var list = items ?? Array.Empty<CourseUsefulLinkItem>();
+        if (list.Count == 0)
+            return Array.Empty<CourseUsefulLinkItem>();
+
+        return list
+            .Select(i =>
+            {
+                var url = (i.Url ?? "").Trim();
+                var title = (i.Title ?? "").Trim();
+                if (title.Length == 0)
+                    title = url;
+                return new CourseUsefulLinkItem(title, url);
+            })
+            .ToList();
+    }
+
+    public async Task<(bool Ok, Guid? CourseId, string? Name, string GeneralInfo, IReadOnlyList<CourseContactPersonItem> Contacts, IReadOnlyList<CourseUsefulLinkItem> UsefulLinks, string? ErrorCode)> CreateCourseAsync(
         Guid userId,
         Guid groupId,
         string name,
         string generalInfo,
-        string contacts,
+        IReadOnlyList<CourseContactPersonItem> contacts,
         IReadOnlyList<CourseUsefulLinkItem> usefulLinks,
         CancellationToken ct)
     {
         var member = await _db.GroupMembers
             .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
         if (member is null || member.Role != GroupRole.Owner)
-            return (false, null, null, "", "", Array.Empty<CourseUsefulLinkItem>(), "forbidden");
+            return (false, null, null, "", Array.Empty<CourseContactPersonItem>(), Array.Empty<CourseUsefulLinkItem>(), "forbidden");
 
         var course = new Course
         {
@@ -108,8 +156,8 @@ public sealed class CourseService
             GroupId = groupId,
             Name = name.Trim(),
             GeneralInfo = generalInfo ?? "",
-            Contacts = contacts ?? "",
-            UsefulLinks = UsefulLinksCodec.ToStorage(usefulLinks),
+            Contacts = ContactsCodec.ToStorage(contacts),
+            UsefulLinks = UsefulLinksCodec.ToStorage(NormalizeUsefulLinks(usefulLinks)),
             CreatedAt = DateTimeOffset.UtcNow
         };
         _db.Courses.Add(course);
@@ -125,7 +173,7 @@ public sealed class CourseService
             NewsFormatting.DetailCourseCreatedInGroup(course.Name),
             ct);
 
-        return (true, course.Id, course.Name, course.GeneralInfo, course.Contacts, UsefulLinksCodec.FromStorage(course.UsefulLinks), null);
+        return (true, course.Id, course.Name, course.GeneralInfo, ContactsCodec.FromStorage(course.Contacts), NormalizeUsefulLinks(UsefulLinksCodec.FromStorage(course.UsefulLinks)), null);
     }
 
     public async Task<List<CourseListDto>> GetByGroupIdAsync(Guid groupId, CancellationToken ct)
@@ -144,7 +192,7 @@ public sealed class CourseService
         Guid Id,
         string Name,
         string GeneralInfo,
-        string Contacts,
+        IReadOnlyList<CourseContactPersonItem> Contacts,
         IReadOnlyList<CourseUsefulLinkItem> UsefulLinks);
 
     public sealed record GradingElementDto(
@@ -187,8 +235,8 @@ public sealed class CourseService
             course.Id,
             course.Name,
             course.GeneralInfo,
-            course.Contacts,
-            UsefulLinksCodec.FromStorage(course.UsefulLinks)), null);
+            ContactsCodec.FromStorage(course.Contacts),
+            NormalizeUsefulLinks(UsefulLinksCodec.FromStorage(course.UsefulLinks))), null);
     }
 
     public async Task<(bool Ok, string? ErrorCode)> UpdateCourseAsync(
@@ -197,7 +245,7 @@ public sealed class CourseService
         Guid courseId,
         string name,
         string generalInfo,
-        string contacts,
+        IReadOnlyList<CourseContactPersonItem> contacts,
         IReadOnlyList<CourseUsefulLinkItem> usefulLinks,
         CancellationToken ct)
     {
@@ -220,8 +268,8 @@ public sealed class CourseService
         var oldLinks = course.UsefulLinks ?? "";
         course.Name = name.Trim();
         course.GeneralInfo = generalInfo ?? "";
-        course.Contacts = contacts ?? "";
-        course.UsefulLinks = UsefulLinksCodec.ToStorage(usefulLinks);
+        course.Contacts = ContactsCodec.ToStorage(contacts);
+        course.UsefulLinks = UsefulLinksCodec.ToStorage(NormalizeUsefulLinks(usefulLinks));
 
         var nameChanged = TrimField(oldName) != TrimField(course.Name);
         var restChanged = NewsFormatting.BuildChangedCourseFieldsGeneralLinks(

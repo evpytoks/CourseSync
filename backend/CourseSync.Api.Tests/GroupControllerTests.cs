@@ -43,7 +43,7 @@ public sealed class GroupControllerTests
     public async Task Create_invalid_name_returns_400()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()), user.Id);
@@ -56,11 +56,11 @@ public sealed class GroupControllerTests
     public async Task Create_success_returns_200()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()), user.Id);
-        var res = await controller.Create(new CreateGroupRequest("MyGroup"), CancellationToken.None);
+        var res = await controller.Create(new CreateGroupRequest("МояГруппа"), CancellationToken.None);
         Assert.IsType<OkResult>(res);
     }
 
@@ -77,7 +77,7 @@ public sealed class GroupControllerTests
     public async Task List_success_returns_groups()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
@@ -89,37 +89,37 @@ public sealed class GroupControllerTests
         Assert.Single(payload.Groups);
         Assert.Equal("G1", payload.Groups[0].Name);
         Assert.Equal("owner", payload.Groups[0].Role);
-        Assert.Equal("u@edu.hse.ru", payload.Groups[0].CreatorEmail);
+        Assert.Equal("user@edu.hse.ru", payload.Groups[0].CreatorEmail);
     }
 
     [Fact]
     public async Task OwnerList_returns_only_groups_where_user_is_owner()
     {
         await using var tdb = new TestDb();
-        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var joiner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "j@edu.hse.ru" };
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var joiner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "joiner@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, joiner);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var gOwned = await svc.CreateGroupAsync(owner.Id, "Owned", CancellationToken.None);
-        var gOther = await svc.CreateGroupAsync(joiner.Id, "Other", CancellationToken.None);
-        Assert.NotNull(gOwned);
-        Assert.NotNull(gOther);
-        await svc.JoinByCodeAsync(owner.Id, gOther.Value.Code, CancellationToken.None);
+        var gСвояГруппа = await svc.CreateGroupAsync(owner.Id, "СвояГруппа", CancellationToken.None);
+        var gЧужаяГруппа = await svc.CreateGroupAsync(joiner.Id, "ЧужаяГруппа", CancellationToken.None);
+        Assert.NotNull(gСвояГруппа);
+        Assert.NotNull(gЧужаяГруппа);
+        await svc.JoinByCodeAsync(owner.Id, gЧужаяГруппа.Value.Code, CancellationToken.None);
 
         var controller = CreateController(svc, owner.Id);
         var res = await controller.OwnerList(CancellationToken.None);
         var ok = Assert.IsType<OkObjectResult>(res.Result);
         var payload = Assert.IsType<OwnerGroupListResponse>(ok.Value);
         Assert.Single(payload.Groups);
-        Assert.Equal("Owned", payload.Groups[0].Name);
+        Assert.Equal("СвояГруппа", payload.Groups[0].Name);
     }
 
     [Fact]
     public async Task Join_invalid_code_format_returns_400()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()), user.Id);
@@ -132,7 +132,7 @@ public sealed class GroupControllerTests
     public async Task Join_group_not_found_returns_404()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()), user.Id);
@@ -145,12 +145,12 @@ public sealed class GroupControllerTests
     public async Task Join_success_returns_200()
     {
         await using var tdb = new TestDb();
-        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var joiner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "j@edu.hse.ru" };
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var joiner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "joiner@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, joiner);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var controller = CreateController(svc, joiner.Id);
         var res = await controller.Join(new GroupJoinRequest(create.Value.Code), CancellationToken.None);
@@ -161,16 +161,16 @@ public sealed class GroupControllerTests
     public async Task Change_forbidden_returns_403()
     {
         await using var tdb = new TestDb();
-        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var other = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var other = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, other);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         await svc.JoinByCodeAsync(other.Id, create.Value.Code, CancellationToken.None);
         var controller = CreateController(svc, other.Id);
-        var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("Hacked"), CancellationToken.None);
+        var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("ЧужоеИмя"), CancellationToken.None);
         var forbidden = Assert.IsType<ObjectResult>(res);
         Assert.Equal(403, forbidden.StatusCode);
     }
@@ -179,11 +179,11 @@ public sealed class GroupControllerTests
     public async Task Change_validation_error_returns_400()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("ThisNameIsWayTooLongForLimit"), CancellationToken.None);
@@ -195,14 +195,14 @@ public sealed class GroupControllerTests
     public async Task Change_success_returns_200()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "Old", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "СтароеИмя", CancellationToken.None);
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
-        var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("NewName"), CancellationToken.None);
+        var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("НовоеИмя"), CancellationToken.None);
         Assert.IsType<OkResult>(res);
     }
 
@@ -210,12 +210,12 @@ public sealed class GroupControllerTests
     public async Task Choose_forbidden_when_not_member_returns_403()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
-        var other = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
+        var other = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         tdb.Db.Users.AddRange(user, other);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(other.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(other.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Choose(create.Value.GroupId, CancellationToken.None);
@@ -226,11 +226,11 @@ public sealed class GroupControllerTests
     public async Task Choose_success_returns_200()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "Chosen", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "ВыбраннаяГруппа", CancellationToken.None);
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Choose(create.Value.GroupId, CancellationToken.None);
@@ -241,12 +241,12 @@ public sealed class GroupControllerTests
     public async Task GetCurrent_without_chosen_group_returns_400_no_group_selected()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
-        var other = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
+        var other = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         tdb.Db.Users.AddRange(user, other);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(other.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(other.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.GetCurrent(CancellationToken.None);
@@ -258,11 +258,11 @@ public sealed class GroupControllerTests
     public async Task GetCurrent_when_not_chosen_returns_400_no_group_selected()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
 
         var controller = CreateController(svc, user.Id);
@@ -275,11 +275,11 @@ public sealed class GroupControllerTests
     public async Task GetCurrent_success_returns_id_name_and_role()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "MyGroup", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "МояГруппа", CancellationToken.None);
         Assert.NotNull(create);
         var choose = await svc.ChooseGroupAsync(user.Id, create.Value.GroupId, CancellationToken.None);
         Assert.True(choose.Ok);
@@ -289,7 +289,7 @@ public sealed class GroupControllerTests
         var ok = Assert.IsType<OkObjectResult>(res.Result);
         var payload = Assert.IsType<GroupDetailsResponse>(ok.Value);
         Assert.Equal(create.Value.GroupId, payload.Id);
-        Assert.Equal("MyGroup", payload.Name);
+        Assert.Equal("МояГруппа", payload.Name);
         Assert.Equal("owner", payload.Role);
         Assert.NotNull(payload.GroupCode);
         Assert.Equal(6, payload.GroupCode!.Length);
@@ -310,11 +310,11 @@ public sealed class GroupControllerTests
     public async Task Delete_owner_returns_204()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
 
         var controller = CreateController(svc, user.Id);
@@ -326,12 +326,12 @@ public sealed class GroupControllerTests
     public async Task Delete_participant_returns_403()
     {
         await using var tdb = new TestDb();
-        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, participant);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         await svc.JoinByCodeAsync(participant.Id, create.Value.Code, CancellationToken.None);
 
@@ -345,7 +345,7 @@ public sealed class GroupControllerTests
     public async Task Delete_unknown_group_returns_404()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(
@@ -359,7 +359,7 @@ public sealed class GroupControllerTests
     public async Task Leave_not_in_group_returns_404()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(
@@ -373,12 +373,12 @@ public sealed class GroupControllerTests
     public async Task Leave_participant_removes_membership_and_clears_current_group()
     {
         await using var tdb = new TestDb();
-        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, participant);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         await svc.JoinByCodeAsync(participant.Id, create.Value.Code, CancellationToken.None);
         await svc.ChooseGroupAsync(participant.Id, create.Value.GroupId, CancellationToken.None);
@@ -396,13 +396,13 @@ public sealed class GroupControllerTests
     public async Task Leave_participant_keeps_current_group_when_other_group_selected()
     {
         await using var tdb = new TestDb();
-        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, participant);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var g1 = await svc.CreateGroupAsync(owner.Id, "A", CancellationToken.None);
-        var g2 = await svc.CreateGroupAsync(participant.Id, "B", CancellationToken.None);
+        var g1 = await svc.CreateGroupAsync(owner.Id, "Дискретная математика 2026", CancellationToken.None);
+        var g2 = await svc.CreateGroupAsync(participant.Id, "Физика 2026", CancellationToken.None);
         Assert.NotNull(g1);
         Assert.NotNull(g2);
         await svc.JoinByCodeAsync(participant.Id, g1.Value.Code, CancellationToken.None);
@@ -420,11 +420,11 @@ public sealed class GroupControllerTests
     public async Task Leave_owner_deletes_group_returns_204()
     {
         await using var tdb = new TestDb();
-        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
 
         var controller = CreateController(svc, user.Id);

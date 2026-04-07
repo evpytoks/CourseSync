@@ -33,7 +33,7 @@ public sealed class NewsControllerTests
     public async Task Add_without_group_id_returns_400()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var news = new NewsService(tdb.Db, new NotificationService(tdb.Db));
@@ -48,11 +48,11 @@ public sealed class NewsControllerTests
     public async Task Add_as_owner_without_current_group_returns_200()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var groupSvc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var created = await groupSvc.CreateGroupAsync(user.Id, "Owned", CancellationToken.None);
+        var created = await groupSvc.CreateGroupAsync(user.Id, "СвояГруппа", CancellationToken.None);
         Assert.NotNull(created);
 
         var news = new NewsService(tdb.Db, new NotificationService(tdb.Db));
@@ -66,19 +66,19 @@ public sealed class NewsControllerTests
     public async Task Add_as_participant_returns_403()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var participant = new User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, participant);
         await tdb.Db.SaveChangesAsync();
         var groupSvc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var created = await groupSvc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var created = await groupSvc.CreateGroupAsync(owner.Id, "Группа 1", CancellationToken.None);
         Assert.NotNull(created);
         await groupSvc.JoinByCodeAsync(participant.Id, created.Value.Code, CancellationToken.None);
 
         var news = new NewsService(tdb.Db, new NotificationService(tdb.Db));
         var userSvc = new UserService(tdb.Db);
         var controller = CreateController(news, userSvc, participant.Id);
-        var res = await controller.Add(new AddNewsRequest(created.Value.GroupId, "x"), CancellationToken.None);
+        var res = await controller.Add(new AddNewsRequest(created.Value.GroupId, "Текст новости"), CancellationToken.None);
         var forbidden = Assert.IsType<ObjectResult>(res);
         Assert.Equal(403, forbidden.StatusCode);
     }
@@ -87,11 +87,11 @@ public sealed class NewsControllerTests
     public async Task Read_all_returns_marked_count_and_clears_unread()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         var g = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "Учебная группа 2026",
             Code = "aaaaaa",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -102,8 +102,8 @@ public sealed class NewsControllerTests
             GroupId = g.Id,
             CreatedAt = DateTimeOffset.UtcNow,
             GroupName = g.Name,
-            Section = "s",
-            Detail = "d",
+            Section = "Новости",
+            Detail = "подробности новости",
             Type = "manual"
         };
         tdb.Db.Users.Add(user);

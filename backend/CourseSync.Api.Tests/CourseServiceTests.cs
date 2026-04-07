@@ -20,7 +20,7 @@ public sealed class CourseServiceTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -29,7 +29,7 @@ public sealed class CourseServiceTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -73,7 +73,7 @@ public sealed class CourseServiceTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -82,7 +82,7 @@ public sealed class CourseServiceTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -122,7 +122,7 @@ public sealed class CourseServiceTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow

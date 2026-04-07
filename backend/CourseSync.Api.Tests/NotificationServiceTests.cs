@@ -14,7 +14,7 @@ public sealed class NotificationServiceTests
         tdb.Db.Groups.Add(new Group
         {
             Id = groupId,
-            Name = "MyGroup",
+            Name = "МояГруппа",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -58,7 +58,7 @@ public sealed class NotificationServiceTests
             "manual",
             ownerId,
             groupId,
-            "G",
+            "Линейная алгебра 2026",
             "  ",
             "",
             CancellationToken.None));
@@ -75,7 +75,7 @@ public sealed class NotificationServiceTests
             "manual",
             ownerId,
             groupId,
-            "G",
+            "Линейная алгебра 2026",
             "Курсы",
             new string('b', 3001),
             CancellationToken.None));
@@ -108,7 +108,7 @@ public sealed class NotificationServiceTests
         tdb.Db.Groups.Add(new Group
         {
             Id = groupId,
-            Name = "Algebra",
+            Name = "Алгебра",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -138,17 +138,17 @@ public sealed class NotificationServiceTests
             "news",
             ownerId,
             groupId,
-            "Algebra",
+            "Алгебра",
             "Новости",
             "Текст новости",
             CancellationToken.None);
 
         var n = await tdb.Db.Notifications.AsNoTracking().SingleAsync(x => x.UserId == participantId);
-        Assert.Equal("Algebra", n.Title);
+        Assert.Equal("Алгебра", n.Title);
         Assert.Equal("Новости\n\nТекст новости", n.Body);
 
         var news = await tdb.Db.News.AsNoTracking().SingleAsync(x => x.GroupId == groupId);
-        Assert.Equal("Algebra", news.GroupName);
+        Assert.Equal("Алгебра", news.GroupName);
         Assert.Equal("Новости", news.Section);
         Assert.Equal("Текст новости", news.Detail);
     }

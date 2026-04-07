@@ -57,29 +57,37 @@ public sealed record CourseUsefulLinkItem(
     [property: JsonPropertyName("title")] string Title,
     [property: JsonPropertyName("url")] string Url);
 
+public sealed record CourseContactMethodItem(
+    [property: JsonPropertyName("type")] string? Type,
+    [property: JsonPropertyName("value")] string? Value);
+
+public sealed record CourseContactPersonItem(
+    [property: JsonPropertyName("name")] string? Name,
+    [property: JsonPropertyName("contact_methods")] IReadOnlyList<CourseContactMethodItem>? ContactMethods);
+
 public sealed record AddCourseRequest(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string? GeneralInfo,
-    [property: JsonPropertyName("contacts")] string? Contacts,
+    [property: JsonPropertyName("contacts")] IReadOnlyList<CourseContactPersonItem>? Contacts,
     [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem>? UsefulLinks);
 public sealed record AddCourseResponse(
     Guid Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string GeneralInfo,
-    [property: JsonPropertyName("contacts")] string Contacts,
+    [property: JsonPropertyName("contacts")] IReadOnlyList<CourseContactPersonItem> Contacts,
     [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem> UsefulLinks);
 
 public sealed record CourseDetailsResponse(
     Guid Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string GeneralInfo,
-    [property: JsonPropertyName("contacts")] string Contacts,
+    [property: JsonPropertyName("contacts")] IReadOnlyList<CourseContactPersonItem> Contacts,
     [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem> UsefulLinks);
 
 public sealed record ChangeCourseRequest(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("general_info")] string? GeneralInfo,
-    [property: JsonPropertyName("contacts")] string? Contacts,
+    [property: JsonPropertyName("contacts")] IReadOnlyList<CourseContactPersonItem>? Contacts,
     [property: JsonPropertyName("useful_links")] IReadOnlyList<CourseUsefulLinkItem>? UsefulLinks);
 
 public sealed record CourseMaterialListItem(

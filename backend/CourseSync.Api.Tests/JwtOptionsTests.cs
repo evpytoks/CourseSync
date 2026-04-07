@@ -38,7 +38,7 @@ public sealed class JwtOptionsTests
     {
         var opt = new JwtOptions
         {
-            Issuer = "T", Audience = "T", Key = "12345678901234567890123456789012", AccessTokenMinutes = 0
+            Issuer = "TestIssuer", Audience = "TestAudience", Key = "12345678901234567890123456789012", AccessTokenMinutes = 0
         };
         Assert.Throws<ValidationException>(() =>
             Validator.ValidateObject(opt, new ValidationContext(opt), validateAllProperties: true));

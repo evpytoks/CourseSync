@@ -49,7 +49,7 @@ public sealed class CourseControllerTests
     public async Task Delete_no_current_group_returns_400()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "student@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
 
@@ -67,7 +67,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -76,7 +76,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -108,7 +108,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -117,7 +117,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -157,7 +157,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -188,7 +188,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -197,7 +197,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -237,11 +237,11 @@ public sealed class CourseControllerTests
     public async Task OpenPersonalPdf_unknown_material_returns_404()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "student@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -250,7 +250,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -281,7 +281,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -290,7 +290,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -330,7 +330,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -339,7 +339,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -371,7 +371,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -380,7 +380,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             GradingText = "Final score is weighted sum.",
@@ -414,7 +414,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -423,7 +423,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -475,12 +475,12 @@ public sealed class CourseControllerTests
     public async Task ListPersonalMaterials_includes_is_creator_flag()
     {
         await using var tdb = new TestDb();
-        var currentUser = new User { Id = Guid.NewGuid(), Email = "student@edu.hse.ru" };
+        var currentUser = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         var otherUser = new User { Id = Guid.NewGuid(), Email = "other@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -489,7 +489,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -553,7 +553,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -562,7 +562,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -614,7 +614,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -623,7 +623,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -677,7 +677,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -686,7 +686,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
+            Name = "Линейная алгебра",
             GeneralInfo = "Core linear algebra theory and practice.",
             UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
@@ -737,7 +737,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -746,9 +746,9 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
-            GeneralInfo = "x",
-            UsefulLinks = "y",
+            Name = "Линейная алгебра",
+            GeneralInfo = "общая информация",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -792,7 +792,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -801,9 +801,9 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
-            GeneralInfo = "x",
-            UsefulLinks = "y",
+            Name = "Линейная алгебра",
+            GeneralInfo = "общая информация",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -826,13 +826,13 @@ public sealed class CourseControllerTests
                 "",
                 new[]
                 {
-                    new CourseGradingElementRequest("A", 0.5m, null),
-                    new CourseGradingElementRequest("B", 0.5m, null)
+                    new CourseGradingElementRequest("Коллоквиум", 0.5m, null),
+                    new CourseGradingElementRequest("Финальный экзамен", 0.5m, null)
                 }),
             CancellationToken.None);
 
-        await controller.UpdateGradingScores(course.Id, new UpdateCourseGradingScoresRequest("A", new decimal[] { 10m }), CancellationToken.None);
-        await controller.UpdateGradingScores(course.Id, new UpdateCourseGradingScoresRequest("B", new decimal[] { 0m }), CancellationToken.None);
+        await controller.UpdateGradingScores(course.Id, new UpdateCourseGradingScoresRequest("Коллоквиум", new decimal[] { 10m }), CancellationToken.None);
+        await controller.UpdateGradingScores(course.Id, new UpdateCourseGradingScoresRequest("Финальный экзамен", new decimal[] { 0m }), CancellationToken.None);
 
         var gradingRes = await controller.GetGrading(course.Id, CancellationToken.None);
         var payload = Assert.IsType<CourseGradingResponse>(Assert.IsType<OkObjectResult>(gradingRes).Value);
@@ -849,7 +849,7 @@ public sealed class CourseControllerTests
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -858,9 +858,9 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
-            GeneralInfo = "x",
-            UsefulLinks = "y",
+            Name = "Линейная алгебра",
+            GeneralInfo = "общая информация",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.Add(owner);
@@ -918,11 +918,11 @@ public sealed class CourseControllerTests
     {
         await using var tdb = new TestDb();
         var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
-        var student = new User { Id = Guid.NewGuid(), Email = "student@edu.hse.ru" };
+        var student = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "MathGroup2026",
+            Name = "Математика2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -931,9 +931,9 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "Linear Algebra",
-            GeneralInfo = "x",
-            UsefulLinks = "y",
+            Name = "Линейная алгебра",
+            GeneralInfo = "общая информация",
+            UsefulLinks = TestUsefulLinksJson,
             CreatedAt = DateTimeOffset.UtcNow
         };
         tdb.Db.Users.AddRange(owner, student);
@@ -984,11 +984,11 @@ public sealed class CourseControllerTests
     public async Task Cumulative_grade_and_grading_elements_list_and_block_on_element()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         var group = new Group
         {
             Id = Guid.NewGuid(),
-            Name = "G",
+            Name = "Линейная алгебра 2026",
             Code = "abcDef",
             CodeGeneratedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow
@@ -997,7 +997,7 @@ public sealed class CourseControllerTests
         {
             Id = Guid.NewGuid(),
             GroupId = group.Id,
-            Name = "C",
+            Name = "Основной курс",
             GeneralInfo = "",
             UsefulLinks = "",
             CreatedAt = DateTimeOffset.UtcNow
