@@ -186,6 +186,20 @@ public sealed class CourseService
         return list;
     }
 
+    public async Task<(bool Ok, List<CourseListDto>? Courses, string? ErrorCode)> GetByGroupIdForOwnerAsync(
+        Guid userId,
+        Guid groupId,
+        CancellationToken ct)
+    {
+        var isOwner = await _db.GroupMembers
+            .AnyAsync(m => m.UserId == userId && m.GroupId == groupId && m.Role == GroupRole.Owner, ct);
+        if (!isOwner)
+            return (false, null, "forbidden");
+
+        var courses = await GetByGroupIdAsync(groupId, ct);
+        return (true, courses, null);
+    }
+
     public sealed record CourseListDto(Guid Id, string Name);
 
     public sealed record CourseDetailDto(

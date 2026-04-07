@@ -19,6 +19,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<CourseGeneralMaterial> CourseGeneralMaterials => Set<CourseGeneralMaterial>();
     public DbSet<CoursePersonalMaterial> CoursePersonalMaterials => Set<CoursePersonalMaterial>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
+    public DbSet<CalendarEventUserState> CalendarEventUserStates => Set<CalendarEventUserState>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<UserDevice> UserDevices => Set<UserDevice>();
     public DbSet<News> News => Set<News>();
@@ -54,6 +55,12 @@ public sealed class AppDbContext : DbContext
                 .HasColumnName("dark_theme_on")
                 .HasDefaultValue(false)
                 .IsRequired();
+
+            e.Property(x => x.CalendarEventTypeColors)
+                .HasColumnName("calendar_event_type_colors")
+                .HasDefaultValue("")
+                .IsRequired()
+                .HasMaxLength(4000);
 
             e.HasOne<Group>()
                 .WithMany()
@@ -327,6 +334,8 @@ public sealed class AppDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
+            e.Property(x => x.CourseId).HasColumnName("course_id");
+            e.Property(x => x.EventType).HasColumnName("event_type").IsRequired().HasMaxLength(30);
             e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(50);
             e.Property(x => x.Date).HasColumnName("date").IsRequired();
             e.Property(x => x.Description).HasColumnName("description").IsRequired().HasMaxLength(1000);
@@ -336,8 +345,36 @@ public sealed class AppDbContext : DbContext
                 .HasForeignKey(x => x.GroupId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            e.HasOne<Course>()
+                .WithMany()
+                .HasForeignKey(x => x.CourseId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             e.HasIndex(x => x.GroupId);
+            e.HasIndex(x => x.CourseId);
             e.HasIndex(x => x.Date);
+        });
+
+        b.Entity<CalendarEventUserState>(e =>
+        {
+            e.ToTable("calendar_event_user_states");
+            e.HasKey(x => new { x.EventId, x.UserId });
+
+            e.Property(x => x.EventId).HasColumnName("event_id").IsRequired();
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.IsDone).HasColumnName("is_done").HasDefaultValue(false).IsRequired();
+
+            e.HasOne<CalendarEvent>()
+                .WithMany()
+                .HasForeignKey(x => x.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.UserId);
         });
 
         b.Entity<Notification>(e =>
