@@ -47,7 +47,7 @@ public sealed class SettingsControllerTests
         var user = new User
         {
             Id = Guid.NewGuid(),
-            Email = "u@edu.hse.ru",
+            Email = "user@edu.hse.ru",
             NotificationsOn = true,
             DarkThemeOn = false
         };
@@ -71,7 +71,7 @@ public sealed class SettingsControllerTests
         var user = new User
         {
             Id = Guid.NewGuid(),
-            Email = "u@edu.hse.ru",
+            Email = "user@edu.hse.ru",
             NotificationsOn = false,
             DarkThemeOn = false
         };

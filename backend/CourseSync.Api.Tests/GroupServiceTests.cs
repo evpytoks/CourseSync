@@ -11,7 +11,7 @@ public sealed class GroupServiceTests
     [InlineData(null, "group_name_required")]
     [InlineData("", "group_name_required")]
     [InlineData("   ", "group_name_required")]
-    [InlineData("a", null)]
+    [InlineData("Матанализ", null)]
     [InlineData("GroupName", null)]
     [InlineData("Группа", null)]
     [InlineData("12345678901234567890", null)]
@@ -62,7 +62,7 @@ public sealed class GroupServiceTests
     public async Task GetUserGroupsAsync_returns_empty_when_no_memberships()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var list = await new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()).GetUserGroupsAsync(user.Id, CancellationToken.None);
@@ -92,12 +92,12 @@ public sealed class GroupServiceTests
     public async Task JoinByCodeAsync_joins_and_returns_participant()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var joiner = new User { Id = Guid.NewGuid(), Email = "j@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var joiner = new User { Id = Guid.NewGuid(), Email = "joiner@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, joiner);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var result = await svc.JoinByCodeAsync(joiner.Id, create.Value.Code, CancellationToken.None);
         Assert.NotNull(result);
@@ -108,11 +108,11 @@ public sealed class GroupServiceTests
     public async Task JoinByCodeAsync_already_member_returns_existing_role()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         tdb.Db.Users.Add(owner);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var result = await svc.JoinByCodeAsync(owner.Id, create.Value.Code, CancellationToken.None);
         Assert.NotNull(result);
@@ -123,7 +123,7 @@ public sealed class GroupServiceTests
     public async Task JoinByCodeAsync_invalid_code_returns_null()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
@@ -135,32 +135,32 @@ public sealed class GroupServiceTests
     public async Task ChangeNameAsync_owner_succeeds()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "Old", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "СтароеИмя", CancellationToken.None);
         Assert.NotNull(create);
-        var (ok, errorCode) = await svc.ChangeNameAsync(user.Id, create.Value.GroupId, "NewName", CancellationToken.None);
+        var (ok, errorCode) = await svc.ChangeNameAsync(user.Id, create.Value.GroupId, "НовоеИмя", CancellationToken.None);
         Assert.True(ok);
         Assert.Null(errorCode);
         var group = await tdb.Db.Groups.SingleAsync(g => g.Id == create.Value.GroupId);
-        Assert.Equal("NewName", group.Name);
+        Assert.Equal("НовоеИмя", group.Name);
     }
 
     [Fact]
     public async Task ChangeNameAsync_not_owner_returns_forbidden()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var other = new User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var other = new User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, other);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         await svc.JoinByCodeAsync(other.Id, create.Value.Code, CancellationToken.None);
-        var (ok, errorCode) = await svc.ChangeNameAsync(other.Id, create.Value.GroupId, "Hacked", CancellationToken.None);
+        var (ok, errorCode) = await svc.ChangeNameAsync(other.Id, create.Value.GroupId, "ЧужоеИмя", CancellationToken.None);
         Assert.False(ok);
         Assert.Equal("forbidden", errorCode);
     }
@@ -169,11 +169,11 @@ public sealed class GroupServiceTests
     public async Task ChangeNameAsync_invalid_name_returns_validation_error()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var (ok, errorCode) = await svc.ChangeNameAsync(user.Id, create.Value.GroupId, "", CancellationToken.None);
         Assert.False(ok);
@@ -184,28 +184,28 @@ public sealed class GroupServiceTests
     public async Task ChooseGroupAsync_member_succeeds()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(user.Id, "Chosen", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(user.Id, "ВыбраннаяГруппа", CancellationToken.None);
         Assert.NotNull(create);
         var (ok, groupId, name) = await svc.ChooseGroupAsync(user.Id, create.Value.GroupId, CancellationToken.None);
         Assert.True(ok);
         Assert.Equal(create.Value.GroupId, groupId);
-        Assert.Equal("Chosen", name);
+        Assert.Equal("ВыбраннаяГруппа", name);
     }
 
     [Fact]
     public async Task ChooseGroupAsync_not_member_returns_false()
     {
         await using var tdb = new TestDb();
-        var user = new User { Id = Guid.NewGuid(), Email = "u@edu.hse.ru" };
-        var other = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
+        var other = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         tdb.Db.Users.AddRange(user, other);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(other.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(other.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var (ok, groupId, name) = await svc.ChooseGroupAsync(user.Id, create.Value.GroupId, CancellationToken.None);
         Assert.False(ok);
@@ -217,11 +217,11 @@ public sealed class GroupServiceTests
     public async Task DeleteGroupAsync_owner_removes_group_and_clears_current_group()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         tdb.Db.Users.Add(owner);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var groupId = create.Value.GroupId;
         owner.CurrentGroupId = groupId;
@@ -239,12 +239,12 @@ public sealed class GroupServiceTests
     public async Task DeleteGroupAsync_participant_forbidden()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
-        var participant = new User { Id = Guid.NewGuid(), Email = "p@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
         tdb.Db.Users.AddRange(owner, participant);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        var create = await svc.CreateGroupAsync(owner.Id, "G", CancellationToken.None);
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         await svc.JoinByCodeAsync(participant.Id, create.Value.Code, CancellationToken.None);
 
@@ -258,7 +258,7 @@ public sealed class GroupServiceTests
     public async Task DeleteGroupAsync_unknown_group_not_found()
     {
         await using var tdb = new TestDb();
-        var owner = new User { Id = Guid.NewGuid(), Email = "o@edu.hse.ru" };
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
         tdb.Db.Users.Add(owner);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());

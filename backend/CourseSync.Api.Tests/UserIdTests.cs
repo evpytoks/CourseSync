@@ -14,7 +14,7 @@ public sealed class UserIdTests
     [Fact]
     public void StableUserId_different_emails_produce_different_ids()
     {
-        Assert.NotEqual(UserId.StableUserId("a@edu.hse.ru"), UserId.StableUserId("b@edu.hse.ru"));
+        Assert.NotEqual(UserId.StableUserId("user@edu.hse.ru"), UserId.StableUserId("owner@edu.hse.ru"));
     }
 
     [Fact]

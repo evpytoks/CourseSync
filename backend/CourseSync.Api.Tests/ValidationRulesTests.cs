@@ -22,17 +22,72 @@ public sealed class ValidationRulesTests
     }
 
     [Fact]
-    public void Course_contacts_allows_null_and_empty_and_enforces_max_length()
+    public void Course_contacts_validates_people_and_contact_methods()
     {
-        Assert.True(CourseService.ValidateContacts(null).Valid);
-        Assert.True(CourseService.ValidateContacts("").Valid);
+        Assert.False(CourseService.ValidateContacts(null).Valid);
+        Assert.Equal("contacts_required", CourseService.ValidateContacts(null).ErrorCode);
+        Assert.True(CourseService.ValidateContacts(Array.Empty<CourseContactPersonItem>()).Valid);
 
-        var ok2000 = CourseService.ValidateContacts(new string('x', 2000));
-        Assert.True(ok2000.Valid);
+        var valid = CourseService.ValidateContacts(new[]
+        {
+            new CourseContactPersonItem(
+                "Иванов Иван Иванович",
+                new[]
+                {
+                    new CourseContactMethodItem("Почта", "teacher@example.com"),
+                    new CourseContactMethodItem("", "+70000000000")
+                })
+        });
+        Assert.True(valid.Valid);
 
-        var tooLong = CourseService.ValidateContacts(new string('x', 2001));
-        Assert.False(tooLong.Valid);
-        Assert.Equal("contacts_too_long", tooLong.ErrorCode);
+        var noName = CourseService.ValidateContacts(new[]
+        {
+            new CourseContactPersonItem("   ", Array.Empty<CourseContactMethodItem>())
+        });
+        Assert.False(noName.Valid);
+        Assert.Equal("contact_person_name_required", noName.ErrorCode);
+
+        var methodsRequired = CourseService.ValidateContacts(new[]
+        {
+            new CourseContactPersonItem("Иван Иванов", null)
+        });
+        Assert.False(methodsRequired.Valid);
+        Assert.Equal("contact_methods_required", methodsRequired.ErrorCode);
+
+        var tooManyPeople = Enumerable.Range(0, CourseService.ContactsMaxPeople + 1)
+            .Select(i => new CourseContactPersonItem($"P{i}", Array.Empty<CourseContactMethodItem>()))
+            .ToArray();
+        Assert.False(CourseService.ValidateContacts(tooManyPeople).Valid);
+        Assert.Equal("contacts_too_many_people", CourseService.ValidateContacts(tooManyPeople).ErrorCode);
+
+        var tooManyMethods = CourseService.ValidateContacts(new[]
+        {
+            new CourseContactPersonItem(
+                "P1",
+                Enumerable.Range(0, CourseService.ContactMethodsMaxPerPerson + 1)
+                    .Select(i => new CourseContactMethodItem("Телеграм", "значение_" + i))
+                    .ToArray())
+        });
+        Assert.False(tooManyMethods.Valid);
+        Assert.Equal("contact_methods_too_many", tooManyMethods.ErrorCode);
+
+        var emptyValue = CourseService.ValidateContacts(new[]
+        {
+            new CourseContactPersonItem(
+                "P1",
+                new[] { new CourseContactMethodItem("Телефон", "  ") })
+        });
+        Assert.False(emptyValue.Valid);
+        Assert.Equal("contact_method_value_required", emptyValue.ErrorCode);
+
+        var typeRequired = CourseService.ValidateContacts(new[]
+        {
+            new CourseContactPersonItem(
+                "P1",
+                new[] { new CourseContactMethodItem(null, "+70000000000") })
+        });
+        Assert.False(typeRequired.Valid);
+        Assert.Equal("contact_method_type_required", typeRequired.ErrorCode);
     }
 
     [Fact]
@@ -41,20 +96,23 @@ public sealed class ValidationRulesTests
         Assert.True(CourseService.ValidateUsefulLinks(null).Valid);
         Assert.True(CourseService.ValidateUsefulLinks(Array.Empty<CourseUsefulLinkItem>()).Valid);
 
-        Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("", "https://a.com") }).Valid);
-        Assert.Equal("useful_link_title_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("", "https://a.com") }).ErrorCode);
+        Assert.True(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("", "https://a.com") }).Valid);
+        var normalized = CourseService.NormalizeUsefulLinks(new[] { new CourseUsefulLinkItem("", "https://a.com") });
+        Assert.Single(normalized);
+        Assert.Equal("https://a.com", normalized[0].Title);
+        Assert.Equal("https://a.com", normalized[0].Url);
 
-        Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("A", "") }).Valid);
-        Assert.Equal("useful_link_url_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("A", "") }).ErrorCode);
+        Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("Сайт курса", "") }).Valid);
+        Assert.Equal("useful_link_url_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("Сайт курса", "") }).ErrorCode);
 
         Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem(new string('t', 51), "https://a.com") }).Valid);
         Assert.Equal("useful_link_title_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem(new string('t', 51), "https://a.com") }).ErrorCode);
 
-        Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("A", new string('u', 201)) }).Valid);
-        Assert.Equal("useful_link_url_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("A", new string('u', 201)) }).ErrorCode);
+        Assert.False(CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("Сайт курса", new string('u', 201)) }).Valid);
+        Assert.Equal("useful_link_url_invalid", CourseService.ValidateUsefulLinks(new[] { new CourseUsefulLinkItem("Сайт курса", new string('u', 201)) }).ErrorCode);
 
         var many = Enumerable.Range(0, CourseService.UsefulLinksMaxItems + 1)
-            .Select(i => new CourseUsefulLinkItem("L" + i, "https://x.co/" + i))
+            .Select(i => new CourseUsefulLinkItem("Ссылка " + i, "https://example.com/" + i))
             .ToArray();
         Assert.False(CourseService.ValidateUsefulLinks(many).Valid);
         Assert.Equal("useful_links_too_many", CourseService.ValidateUsefulLinks(many).ErrorCode);
