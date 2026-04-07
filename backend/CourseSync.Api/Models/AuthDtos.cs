@@ -42,11 +42,24 @@ public sealed record GroupDetailsResponse(
 
 public sealed record UserSettingsResponse(
     [property: JsonPropertyName("notifications_on")] bool NotificationsOn,
-    [property: JsonPropertyName("dark_theme_on")] bool DarkThemeOn);
+    [property: JsonPropertyName("dark_theme_on")] bool DarkThemeOn,
+    [property: JsonPropertyName("calendar_event_type_colors")] IReadOnlyList<CalendarEventTypeColorItem> CalendarEventTypeColors);
 
 public sealed record UpdateUserSettingsRequest(
     [property: JsonPropertyName("notifications_on")] bool? NotificationsOn,
-    [property: JsonPropertyName("dark_theme_on")] bool? DarkThemeOn);
+    [property: JsonPropertyName("dark_theme_on")] bool? DarkThemeOn,
+    [property: JsonPropertyName("calendar_event_type_colors")] IReadOnlyList<UpdateCalendarEventTypeColorItem>? CalendarEventTypeColors);
+
+public sealed record CalendarEventTypeColorItem(
+    [property: JsonPropertyName("type")] string Type,
+    [property: JsonPropertyName("color")] string Color);
+
+public sealed record CalendarEventTypeColorsResponse(
+    [property: JsonPropertyName("items")] IReadOnlyList<CalendarEventTypeColorItem> Items);
+
+public sealed record UpdateCalendarEventTypeColorItem(
+    [property: JsonPropertyName("type")] string? Type,
+    [property: JsonPropertyName("color")] string? Color);
 
 public sealed record CourseListItem(
     Guid Id,
@@ -167,23 +180,42 @@ public sealed record UpdateCourseGradingScoresRequest(
 
 public sealed record CalendarListItem(
     Guid Id,
-    string Name,
-    DateTime Date);
+    [property: JsonPropertyName("group_id")] Guid GroupId,
+    [property: JsonPropertyName("group_name")] string GroupName,
+    [property: JsonPropertyName("course_id")] Guid? CourseId,
+    [property: JsonPropertyName("course_name")] string? CourseName,
+    [property: JsonPropertyName("event_type")] string EventType,
+    [property: JsonPropertyName("event_color")] string EventColor,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("date")] DateTime Date,
+    [property: JsonPropertyName("is_done")] bool IsDone);
 public sealed record CalendarListResponse(IReadOnlyList<CalendarListItem> Events);
 
 public sealed record AddCalendarEventRequest(
-    string Name,
-    DateTime Date,
+    [property: JsonPropertyName("group_id")] Guid GroupId,
+    [property: JsonPropertyName("course_id")] Guid? CourseId,
+    [property: JsonPropertyName("event_type")] string? EventType,
+    [property: JsonPropertyName("name")] string? Name,
+    [property: JsonPropertyName("date")] DateTime Date,
     [property: JsonPropertyName("description")] string? Description);
 
 public sealed record CalendarEventDetailsResponse(
-    string Name,
-    DateTime Date,
-    string Description);
+    [property: JsonPropertyName("group_id")] Guid GroupId,
+    [property: JsonPropertyName("group_name")] string GroupName,
+    [property: JsonPropertyName("course_id")] Guid? CourseId,
+    [property: JsonPropertyName("course_name")] string? CourseName,
+    [property: JsonPropertyName("event_type")] string EventType,
+    [property: JsonPropertyName("event_color")] string EventColor,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("date")] DateTime Date,
+    [property: JsonPropertyName("description")] string Description,
+    [property: JsonPropertyName("is_done")] bool IsDone);
 
 public sealed record UpdateCalendarEventRequest(
-    string Name,
-    DateTime Date,
+    [property: JsonPropertyName("course_id")] Guid? CourseId,
+    [property: JsonPropertyName("event_type")] string? EventType,
+    [property: JsonPropertyName("name")] string? Name,
+    [property: JsonPropertyName("date")] DateTime Date,
     [property: JsonPropertyName("description")] string? Description);
 
 public sealed record RegisterDeviceRequest(

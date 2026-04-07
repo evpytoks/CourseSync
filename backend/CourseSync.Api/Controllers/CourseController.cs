@@ -46,6 +46,29 @@ public sealed class CourseController : ControllerBase
         return Ok(new CourseListResponse(items));
     }
 
+    [HttpGet("group/{groupId:guid}/list")]
+    public async Task<ActionResult<CourseListResponse>> ListByGroup(Guid groupId, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var (ok, dtos, errorCode) = await _courseService.GetByGroupIdForOwnerAsync(userId.Value, groupId, ct);
+        if (!ok)
+        {
+            if (errorCode == "forbidden")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
+        }
+
+        var items = dtos!.Select(d => new CourseListItem(d.Id, d.Name)).ToList();
+        return Ok(new CourseListResponse(items));
+    }
+
     [HttpPost("add")]
     public async Task<IActionResult> Add([FromBody] AddCourseRequest req, CancellationToken ct)
     {

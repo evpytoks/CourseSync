@@ -2,6 +2,7 @@ using System.Security.Claims;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CourseSync.Api.Controllers;
@@ -17,6 +18,8 @@ public sealed class SettingsController : ControllerBase
     public SettingsController(UserService users) => _users = users;
 
     [HttpGet]
+    [ProducesResponseType(typeof(UserSettingsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<UserSettingsResponse>> Get(CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -27,17 +30,37 @@ public sealed class SettingsController : ControllerBase
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        return Ok(new UserSettingsResponse(user.NotificationsOn, user.DarkThemeOn));
+        var colors = _users.GetResolvedCalendarEventTypeColors(user)
+            .Select(x => new CalendarEventTypeColorItem(x.Type, x.Color))
+            .ToList();
+
+        return Ok(new UserSettingsResponse(user.NotificationsOn, user.DarkThemeOn, colors));
     }
 
     [HttpPut]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Update([FromBody] UpdateUserSettingsRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        await _users.UpdateSettingsAsync(userId.Value, req.NotificationsOn, req.DarkThemeOn, ct);
+        var (ok, errorCode) = await _users.UpdateUserSettingsAsync(
+            userId.Value,
+            req.NotificationsOn,
+            req.DarkThemeOn,
+            req.CalendarEventTypeColors,
+            ct);
+
+        if (!ok)
+        {
+            if (errorCode == "unauthorized")
+                return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
+        }
+
         return Ok();
     }
 
@@ -48,4 +71,3 @@ public sealed class SettingsController : ControllerBase
         return Guid.TryParse(sub, out var id) ? id : null;
     }
 }
-

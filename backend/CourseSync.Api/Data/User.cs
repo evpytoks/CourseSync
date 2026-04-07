@@ -9,4 +9,5 @@ public sealed class User
     public Guid? CurrentGroupId { get; set; }
     public bool NotificationsOn { get; set; }
     public bool DarkThemeOn { get; set; }
+    public string CalendarEventTypeColors { get; set; } = "";
 }
