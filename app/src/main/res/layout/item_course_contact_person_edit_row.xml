@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.CourseSync.ContactPersonCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/grid_2">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/grid_2">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/editCourseContactPersonName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                android:textColor="?attr/colorOnSurface" />
+
+            <ImageButton
+                android:id="@+id/editCourseContactPersonRemove"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/remove_teacher_content_description"
+                android:padding="8dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_close_small"
+                app:tint="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/grid_1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_hint"
+                android:textAppearance="@style/TextAppearance.CourseSync.ContactTypeCaption" />
+
+            <ImageButton
+                android:id="@+id/editCourseContactAddMethod"
+                android:layout_width="@dimen/contact_add_method_circle"
+                android:layout_height="@dimen/contact_add_method_circle"
+                android:layout_marginStart="@dimen/grid_1"
+                android:background="@drawable/bg_contact_add_tonal_circle"
+                android:contentDescription="@string/add_contact_method"
+                android:padding="@dimen/contact_add_method_icon_padding"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_add"
+                app:tint="?attr/colorOnSecondaryContainer" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/editCourseContactMethodsList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/grid_1"
+            android:orientation="vertical" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

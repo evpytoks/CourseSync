@@ -50,4 +50,8 @@
     <dimen name="dialog_grading_text_max_height">368dp</dimen>
 
     <dimen name="course_form_links_list_max_height">240dp</dimen>
+
+    <dimen name="contact_add_method_circle">28dp</dimen>
+    <dimen name="contact_add_method_icon_padding">5dp</dimen>
+    <dimen name="contact_method_value_max_width">240dp</dimen>
 </resources>

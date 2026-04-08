@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/grid_1"
+    android:background="@drawable/bg_course_link_chip"
+    android:gravity="center_vertical"
+    android:minHeight="44dp"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/grid_2"
+    android:paddingTop="@dimen/grid_1"
+    android:paddingEnd="@dimen/grid_1"
+    android:paddingBottom="@dimen/grid_1">
+
+    <TextView
+        android:id="@+id/editCourseContactTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurface"
+        tools:text="Иванов И.И. — Почта: mail@hse.ru" />
+
+    <ImageButton
+        android:id="@+id/editCourseContactRemove"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/remove_contact_content_description"
+        android:padding="8dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_close_small"
+        app:tint="?attr/colorOnSurfaceVariant" />
+</LinearLayout>

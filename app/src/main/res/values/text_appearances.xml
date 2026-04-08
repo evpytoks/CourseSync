@@ -28,4 +28,13 @@
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
+
+    <style name="TextAppearance.CourseSync.ContactValue" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">?attr/colorOnSecondaryContainer</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+
+    <style name="TextAppearance.CourseSync.ContactTypeCaption" parent="TextAppearance.CourseSync.Caption">
+        <item name="android:letterSpacing">0.01</item>
+    </style>
 </resources>

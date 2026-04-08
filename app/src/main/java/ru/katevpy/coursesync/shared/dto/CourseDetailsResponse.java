@@ -12,6 +12,8 @@ public final class CourseDetailsResponse {
     public String name;
     @SerializedName("general_info")
     public String generalInfo;
+    @SerializedName("contacts")
+    public List<CourseContactPersonItem> contacts;
     @SerializedName("useful_links")
     @JsonAdapter(UsefulLinksJsonDeserializer.class)
     public List<CourseUsefulLinkItem> usefulLinks;

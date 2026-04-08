@@ -1,8 +1,11 @@
 package ru.katevpy.coursesync.courses;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -11,6 +14,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.core.widget.TextViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
@@ -24,6 +28,8 @@ import java.util.UUID;
 
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
+import ru.katevpy.coursesync.shared.dto.CourseContactMethodItem;
+import ru.katevpy.coursesync.shared.dto.CourseContactPersonItem;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseUsefulLinkItem;
 import ru.katevpy.coursesync.shared.util.Result;
@@ -33,7 +39,9 @@ public class CourseDetailFragment extends Fragment {
     private TextView courseDetailName;
     private TextView courseDetailGeneral;
     private LinearLayout courseDetailLinksList;
+    private LinearLayout courseDetailContactsList;
     private View courseDetailLinksCard;
+    private View courseDetailContactsCard;
     private UUID courseUuid;
     private String courseIdStr;
     private String loadedCourseName;
@@ -50,7 +58,9 @@ public class CourseDetailFragment extends Fragment {
         courseDetailName = view.findViewById(R.id.courseDetailName);
         courseDetailGeneral = view.findViewById(R.id.courseDetailGeneral);
         courseDetailLinksList = view.findViewById(R.id.courseDetailLinksList);
+        courseDetailContactsList = view.findViewById(R.id.courseDetailContactsList);
         courseDetailLinksCard = view.findViewById(R.id.courseDetailLinksCard);
+        courseDetailContactsCard = view.findViewById(R.id.courseDetailContactsCard);
 
         if (getArguments() == null) {
             NavHostFragment.findNavController(this).navigateUp();
@@ -201,6 +211,7 @@ public class CourseDetailFragment extends Fragment {
             loadedCourseName = data.name;
             courseDetailName.setText(data.name != null ? data.name : "");
             courseDetailGeneral.setText(data.generalInfo != null ? data.generalInfo : "");
+            bindContacts(data.contacts);
             bindUsefulLinks(data.usefulLinks);
             return;
         }
@@ -259,6 +270,118 @@ public class CourseDetailFragment extends Fragment {
         if (courseDetailLinksList.getChildCount() == 0) {
             courseDetailLinksCard.setVisibility(View.GONE);
         }
+    }
+
+    private void bindContacts(@Nullable List<CourseContactPersonItem> contacts) {
+        courseDetailContactsList.removeAllViews();
+        if (contacts == null || contacts.isEmpty()) {
+            courseDetailContactsCard.setVisibility(View.GONE);
+            return;
+        }
+        courseDetailContactsCard.setVisibility(View.VISIBLE);
+        int rowGap = getResources().getDimensionPixelSize(R.dimen.grid_1);
+        int valueTypeGap = getResources().getDimensionPixelSize(R.dimen.grid_2);
+        int valueMaxW = getResources().getDimensionPixelSize(R.dimen.contact_method_value_max_width);
+        LayoutInflater inflater = LayoutInflater.from(requireContext());
+        for (CourseContactPersonItem person : contacts) {
+            if (person == null) {
+                continue;
+            }
+            String personName = person.name != null ? person.name.trim() : "";
+            if (personName.isEmpty()) {
+                continue;
+            }
+            List<CourseContactMethodItem> methods = person.contactMethods;
+            if (methods == null || methods.isEmpty()) {
+                continue;
+            }
+
+            View personCard = inflater.inflate(R.layout.item_course_contact_person_detail, courseDetailContactsList, false);
+            TextView nameView = personCard.findViewById(R.id.courseDetailContactPersonName);
+            LinearLayout methodsContainer = personCard.findViewById(R.id.courseDetailContactPersonMethods);
+            nameView.setText(personName);
+
+            boolean addedAny = false;
+            int methodIndex = 0;
+            for (CourseContactMethodItem method : methods) {
+                if (method == null) {
+                    continue;
+                }
+                String value = method.value != null ? method.value.trim() : "";
+                if (value.isEmpty()) {
+                    continue;
+                }
+                String type = method.type != null ? method.type.trim() : "";
+                addedAny = true;
+
+                LinearLayout row = new LinearLayout(requireContext());
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                if (methodIndex > 0) {
+                    rowLp.topMargin = rowGap;
+                }
+                methodIndex++;
+                row.setLayoutParams(rowLp);
+
+                TextView valueView = new TextView(requireContext());
+                TextViewCompat.setTextAppearance(valueView, R.style.TextAppearance_CourseSync_ContactValue);
+                valueView.setText(value);
+                valueView.setMaxLines(1);
+                valueView.setEllipsize(TextUtils.TruncateAt.END);
+                valueView.setBackgroundResource(R.drawable.bg_contact_value_tonal_ripple);
+                int hChip = getResources().getDimensionPixelSize(R.dimen.grid_2);
+                int vChip = getResources().getDimensionPixelSize(R.dimen.grid_1);
+                valueView.setPadding(hChip, vChip, hChip, vChip);
+                valueView.setClickable(true);
+                valueView.setFocusable(true);
+                valueView.setOnClickListener(v -> copyToClipboard(value));
+                valueView.setMaxWidth(valueMaxW);
+                LinearLayout.LayoutParams valueLp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                if (!type.isEmpty()) {
+                    valueLp.setMarginEnd(valueTypeGap);
+                }
+                valueView.setLayoutParams(valueLp);
+                row.addView(valueView);
+
+                if (!type.isEmpty()) {
+                    TextView typeView = new TextView(requireContext());
+                    TextViewCompat.setTextAppearance(typeView, R.style.TextAppearance_CourseSync_ContactTypeCaption);
+                    typeView.setText(type);
+                    typeView.setMaxLines(2);
+                    typeView.setEllipsize(TextUtils.TruncateAt.END);
+                    LinearLayout.LayoutParams typeLp = new LinearLayout.LayoutParams(
+                            0,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            1f);
+                    typeView.setLayoutParams(typeLp);
+                    typeView.setGravity(android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
+                    typeView.setTextAlignment(android.view.View.TEXT_ALIGNMENT_VIEW_START);
+                    row.addView(typeView);
+                }
+
+                methodsContainer.addView(row);
+            }
+            if (addedAny) {
+                courseDetailContactsList.addView(personCard);
+            }
+        }
+        if (courseDetailContactsList.getChildCount() == 0) {
+            courseDetailContactsCard.setVisibility(View.GONE);
+        }
+    }
+
+    private void copyToClipboard(@NonNull String value) {
+        ClipboardManager cm = (ClipboardManager) requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+        if (cm == null) {
+            return;
+        }
+        cm.setPrimaryClip(ClipData.newPlainText("contact_value", value));
+        ErrorUi.show(this, R.string.contact_value_copied, ErrorUi.Duration.SHORT);
     }
 
     private void openExternalUrl(@NonNull String raw) {
