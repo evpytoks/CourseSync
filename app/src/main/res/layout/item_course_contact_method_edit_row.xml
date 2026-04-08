@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="44dp"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/editCourseContactMethodValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_contact_value_tonal"
+        android:ellipsize="end"
+        android:gravity="start|center_vertical"
+        android:maxWidth="@dimen/contact_method_value_max_width"
+        android:maxLines="1"
+        android:paddingStart="@dimen/grid_2"
+        android:paddingTop="@dimen/grid_1"
+        android:paddingEnd="@dimen/grid_2"
+        android:paddingBottom="@dimen/grid_1"
+        android:textAppearance="@style/TextAppearance.CourseSync.ContactValue" />
+
+    <TextView
+        android:id="@+id/editCourseContactMethodType"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/grid_2"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:gravity="start|center_vertical"
+        android:maxLines="2"
+        android:minWidth="0dp"
+        android:textAlignment="viewStart"
+        android:textAppearance="@style/TextAppearance.CourseSync.ContactTypeCaption" />
+
+    <ImageButton
+        android:id="@+id/editCourseContactMethodRemove"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/remove_contact_content_description"
+        android:padding="8dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_close_small"
+        app:tint="?attr/colorOnSurfaceVariant" />
+</LinearLayout>

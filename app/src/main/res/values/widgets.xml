@@ -16,6 +16,14 @@
         <item name="shapeAppearance">@style/ShapeAppearance.CourseSync.Small</item>
     </style>
 
+    <style name="Widget.CourseSync.ContactPersonCard" parent="Widget.Material3.CardView.Filled">
+        <item name="cardElevation">0dp</item>
+        <item name="cardUseCompatPadding">false</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="cardBackgroundColor">?attr/colorSurfaceVariant</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.CourseSync.Small</item>
+    </style>
+
     <style name="Widget.CourseSync.Button" parent="Widget.Material3.Button">
         <item name="android:minHeight">48dp</item>
         <item name="android:insetTop">0dp</item>

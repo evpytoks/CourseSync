@@ -21,6 +21,7 @@ import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
 import ru.katevpy.coursesync.shared.dto.CourseUsefulLinkItem;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.CourseCumulativeGradeResponse;
+import ru.katevpy.coursesync.shared.dto.CourseContactPersonItem;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseGradingElementListResponse;
 import ru.katevpy.coursesync.shared.dto.CumulativeGradeState;
@@ -351,11 +352,17 @@ public class CourseRepository {
         }
     }
 
-    public Result<Void> updateCourse(UUID courseId, String name, String generalInfo, List<CourseUsefulLinkItem> usefulLinks) {
+    public Result<Void> updateCourse(
+            UUID courseId,
+            String name,
+            String generalInfo,
+            List<CourseContactPersonItem> contacts,
+            List<CourseUsefulLinkItem> usefulLinks) {
         try {
             AddCourseRequest req = new AddCourseRequest(
                     name,
                     generalInfo != null ? generalInfo : "",
+                    contacts,
                     usefulLinks);
             Response<Void> r = api.changeCourse(courseId, req).execute();
             if (r.isSuccessful()) {
@@ -370,11 +377,16 @@ public class CourseRepository {
         }
     }
 
-    public Result<Void> createCourse(String name, String generalInfo, List<CourseUsefulLinkItem> usefulLinks) {
+    public Result<Void> createCourse(
+            String name,
+            String generalInfo,
+            List<CourseContactPersonItem> contacts,
+            List<CourseUsefulLinkItem> usefulLinks) {
         try {
             AddCourseRequest req = new AddCourseRequest(
                     name,
                     generalInfo != null ? generalInfo : "",
+                    contacts,
                     usefulLinks);
             Response<Void> r = api.addCourse(req).execute();
             if (r.isSuccessful()) {
