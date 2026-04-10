@@ -40,6 +40,16 @@ public sealed record GroupDetailsResponse(
     [property: JsonPropertyName("role")] string Role,
     [property: JsonPropertyName("group_code")] string? GroupCode);
 
+public sealed record GroupParticipantItem(
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("is_blocked")] bool IsBlocked);
+
+public sealed record GroupParticipantsResponse(
+    [property: JsonPropertyName("participants")] IReadOnlyList<GroupParticipantItem> Participants);
+
+public sealed record GroupParticipantEmailRequest(
+    [property: JsonPropertyName("email")] string Email);
+
 public sealed record UserSettingsResponse(
     [property: JsonPropertyName("notifications_on")] bool NotificationsOn,
     [property: JsonPropertyName("dark_theme_on")] bool DarkThemeOn,

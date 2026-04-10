@@ -8,6 +8,8 @@ public sealed class NewsService
 {
     private const int NewsTextMaxLength = 3000;
 
+    public const string MemberJoinedByCodeNewsType = "member_joined_by_code";
+
     private readonly AppDbContext _db;
     private readonly NotificationService _notificationService;
 
@@ -21,7 +23,10 @@ public sealed class NewsService
     {
         return await _db.News
             .AsNoTracking()
-            .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId))
+            .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId)
+                && (n.Type != MemberJoinedByCodeNewsType
+                    || _db.GroupMembers.Any(m =>
+                        m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Owner)))
             .OrderByDescending(n => n.CreatedAt)
             .Select(n => new NewsListDto(n.Id, n.CreatedAt, n.GroupName, n.Section, n.Detail, _db.NewsReads.Any(r => r.UserId == userId && r.NewsId == n.Id)))
             .ToListAsync(ct);
@@ -38,10 +43,20 @@ public sealed class NewsService
         if (news is null)
             return (false, null, "news_not_found");
 
-        var isMember = await _db.GroupMembers.AnyAsync(
-            m => m.GroupId == news.GroupId && m.UserId == userId, ct);
-        if (!isMember)
-            return (false, null, "forbidden");
+        if (news.Type == MemberJoinedByCodeNewsType)
+        {
+            var isOwner = await _db.GroupMembers.AnyAsync(
+                m => m.GroupId == news.GroupId && m.UserId == userId && m.Role == GroupRole.Owner, ct);
+            if (!isOwner)
+                return (false, null, "forbidden");
+        }
+        else
+        {
+            var isMember = await _db.GroupMembers.AnyAsync(
+                m => m.GroupId == news.GroupId && m.UserId == userId, ct);
+            if (!isMember)
+                return (false, null, "forbidden");
+        }
 
         await MarkAsReadIfNeededAsync(userId, newsId, ct);
 
@@ -52,7 +67,10 @@ public sealed class NewsService
     {
         var toMark = await _db.News
             .AsNoTracking()
-            .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId))
+            .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId)
+                && (n.Type != MemberJoinedByCodeNewsType
+                    || _db.GroupMembers.Any(m =>
+                        m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Owner)))
             .Where(n => !_db.NewsReads.Any(r => r.UserId == userId && r.NewsId == n.Id))
             .Select(n => n.Id)
             .ToListAsync(ct);

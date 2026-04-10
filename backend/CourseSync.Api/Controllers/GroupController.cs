@@ -70,8 +70,81 @@ public sealed class GroupController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError(codeValidation.ErrorCode!)));
 
         var result = await _groupService.JoinByCodeAsync(userId.Value, (req.Code ?? "").Trim(), ct);
-        if (result is null)
+        if (!result.Ok)
+        {
+            if (result.ErrorCode == "group_join_blocked")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("group_join_blocked")));
+            if (result.ErrorCode == "invalid_code_format")
+                return BadRequest(new ErrorEnvelope(new ApiError("invalid_code_format")));
             return NotFound(new ErrorEnvelope(new ApiError("group_not_found")));
+        }
+
+        return Ok();
+    }
+
+    [HttpGet("{id:guid}/participants")]
+    [ProducesResponseType(typeof(GroupParticipantsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<GroupParticipantsResponse>> GetParticipants(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var (ok, items, errorCode) = await _groupService.GetParticipantEmailsForOwnerAsync(userId.Value, id, ct);
+        if (!ok)
+            return StatusCode(403, new ErrorEnvelope(new ApiError(errorCode!)));
+
+        return Ok(new GroupParticipantsResponse(items!));
+    }
+
+    [HttpPost("{id:guid}/block")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> BlockParticipant(Guid id, [FromBody] GroupParticipantEmailRequest req, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var (ok, errorCode) = await _groupService.BlockParticipantByEmailAsync(userId.Value, id, req.Email ?? "", ct);
+        if (!ok)
+        {
+            if (errorCode == "forbidden")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            if (errorCode is "user_not_found" or "not_in_group")
+                return NotFound(new ErrorEnvelope(new ApiError(errorCode!)));
+            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
+        }
+
+        return Ok();
+    }
+
+    [HttpPost("{id:guid}/unblock")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UnblockParticipant(Guid id, [FromBody] GroupParticipantEmailRequest req, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var (ok, errorCode) = await _groupService.UnblockParticipantByEmailAsync(userId.Value, id, req.Email ?? "", ct);
+        if (!ok)
+        {
+            if (errorCode == "forbidden")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            if (errorCode is "user_not_found" or "not_blocked")
+                return NotFound(new ErrorEnvelope(new ApiError(errorCode!)));
+            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
+        }
 
         return Ok();
     }

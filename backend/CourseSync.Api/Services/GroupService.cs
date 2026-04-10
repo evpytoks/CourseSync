@@ -3,11 +3,21 @@ using System.Text.RegularExpressions;
 using CourseSync.Api.Data;
 using CourseSync.Api.Infrastructure;
 using CourseSync.Api.Infrastructure.Storage;
+using CourseSync.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using Npgsql;
 
 namespace CourseSync.Api.Services;
+
+public sealed record JoinByCodeResult(bool Ok, string? ErrorCode, Guid GroupId, string Name, string Role)
+{
+    public static JoinByCodeResult Success(Guid groupId, string name, string role) =>
+        new(true, null, groupId, name, role);
+
+    public static JoinByCodeResult Fail(string errorCode) =>
+        new(false, errorCode, Guid.Empty, "", "");
+}
 
 public sealed class GroupService
 {
@@ -161,20 +171,28 @@ public sealed class GroupService
 
     public sealed record OwnerGroupListDto(Guid Id, string Name);
 
-    public async Task<(Guid GroupId, string Name, string Role)?> JoinByCodeAsync(Guid userId, string code, CancellationToken ct)
+    public async Task<JoinByCodeResult> JoinByCodeAsync(Guid userId, string code, CancellationToken ct)
     {
         code = (code ?? "").Trim();
         if (code.Length != CodeLength || !code.All(c => CodeChars.Contains(c)))
-            return null;
+            return JoinByCodeResult.Fail("invalid_code_format");
 
         var group = await _db.Groups.FirstOrDefaultAsync(g => g.Code == code, ct);
         if (group is null)
-            return null;
+            return JoinByCodeResult.Fail("group_not_found");
 
         var existing = await _db.GroupMembers
             .FirstOrDefaultAsync(m => m.GroupId == group.Id && m.UserId == userId, ct);
         if (existing is not null)
-            return (group.Id, group.Name, existing.Role == GroupRole.Owner ? "owner" : "participant");
+            return JoinByCodeResult.Success(
+                group.Id,
+                group.Name,
+                existing.Role == GroupRole.Owner ? "owner" : "participant");
+
+        var blocked = await _db.GroupMemberBlocks
+            .AnyAsync(b => b.GroupId == group.Id && b.UserId == userId, ct);
+        if (blocked)
+            return JoinByCodeResult.Fail("group_join_blocked");
 
         _db.GroupMembers.Add(new GroupMember
         {
@@ -191,7 +209,7 @@ public sealed class GroupService
             .FirstOrDefaultAsync(ct) ?? "";
 
         await _notifications.CreateNewsAndPushToGroupOwnersAsync(
-            "member_joined_by_code",
+            NewsService.MemberJoinedByCodeNewsType,
             group.Id,
             group.Name,
             NewsFormatting.SectionGroups,
@@ -199,7 +217,136 @@ public sealed class GroupService
             ct,
             userId);
 
-        return (group.Id, group.Name, "participant");
+        return JoinByCodeResult.Success(group.Id, group.Name, "participant");
+    }
+
+    private static string NormalizeEmail(string email) => (email ?? "").Trim().ToLowerInvariant();
+
+    public async Task<(bool Ok, IReadOnlyList<GroupParticipantItem>? Items, string? ErrorCode)> GetParticipantEmailsForOwnerAsync(
+        Guid ownerUserId,
+        Guid groupId,
+        CancellationToken ct)
+    {
+        var ownerMember = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == ownerUserId, ct);
+        if (ownerMember is null || ownerMember.Role != GroupRole.Owner)
+            return (false, null, "forbidden");
+
+        var active = await (
+            from m in _db.GroupMembers
+            join u in _db.Users on m.UserId equals u.Id
+            where m.GroupId == groupId && m.Role == GroupRole.Participant
+            select new GroupParticipantItem(u.Email, false)
+        ).ToListAsync(ct);
+
+        var blocked = await (
+            from b in _db.GroupMemberBlocks
+            join u in _db.Users on b.UserId equals u.Id
+            where b.GroupId == groupId
+            select new GroupParticipantItem(u.Email, true)
+        ).ToListAsync(ct);
+
+        var merged = active.Concat(blocked)
+            .OrderBy(x => x.Email, StringComparer.Ordinal)
+            .ToList();
+
+        return (true, merged, null);
+    }
+
+    public async Task<(bool Ok, string? ErrorCode)> BlockParticipantByEmailAsync(
+        Guid ownerUserId,
+        Guid groupId,
+        string email,
+        CancellationToken ct)
+    {
+        var normalized = NormalizeEmail(email);
+        if (string.IsNullOrEmpty(normalized))
+            return (false, "participant_email_required");
+
+        var ownerMember = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == ownerUserId, ct);
+        if (ownerMember is null || ownerMember.Role != GroupRole.Owner)
+            return (false, "forbidden");
+
+        var targetUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalized, ct);
+        if (targetUser is null)
+            return (false, "user_not_found");
+
+        if (targetUser.Id == ownerUserId)
+            return (false, "cannot_block_owner");
+
+        var membership = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == targetUser.Id, ct);
+        if (membership is not null && membership.Role == GroupRole.Owner)
+            return (false, "cannot_block_owner");
+
+        var alreadyBlocked = await _db.GroupMemberBlocks
+            .AnyAsync(b => b.GroupId == groupId && b.UserId == targetUser.Id, ct);
+
+        if (membership is null)
+        {
+            if (alreadyBlocked)
+                return (false, "already_blocked");
+            return (false, "not_in_group");
+        }
+
+        _db.GroupMembers.Remove(membership);
+        _db.GroupMemberBlocks.Add(new GroupMemberBlock
+        {
+            GroupId = groupId,
+            UserId = targetUser.Id,
+            BlockedAt = DateTimeOffset.UtcNow
+        });
+
+        var userEntity = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUser.Id, ct);
+        if (userEntity is not null && userEntity.CurrentGroupId == groupId)
+            userEntity.CurrentGroupId = null;
+
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? ErrorCode)> UnblockParticipantByEmailAsync(
+        Guid ownerUserId,
+        Guid groupId,
+        string email,
+        CancellationToken ct)
+    {
+        var normalized = NormalizeEmail(email);
+        if (string.IsNullOrEmpty(normalized))
+            return (false, "participant_email_required");
+
+        var ownerMember = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == ownerUserId, ct);
+        if (ownerMember is null || ownerMember.Role != GroupRole.Owner)
+            return (false, "forbidden");
+
+        var targetUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalized, ct);
+        if (targetUser is null)
+            return (false, "user_not_found");
+
+        var block = await _db.GroupMemberBlocks
+            .FirstOrDefaultAsync(b => b.GroupId == groupId && b.UserId == targetUser.Id, ct);
+        if (block is null)
+            return (false, "not_blocked");
+
+        _db.GroupMemberBlocks.Remove(block);
+
+        var rejoin = await _db.GroupMembers
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == targetUser.Id, ct);
+        if (rejoin is null)
+        {
+            _db.GroupMembers.Add(new GroupMember
+            {
+                GroupId = groupId,
+                UserId = targetUser.Id,
+                Role = GroupRole.Participant,
+                JoinedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
     }
 
     public async Task<(bool Ok, string? ErrorCode)> ChangeNameAsync(Guid userId, Guid groupId, string name, CancellationToken ct)
