@@ -38,8 +38,22 @@ public sealed class NewsController : ControllerBase
             .Select(n => new NewsListItem(n.Id, n.Time, n.Group, n.Section, n.Text, n.IsRead))
             .ToList();
 
-        var unreadCount = items.Count(x => !x.IsRead);
-        return Ok(new NewsListResponse(news, unreadCount));
+        return Ok(new NewsListResponse(news));
+    }
+
+    [HttpGet("unread_count")]
+    public async Task<ActionResult<NewsUnreadCountResponse>> UnreadCount(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var count = await _newsService.GetUnreadCountAsync(userId.Value, ct);
+        return Ok(new NewsUnreadCountResponse(count));
     }
 
     [HttpPost("read-all")]

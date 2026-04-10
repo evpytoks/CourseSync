@@ -11,4 +11,6 @@ public sealed class News
     public string Detail { get; set; } = "";
 
     public string Type { get; set; } = "";
+
+    public Guid? ActorUserId { get; set; }
 }

@@ -210,4 +210,137 @@ public sealed class NewsServiceTests
         Assert.True(ownerOk);
         Assert.Null(ownerErr);
     }
+
+    [Fact]
+    public async Task GetAllForUserAsync_owner_does_not_see_calendar_or_manual_sees_join_and_others_materials()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
+        var g = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "BPI237",
+            Code = "aaaaaa",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var nCalendar = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "Календарь",
+            Detail = "событие",
+            Type = "calendar_event_created",
+            ActorUserId = owner.Id
+        };
+        var nManual = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "Новости",
+            Detail = "ручная новость",
+            Type = "manual",
+            ActorUserId = owner.Id
+        };
+        var nJoin = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "Группы",
+            Detail = "присоединился",
+            Type = NewsService.MemberJoinedByCodeNewsType,
+            ActorUserId = participant.Id
+        };
+        var nPersonalMat = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "Курсы",
+            Detail = "материал",
+            Type = NewsService.PersonalMaterialAddedNewsType,
+            ActorUserId = participant.Id
+        };
+        var nOwnGeneralMat = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "Курсы",
+            Detail = "свой общий",
+            Type = NewsService.GeneralMaterialAddedNewsType,
+            ActorUserId = owner.Id
+        };
+        tdb.Db.Users.AddRange(owner, participant);
+        tdb.Db.Groups.Add(g);
+        tdb.Db.GroupMembers.AddRange(
+            new GroupMember { GroupId = g.Id, UserId = owner.Id, Role = GroupRole.Owner, JoinedAt = DateTimeOffset.UtcNow },
+            new GroupMember { GroupId = g.Id, UserId = participant.Id, Role = GroupRole.Participant, JoinedAt = DateTimeOffset.UtcNow });
+        tdb.Db.News.AddRange(nCalendar, nManual, nJoin, nPersonalMat, nOwnGeneralMat);
+        await tdb.Db.SaveChangesAsync();
+
+        var svc = CreateSvc(tdb);
+        var forOwner = await svc.GetAllForUserAsync(owner.Id, CancellationToken.None);
+        Assert.Equal(2, forOwner.Count);
+        Assert.Contains(forOwner, x => x.Id == nJoin.Id);
+        Assert.Contains(forOwner, x => x.Id == nPersonalMat.Id);
+        Assert.DoesNotContain(forOwner, x => x.Id == nCalendar.Id);
+        Assert.DoesNotContain(forOwner, x => x.Id == nManual.Id);
+        Assert.DoesNotContain(forOwner, x => x.Id == nOwnGeneralMat.Id);
+
+        var forParticipant = await svc.GetAllForUserAsync(participant.Id, CancellationToken.None);
+        Assert.Equal(4, forParticipant.Count);
+        Assert.DoesNotContain(forParticipant, x => x.Id == nJoin.Id);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_owner_forbidden_for_calendar_news()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var g = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "G",
+            Code = "aaaaaa",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var n = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "Календарь",
+            Detail = "x",
+            Type = "calendar_event_created",
+            ActorUserId = owner.Id
+        };
+        tdb.Db.Users.Add(owner);
+        tdb.Db.Groups.Add(g);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = g.Id,
+            UserId = owner.Id,
+            Role = GroupRole.Owner,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.News.Add(n);
+        await tdb.Db.SaveChangesAsync();
+
+        var svc = CreateSvc(tdb);
+        var (ok, _, err) = await svc.GetByIdAsync(owner.Id, n.Id, CancellationToken.None);
+        Assert.False(ok);
+        Assert.Equal("forbidden", err);
+    }
 }

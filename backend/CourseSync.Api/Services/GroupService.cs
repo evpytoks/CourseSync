@@ -215,7 +215,8 @@ public sealed class GroupService
             NewsFormatting.SectionGroups,
             NewsFormatting.DetailMemberJoinedByCode(joinerEmail),
             ct,
-            userId);
+            actorUserId: userId,
+            markAsReadForUserId: userId);
 
         return JoinByCodeResult.Success(group.Id, group.Name, "participant");
     }

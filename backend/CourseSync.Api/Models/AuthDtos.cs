@@ -243,8 +243,9 @@ public sealed record NewsListItem(
     [property: JsonPropertyName("text")] string Text,
     [property: JsonPropertyName("is_read")] bool IsRead);
 
-public sealed record NewsListResponse(
-    IReadOnlyList<NewsListItem> News,
+public sealed record NewsListResponse(IReadOnlyList<NewsListItem> News);
+
+public sealed record NewsUnreadCountResponse(
     [property: JsonPropertyName("unread_count")] int UnreadCount);
 
 public sealed record NewsDetailsResponse(
