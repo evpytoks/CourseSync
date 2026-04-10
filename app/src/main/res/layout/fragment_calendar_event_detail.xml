@@ -49,20 +49,30 @@
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/eventDetailDetailsCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_section"
             app:cardCornerRadius="@dimen/card_corner_radius"
             app:cardElevation="@dimen/card_elevation_default"
             app:cardUseCompatPadding="true"
             app:strokeWidth="0dp">
 
-            <TextView
-                android:id="@+id/eventDetailDescription"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="@dimen/card_content_padding"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                tools:text="Описание события" />
+                android:orientation="vertical"
+                android:padding="@dimen/card_content_padding">
+
+                <TextView
+                    android:id="@+id/eventDetailDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
+                    android:visibility="gone"
+                    tools:text="Описание"
+                    tools:visibility="visible" />
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.button.MaterialButton
