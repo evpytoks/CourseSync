@@ -121,4 +121,19 @@ public class CalendarRepository {
             return Result.networkError(e);
         }
     }
+
+    public Result<Void> toggleEventDone(UUID id) {
+        try {
+            Response<Void> r = api.toggleEventDone(id).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
+            return Result.networkError(e);
+        }
+    }
 }

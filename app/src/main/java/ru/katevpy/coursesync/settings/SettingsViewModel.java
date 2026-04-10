@@ -4,9 +4,11 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import ru.katevpy.coursesync.shared.dto.UpdateCalendarEventTypeColorItem;
 import ru.katevpy.coursesync.shared.dto.UserSettingsResponse;
 import ru.katevpy.coursesync.shared.repository.SettingsRepository;
 import ru.katevpy.coursesync.shared.util.Result;
@@ -37,6 +39,10 @@ public class SettingsViewModel extends ViewModel {
 
     public void updateSettings(boolean notificationsOn, boolean darkThemeOn) {
         io.execute(() -> updateResult.postValue(repo.updateSettings(notificationsOn, darkThemeOn)));
+    }
+
+    public void updateCalendarColorsOnly(List<UpdateCalendarEventTypeColorItem> items) {
+        io.execute(() -> updateResult.postValue(repo.updateSettings(null, null, items)));
     }
 }
 

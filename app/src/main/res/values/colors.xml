@@ -27,4 +27,7 @@
 
     <color name="news_list_row_header">@color/cs_on_surface</color>
     <color name="news_list_row_body">@color/cs_on_surface_variant</color>
+
+    <color name="calendar_event_type_default">#2563EB</color>
+    <color name="calendar_event_done">#2E7D32</color>
 </resources>

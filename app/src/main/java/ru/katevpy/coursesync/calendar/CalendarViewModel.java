@@ -1,12 +1,18 @@
 package ru.katevpy.coursesync.calendar;
 
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -22,6 +28,9 @@ public class CalendarViewModel extends ViewModel {
     private final MutableLiveData<Result<List<CalendarListItem>>> loadResult = new MutableLiveData<>();
     private final MutableLiveData<Integer> currentYear = new MutableLiveData<>();
     private final MutableLiveData<Integer> currentMonth = new MutableLiveData<>();
+    private final MutableLiveData<Result<Void>> toggleEventFailure = new MutableLiveData<>();
+    private final List<CalendarListItem> monthEventsBuffer = new ArrayList<>();
+    private final Set<UUID> togglingEventIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public CalendarViewModel(CalendarRepository repository) {
         this.repository = repository;
@@ -42,6 +51,14 @@ public class CalendarViewModel extends ViewModel {
         return currentMonth;
     }
 
+    public LiveData<Result<Void>> getToggleEventFailure() {
+        return toggleEventFailure;
+    }
+
+    public void consumeToggleEventFailure() {
+        toggleEventFailure.setValue(null);
+    }
+
     public void setCurrentMonth(int year, int month) {
         currentYear.setValue(year);
         currentMonth.setValue(month);
@@ -56,7 +73,12 @@ public class CalendarViewModel extends ViewModel {
             if (res instanceof Result.Success) {
                 CalendarListResponse body = ((Result.Success<CalendarListResponse>) res).data;
                 List<CalendarListItem> list = body != null && body.events != null ? body.events : Collections.emptyList();
-                loadResult.postValue(Result.success(list));
+                synchronized (monthEventsBuffer) {
+                    monthEventsBuffer.clear();
+                    monthEventsBuffer.addAll(list);
+                    sortEventsForDisplay(monthEventsBuffer);
+                    loadResult.postValue(Result.success(new ArrayList<>(monthEventsBuffer)));
+                }
             } else if (res instanceof Result.HttpError) {
                 Result.HttpError<CalendarListResponse> he = (Result.HttpError<CalendarListResponse>) res;
                 loadResult.postValue(Result.httpError(he.httpCode, he.error));
@@ -66,6 +88,45 @@ public class CalendarViewModel extends ViewModel {
                 loadResult.postValue(Result.logicalError("Неизвестная ошибка"));
             }
         });
+    }
+
+    public void toggleEventDone(@Nullable UUID eventId) {
+        if (eventId == null || !togglingEventIds.add(eventId)) {
+            return;
+        }
+        io.execute(() -> {
+            try {
+                Result<Void> r = repository.toggleEventDone(eventId);
+                if (r instanceof Result.Success) {
+                    synchronized (monthEventsBuffer) {
+                        for (CalendarListItem it : monthEventsBuffer) {
+                            if (eventId.equals(it.id)) {
+                                it.isDone = !it.isDone;
+                                break;
+                            }
+                        }
+                        sortEventsForDisplay(monthEventsBuffer);
+                        loadResult.postValue(Result.success(new ArrayList<>(monthEventsBuffer)));
+                    }
+                } else if (r instanceof Result.HttpError) {
+                    Result.HttpError<?> he = (Result.HttpError<?>) r;
+                    toggleEventFailure.postValue(Result.httpError(he.httpCode, he.error));
+                } else if (r instanceof Result.NetworkError) {
+                    Result.NetworkError<?> ne = (Result.NetworkError<?>) r;
+                    toggleEventFailure.postValue(Result.networkError(ne.t));
+                } else {
+                    toggleEventFailure.postValue(Result.logicalError("Неизвестная ошибка"));
+                }
+            } finally {
+                togglingEventIds.remove(eventId);
+            }
+        });
+    }
+
+    private static void sortEventsForDisplay(List<CalendarListItem> list) {
+        list.sort(Comparator
+                .comparing((CalendarListItem it) -> it.isDone)
+                .thenComparing(it -> it.date != null ? it.date : "", Comparator.naturalOrder()));
     }
 
     private static int getLastDayOfMonth(int year, int month) {
