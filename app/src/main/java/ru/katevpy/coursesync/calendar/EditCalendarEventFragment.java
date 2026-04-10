@@ -5,6 +5,7 @@ import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.view.View;
+import android.widget.AdapterView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -14,6 +15,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
 import ru.katevpy.coursesync.ui.ErrorUi;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -22,27 +24,44 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.CalendarEventDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.CalendarEventTypeColorItem;
+import ru.katevpy.coursesync.shared.dto.CourseListItem;
 import ru.katevpy.coursesync.shared.util.Result;
 
 public class EditCalendarEventFragment extends Fragment {
 
     private TextInputLayout eventNameLayout;
+    private TextInputLayout eventGroupLayout;
+    private TextInputLayout eventCourseLayout;
+    private TextInputLayout eventTypeLayout;
     private TextInputLayout eventDateTimeLayout;
     private TextInputLayout eventDescriptionLayout;
+    private TextInputEditText eventGroupDisplayInput;
+    private MaterialAutoCompleteTextView eventCourseInput;
+    private MaterialAutoCompleteTextView eventTypeInput;
     private TextInputEditText eventDateTimeInput;
     private EditCalendarEventViewModel viewModel;
     private LocalDateTime chosenDateTime;
     private UUID eventId;
+    private boolean eventDetailLoaded;
     @Nullable
-    private UUID loadedCourseId;
+    private UUID pendingPreselectCourseId;
     @Nullable
-    private String loadedEventType;
+    private String pendingPreselectEventType;
+    @Nullable
+    private UUID explicitCourseSelection;
+    private String selectedEventType = "Другое";
+
+    private final List<CourseListItem> courseItems = new ArrayList<>();
+    private final List<CalendarEventTypeColorItem> eventTypeItems = new ArrayList<>();
 
     public EditCalendarEventFragment() {
         super(R.layout.fragment_edit_calendar_event);
@@ -53,8 +72,14 @@ public class EditCalendarEventFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         eventNameLayout = view.findViewById(R.id.eventNameLayout);
+        eventGroupLayout = view.findViewById(R.id.eventGroupLayout);
+        eventCourseLayout = view.findViewById(R.id.eventCourseLayout);
+        eventTypeLayout = view.findViewById(R.id.eventTypeLayout);
         eventDateTimeLayout = view.findViewById(R.id.eventDateTimeLayout);
         eventDescriptionLayout = view.findViewById(R.id.eventDescriptionLayout);
+        eventGroupDisplayInput = view.findViewById(R.id.eventGroupDisplayInput);
+        eventCourseInput = view.findViewById(R.id.eventCourseInput);
+        eventTypeInput = view.findViewById(R.id.eventTypeInput);
         eventDateTimeInput = view.findViewById(R.id.eventDateTimeInput);
 
         Bundle args = getArguments();
@@ -83,21 +108,137 @@ public class EditCalendarEventFragment extends Fragment {
             eventDescriptionLayout.getEditText().setFilters(new InputFilter[]{new InputFilter.LengthFilter(maxDesc)});
         }
 
+        eventGroupDisplayInput.setEnabled(false);
+
+        wireDropdownOpens(eventCourseInput);
+        wireDropdownOpens(eventTypeInput);
+
         eventDateTimeInput.setOnClickListener(v -> openDateTimePicker());
 
         viewModel = new ViewModelProvider(this, new EditCalendarEventViewModelFactory()).get(EditCalendarEventViewModel.class);
-        viewModel.loadEvent(eventId);
         viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
         viewModel.getUpdateResult().observe(getViewLifecycleOwner(), this::onUpdateResult);
+        viewModel.getCourses().observe(getViewLifecycleOwner(), this::onCourses);
+        viewModel.getEventTypes().observe(getViewLifecycleOwner(), this::onEventTypes);
 
         view.findViewById(R.id.btnSaveEvent).setOnClickListener(v -> submit());
+
+        viewModel.loadEvent(eventId);
+    }
+
+    private static void wireDropdownOpens(@Nullable MaterialAutoCompleteTextView actv) {
+        if (actv == null) {
+            return;
+        }
+        actv.setOnClickListener(v -> actv.showDropDown());
+        actv.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                actv.showDropDown();
+            }
+        });
+    }
+
+    private void onCourses(@Nullable List<CourseListItem> list) {
+        if (!eventDetailLoaded) {
+            return;
+        }
+        courseItems.clear();
+        if (list != null) {
+            courseItems.addAll(list);
+        }
+        bindCourseDropdown();
+    }
+
+    private void onEventTypes(@Nullable List<CalendarEventTypeColorItem> list) {
+        if (!eventDetailLoaded) {
+            return;
+        }
+        eventTypeItems.clear();
+        if (list != null) {
+            eventTypeItems.addAll(list);
+        }
+        bindEventTypeDropdown();
+    }
+
+    private void bindCourseDropdown() {
+        List<String> labels = new ArrayList<>();
+        labels.add(getString(R.string.calendar_event_no_course));
+        for (CourseListItem c : courseItems) {
+            labels.add(c.name != null ? c.name : "");
+        }
+        CalendarDropdownAdapter adapter = new CalendarDropdownAdapter(
+                requireContext(), android.R.layout.simple_dropdown_item_1line, labels);
+        eventCourseInput.setAdapter(adapter);
+
+        UUID preselect = pendingPreselectCourseId;
+        pendingPreselectCourseId = null;
+
+        int selectIdx = 0;
+        explicitCourseSelection = null;
+        if (preselect != null) {
+            for (int i = 0; i < courseItems.size(); i++) {
+                if (preselect.equals(courseItems.get(i).id)) {
+                    selectIdx = i + 1;
+                    explicitCourseSelection = preselect;
+                    break;
+                }
+            }
+        }
+        eventCourseInput.setText(labels.get(selectIdx), false);
+
+        eventCourseInput.setOnItemClickListener((AdapterView<?> parent, View v, int position, long id) -> {
+            if (position == 0) {
+                explicitCourseSelection = null;
+            } else {
+                explicitCourseSelection = courseItems.get(position - 1).id;
+            }
+        });
+    }
+
+    private void bindEventTypeDropdown() {
+        List<String> labels = new ArrayList<>();
+        for (CalendarEventTypeColorItem item : eventTypeItems) {
+            if (item.type != null && !item.type.trim().isEmpty()) {
+                labels.add(item.type.trim());
+            }
+        }
+        if (labels.isEmpty()) {
+            labels.add("Другое");
+        }
+
+        CalendarDropdownAdapter adapter = new CalendarDropdownAdapter(
+                requireContext(), android.R.layout.simple_dropdown_item_1line, labels);
+        eventTypeInput.setAdapter(adapter);
+
+        String preselect = pendingPreselectEventType;
+        pendingPreselectEventType = null;
+
+        int defIdx = 0;
+        if (preselect != null && !preselect.isEmpty()) {
+            for (int i = 0; i < labels.size(); i++) {
+                if (preselect.equalsIgnoreCase(labels.get(i))) {
+                    defIdx = i;
+                    break;
+                }
+            }
+        }
+        selectedEventType = labels.get(defIdx);
+        eventTypeInput.setText(selectedEventType, false);
+
+        eventTypeInput.setOnItemClickListener((AdapterView<?> parent, View v, int position, long id) -> {
+            selectedEventType = labels.get(position);
+        });
     }
 
     private void fillForm(CalendarEventDetailsResponse data) {
-        loadedCourseId = data.courseId;
-        loadedEventType = data.eventType != null && !data.eventType.trim().isEmpty()
+        eventDetailLoaded = false;
+        pendingPreselectCourseId = data.courseId;
+        pendingPreselectEventType = data.eventType != null && !data.eventType.trim().isEmpty()
                 ? data.eventType.trim()
                 : "Другое";
+
+        eventGroupDisplayInput.setText(data.groupName != null ? data.groupName : "");
+
         if (eventNameLayout.getEditText() != null) {
             eventNameLayout.getEditText().setText(data.name != null ? data.name : "");
         }
@@ -108,7 +249,8 @@ public class EditCalendarEventFragment extends Fragment {
             try {
                 LocalDate date = LocalDate.parse(data.date.substring(0, 10));
                 boolean hasTime = data.date.length() > 10 && !data.date.substring(11).startsWith("00:00");
-                int hour = 0, minute = 0;
+                int hour = 0;
+                int minute = 0;
                 if (hasTime && data.date.length() >= 16) {
                     String timePart = data.date.substring(11, 16);
                     String[] parts = timePart.split(":");
@@ -126,6 +268,14 @@ public class EditCalendarEventFragment extends Fragment {
             } catch (DateTimeParseException | NumberFormatException ignored) {
             }
         }
+
+        eventDetailLoaded = true;
+        if (data.groupId != null) {
+            viewModel.loadCoursesForGroup(data.groupId);
+        } else {
+            viewModel.loadCoursesForGroup(null);
+        }
+        viewModel.loadEventTypes();
     }
 
     private void setChosenAndDisplay(LocalDateTime dateTime) {
@@ -161,13 +311,11 @@ public class EditCalendarEventFragment extends Fragment {
         String desc = eventDescriptionLayout.getEditText() != null ? eventDescriptionLayout.getEditText().getText().toString() : "";
 
         eventNameLayout.setError(null);
+        eventCourseLayout.setError(null);
+        eventTypeLayout.setError(null);
         eventDateTimeLayout.setError(null);
         eventDescriptionLayout.setError(null);
 
-        if (name.isEmpty()) {
-            eventNameLayout.setError(getString(R.string.enter_event_name));
-            return;
-        }
         int maxName = getResources().getInteger(R.integer.max_event_name_length);
         int maxDesc = getResources().getInteger(R.integer.max_event_description_length);
         if (name.length() > maxName) {
@@ -184,12 +332,13 @@ public class EditCalendarEventFragment extends Fragment {
         }
 
         String dateIso = chosenDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-        String eventType = loadedEventType != null ? loadedEventType : "Другое";
-        viewModel.updateEvent(eventId, loadedCourseId, eventType, name, dateIso, desc);
+        viewModel.updateEvent(eventId, explicitCourseSelection, selectedEventType, name, dateIso, desc);
     }
 
     private void onLoadResult(@Nullable Result<CalendarEventDetailsResponse> result) {
-        if (result == null) return;
+        if (result == null) {
+            return;
+        }
         if (result instanceof Result.Success) {
             fillForm(((Result.Success<CalendarEventDetailsResponse>) result).data);
             return;
@@ -207,7 +356,9 @@ public class EditCalendarEventFragment extends Fragment {
     }
 
     private void onUpdateResult(@Nullable Result<Void> result) {
-        if (result == null) return;
+        if (result == null) {
+            return;
+        }
         if (result instanceof Result.Success) {
             NavHostFragment.findNavController(this).navigateUp();
             return;
