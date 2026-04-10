@@ -103,6 +103,52 @@ public sealed class CalendarService
         return (true, list, null);
     }
 
+    public async Task<(bool Ok, List<CalendarEventListDto>? Events, string? ErrorCode)> GetEventsForCourseAsync(
+        Guid userId,
+        Guid groupId,
+        Guid courseId,
+        CancellationToken ct)
+    {
+        var isMember = await _db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (!isMember)
+            return (false, null, "forbidden");
+
+        var courseInGroup = await _db.Courses.AnyAsync(c => c.Id == courseId && c.GroupId == groupId, ct);
+        if (!courseInGroup)
+            return (false, null, "course_not_in_group");
+
+        var typeColors = await GetTypeColorsAsync(userId, ct);
+        var colorsByType = typeColors.ToDictionary(x => x.Type, x => x.Color, StringComparer.Ordinal);
+
+        var statesForUser = _db.CalendarEventUserStates.Where(s => s.UserId == userId);
+
+        var list = await (
+            from e in _db.CalendarEvents
+            where e.GroupId == groupId && e.CourseId == courseId
+            join g in _db.Groups on e.GroupId equals g.Id
+            join c in _db.Courses on e.CourseId equals c.Id into courseJoin
+            from c in courseJoin.DefaultIfEmpty()
+            join s in statesForUser on e.Id equals s.EventId into stateJoin
+            from s in stateJoin.DefaultIfEmpty()
+            orderby e.Date
+            select new CalendarEventListDto(
+                e.Id,
+                e.GroupId,
+                g.Name,
+                e.CourseId,
+                c != null ? c.Name : null,
+                e.EventType,
+                e.Name,
+                e.Date,
+                s != null && s.IsDone))
+            .ToListAsync(ct);
+
+        foreach (var item in list)
+            item.EventColor = colorsByType.TryGetValue(item.EventType, out var color) ? color : CalendarEventCatalog.DefaultColor;
+
+        return (true, list, null);
+    }
+
     public async Task<(bool Ok, Guid? Id, string? ErrorCode)> CreateEventAsync(
         Guid userId,
         Guid groupId,

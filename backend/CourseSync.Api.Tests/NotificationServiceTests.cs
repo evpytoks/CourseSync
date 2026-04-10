@@ -151,6 +151,7 @@ public sealed class NotificationServiceTests
         Assert.Equal("Алгебра", news.GroupName);
         Assert.Equal("Новости", news.Section);
         Assert.Equal("Текст новости", news.Detail);
+        Assert.Equal(ownerId, news.ActorUserId);
     }
 
     [Fact]
@@ -195,7 +196,9 @@ public sealed class NotificationServiceTests
             "bpi237",
             "Группы",
             "К группе bpi237 присоединился новый участник x@y.ru",
-            CancellationToken.None);
+            CancellationToken.None,
+            actorUserId: participantId,
+            markAsReadForUserId: participantId);
 
         var ownerNotif = await tdb.Db.Notifications.AsNoTracking().SingleOrDefaultAsync(x => x.UserId == ownerId);
         Assert.NotNull(ownerNotif);

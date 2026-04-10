@@ -136,7 +136,7 @@ public sealed class CourseMaterialService
             var courseLabel = course?.Name ?? "";
             var groupName = await GetGroupNameAsync(groupId, ct);
             await _notifications.CreateNewsAndPushAsync(
-                "general_material_added",
+                NewsService.GeneralMaterialAddedNewsType,
                 userId,
                 groupId,
                 groupName,
@@ -210,7 +210,7 @@ public sealed class CourseMaterialService
             var courseLabel = course?.Name ?? "";
             var groupName = await GetGroupNameAsync(groupId, ct);
             await _notifications.CreateNewsAndPushToAllMembersExceptAsync(
-                "personal_material_added",
+                NewsService.PersonalMaterialAddedNewsType,
                 groupId,
                 groupName,
                 NewsFormatting.SectionCourses,

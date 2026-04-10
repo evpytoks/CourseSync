@@ -9,6 +9,8 @@ public sealed class NewsService
     private const int NewsTextMaxLength = 3000;
 
     public const string MemberJoinedByCodeNewsType = "member_joined_by_code";
+    public const string GeneralMaterialAddedNewsType = "general_material_added";
+    public const string PersonalMaterialAddedNewsType = "personal_material_added";
 
     private readonly AppDbContext _db;
     private readonly NotificationService _notificationService;
@@ -24,12 +26,36 @@ public sealed class NewsService
         return await _db.News
             .AsNoTracking()
             .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId)
-                && (n.Type != MemberJoinedByCodeNewsType
-                    || _db.GroupMembers.Any(m =>
-                        m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Owner)))
+                && (
+                    (_db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Participant)
+                        && n.Type != MemberJoinedByCodeNewsType)
+                    || (_db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Owner)
+                        && (
+                            n.Type == MemberJoinedByCodeNewsType
+                            || (
+                                (n.Type == GeneralMaterialAddedNewsType || n.Type == PersonalMaterialAddedNewsType)
+                                && (n.ActorUserId == null || n.ActorUserId != userId))))))
             .OrderByDescending(n => n.CreatedAt)
             .Select(n => new NewsListDto(n.Id, n.CreatedAt, n.GroupName, n.Section, n.Detail, _db.NewsReads.Any(r => r.UserId == userId && r.NewsId == n.Id)))
             .ToListAsync(ct);
+    }
+
+    public async Task<int> GetUnreadCountAsync(Guid userId, CancellationToken ct)
+    {
+        return await _db.News
+            .AsNoTracking()
+            .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId)
+                && (
+                    (_db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Participant)
+                        && n.Type != MemberJoinedByCodeNewsType)
+                    || (_db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Owner)
+                        && (
+                            n.Type == MemberJoinedByCodeNewsType
+                            || (
+                                (n.Type == GeneralMaterialAddedNewsType || n.Type == PersonalMaterialAddedNewsType)
+                                && (n.ActorUserId == null || n.ActorUserId != userId))))))
+            .Where(n => !_db.NewsReads.Any(r => r.UserId == userId && r.NewsId == n.Id))
+            .CountAsync(ct);
     }
 
     public async Task<(bool Ok, NewsDetailsDto? Item, string? ErrorCode)> GetByIdAsync(
@@ -43,20 +69,14 @@ public sealed class NewsService
         if (news is null)
             return (false, null, "news_not_found");
 
-        if (news.Type == MemberJoinedByCodeNewsType)
-        {
-            var isOwner = await _db.GroupMembers.AnyAsync(
-                m => m.GroupId == news.GroupId && m.UserId == userId && m.Role == GroupRole.Owner, ct);
-            if (!isOwner)
-                return (false, null, "forbidden");
-        }
-        else
-        {
-            var isMember = await _db.GroupMembers.AnyAsync(
-                m => m.GroupId == news.GroupId && m.UserId == userId, ct);
-            if (!isMember)
-                return (false, null, "forbidden");
-        }
+        var membership = await _db.GroupMembers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.GroupId == news.GroupId && m.UserId == userId, ct);
+        if (membership is null)
+            return (false, null, "forbidden");
+
+        if (!IsNewsVisibleToMember(news.Type, news.ActorUserId, membership.Role, userId))
+            return (false, null, "forbidden");
 
         await MarkAsReadIfNeededAsync(userId, newsId, ct);
 
@@ -68,9 +88,15 @@ public sealed class NewsService
         var toMark = await _db.News
             .AsNoTracking()
             .Where(n => _db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId)
-                && (n.Type != MemberJoinedByCodeNewsType
-                    || _db.GroupMembers.Any(m =>
-                        m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Owner)))
+                && (
+                    (_db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Participant)
+                        && n.Type != MemberJoinedByCodeNewsType)
+                    || (_db.GroupMembers.Any(m => m.UserId == userId && m.GroupId == n.GroupId && m.Role == GroupRole.Owner)
+                        && (
+                            n.Type == MemberJoinedByCodeNewsType
+                            || (
+                                (n.Type == GeneralMaterialAddedNewsType || n.Type == PersonalMaterialAddedNewsType)
+                                && (n.ActorUserId == null || n.ActorUserId != userId))))))
             .Where(n => !_db.NewsReads.Any(r => r.UserId == userId && r.NewsId == n.Id))
             .Select(n => n.Id)
             .ToListAsync(ct);
@@ -141,6 +167,17 @@ public sealed class NewsService
             text.Trim(),
             ct);
         return (true, null);
+    }
+
+    internal static bool IsNewsVisibleToMember(string newsType, Guid? actorUserId, GroupRole role, Guid userId)
+    {
+        if (role == GroupRole.Participant)
+            return newsType != MemberJoinedByCodeNewsType;
+
+        return newsType == MemberJoinedByCodeNewsType
+               || (
+                   (newsType == GeneralMaterialAddedNewsType || newsType == PersonalMaterialAddedNewsType)
+                   && (actorUserId is null || actorUserId != userId));
     }
 
     public sealed record NewsListDto(Guid Id, DateTimeOffset Time, string Group, string Section, string Text, bool IsRead);

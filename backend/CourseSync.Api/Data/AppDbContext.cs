@@ -460,6 +460,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.Detail).HasColumnName("detail").IsRequired().HasMaxLength(3000);
             e.Property(x => x.Type).HasColumnName("type").IsRequired().HasMaxLength(100);
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            e.Property(x => x.ActorUserId).HasColumnName("actor_user_id");
 
             e.HasOne<Group>()
                 .WithMany()

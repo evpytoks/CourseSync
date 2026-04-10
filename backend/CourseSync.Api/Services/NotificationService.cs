@@ -31,6 +31,7 @@ public sealed class NotificationService
             groupName,
             section,
             detail,
+            actorUserId,
             async token =>
             {
                 return await _db.GroupMembers
@@ -57,6 +58,7 @@ public sealed class NotificationService
             groupName,
             section,
             detail,
+            exceptUserId,
             async token =>
             {
                 return await _db.GroupMembers
@@ -75,6 +77,7 @@ public sealed class NotificationService
         string section,
         string detail,
         CancellationToken ct,
+        Guid? actorUserId = null,
         Guid? markAsReadForUserId = null)
     {
         return CreateNewsAndPushToRecipientsAsync(
@@ -83,6 +86,7 @@ public sealed class NotificationService
             groupName,
             section,
             detail,
+            actorUserId,
             async token =>
             {
                 return await _db.GroupMembers
@@ -100,6 +104,7 @@ public sealed class NotificationService
         string groupName,
         string section,
         string detail,
+        Guid? actorUserId,
         Func<CancellationToken, Task<List<Guid>>> resolveRecipients,
         Guid? markAsReadForUserId,
         CancellationToken ct)
@@ -131,7 +136,8 @@ public sealed class NotificationService
             Section = sectionValue,
             Detail = detailValue,
             Type = type,
-            CreatedAt = now
+            CreatedAt = now,
+            ActorUserId = actorUserId
         };
         _db.News.Add(news);
 

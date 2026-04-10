@@ -20,7 +20,8 @@ public sealed class CourseControllerTests
         var courseSvc = new CourseService(tdb.Db, notifications, blob);
         var materialSvc = new CourseMaterialService(tdb.Db, blob, notifications);
         var userSvc = new UserService(tdb.Db);
-        var controller = new CourseController(courseSvc, materialSvc, userSvc);
+        var calendarSvc = new CalendarService(tdb.Db, notifications);
+        var controller = new CourseController(courseSvc, materialSvc, userSvc, calendarSvc);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext(),
@@ -1054,5 +1055,93 @@ public sealed class CourseControllerTests
         Assert.Equal(8m, cumulative.Automatic);
         Assert.False(cumulative.IsAuto!.Value);
         Assert.Equal(new[] { "Tests", "KR", "DZ" }, cumulative.ElementNames);
+    }
+
+    [Fact]
+    public async Task GetCalendar_returns_events_for_course_sorted_by_date_ascending()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "Группа",
+            Code = "abcDef",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Курс",
+            GeneralInfo = "",
+            UsefulLinks = "",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var otherCourse = new Course
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Name = "Другой",
+            GeneralInfo = "",
+            UsefulLinks = "",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        tdb.Db.Users.Add(owner);
+        tdb.Db.Groups.Add(group);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = owner.Id,
+            Role = GroupRole.Owner,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.Courses.AddRange(course, otherCourse);
+        owner.CurrentGroupId = group.Id;
+
+        var later = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc);
+        var earlier = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        tdb.Db.CalendarEvents.AddRange(
+            new CalendarEvent
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                CourseId = course.Id,
+                EventType = "ДЗ",
+                Name = "Позже",
+                Date = later,
+                Description = ""
+            },
+            new CalendarEvent
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                CourseId = course.Id,
+                EventType = "Тест",
+                Name = "Раньше",
+                Date = earlier,
+                Description = ""
+            },
+            new CalendarEvent
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                CourseId = otherCourse.Id,
+                EventType = "ДЗ",
+                Name = "Чужое",
+                Date = earlier,
+                Description = ""
+            });
+        await tdb.Db.SaveChangesAsync();
+
+        var controller = CreateController(tdb, owner.Id);
+        var res = await controller.GetCalendar(course.Id, CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(res.Result);
+        var payload = Assert.IsType<CalendarListResponse>(ok.Value);
+        Assert.Equal(2, payload.Events.Count);
+        Assert.Equal("Раньше", payload.Events[0].Name);
+        Assert.Equal("Позже", payload.Events[1].Name);
+        Assert.True(payload.Events[0].Date < payload.Events[1].Date);
     }
 }

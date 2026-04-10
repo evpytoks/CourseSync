@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 
 import ru.katevpy.coursesync.shared.dto.NewsListItem;
 import ru.katevpy.coursesync.shared.dto.NewsListResponse;
+import ru.katevpy.coursesync.shared.dto.NewsUnreadCountResponse;
 import ru.katevpy.coursesync.shared.repository.NewsRepository;
 import ru.katevpy.coursesync.shared.util.Result;
 
@@ -35,25 +36,26 @@ public class NewsViewModel extends ViewModel {
 
     public void loadNews() {
         io.execute(() -> {
+            Result<NewsUnreadCountResponse> countR = repo.getUnreadCount();
+            if (countR instanceof Result.Success) {
+                NewsUnreadCountResponse c = ((Result.Success<NewsUnreadCountResponse>) countR).data;
+                int u = c != null && c.unreadCount != null ? c.unreadCount : 0;
+                unreadCount.postValue(u);
+            } else {
+                unreadCount.postValue(0);
+            }
+
             Result<NewsListResponse> r = repo.getNewsList();
             if (r instanceof Result.Success) {
                 NewsListResponse data = ((Result.Success<NewsListResponse>) r).data;
                 List<NewsListItem> items = data != null && data.news != null ? data.news : Collections.emptyList();
-                int u = 0;
-                if (data != null && data.unreadCount != null && data.unreadCount > 0) {
-                    u = data.unreadCount;
-                }
-                unreadCount.postValue(u);
                 loadResult.postValue(Result.success(items));
             } else if (r instanceof Result.HttpError) {
-                unreadCount.postValue(0);
                 Result.HttpError<NewsListResponse> he = (Result.HttpError<NewsListResponse>) r;
                 loadResult.postValue(Result.httpError(he.httpCode, he.error));
             } else if (r instanceof Result.NetworkError) {
-                unreadCount.postValue(0);
                 loadResult.postValue(Result.networkError(((Result.NetworkError<NewsListResponse>) r).t));
             } else {
-                unreadCount.postValue(0);
                 loadResult.postValue(Result.logicalError("Неизвестная ошибка"));
             }
         });

@@ -3,6 +3,7 @@ using CourseSync.Api.Infrastructure;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CourseSync.Api.Controllers;
@@ -16,15 +17,18 @@ public sealed class CourseController : ControllerBase
     private readonly CourseService _courseService;
     private readonly CourseMaterialService _courseMaterialService;
     private readonly UserService _userService;
+    private readonly CalendarService _calendarService;
 
     public CourseController(
         CourseService courseService,
         CourseMaterialService courseMaterialService,
-        UserService userService)
+        UserService userService,
+        CalendarService calendarService)
     {
         _courseService = courseService;
         _courseMaterialService = courseMaterialService;
         _userService = userService;
+        _calendarService = calendarService;
     }
 
     [HttpGet("list")]
@@ -146,6 +150,54 @@ public sealed class CourseController : ControllerBase
         }
 
         return Ok(new CourseDetailsResponse(data!.Id, data.Name, data.GeneralInfo, data.Contacts, data.UsefulLinks));
+    }
+
+    [HttpGet("{id:guid}/calendar")]
+    [ProducesResponseType(typeof(CalendarListResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<CalendarListResponse>> GetCalendar(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var user = await _userService.FindByIdAsync(userId.Value, ct);
+        if (user is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (user.CurrentGroupId is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
+
+        var (ok, events, errorCode) = await _calendarService.GetEventsForCourseAsync(
+            userId.Value,
+            user.CurrentGroupId.Value,
+            id,
+            ct);
+
+        if (!ok)
+        {
+            if (errorCode == "forbidden")
+                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
+        }
+
+        var items = events!
+            .Select(e => new CalendarListItem(
+                e.Id,
+                e.GroupId,
+                e.GroupName,
+                e.CourseId,
+                e.CourseName,
+                e.EventType,
+                e.EventColor,
+                e.Name,
+                e.Date,
+                e.IsDone))
+            .ToList();
+
+        return Ok(new CalendarListResponse(items));
     }
 
     [HttpPost("{id:guid}/grading")]

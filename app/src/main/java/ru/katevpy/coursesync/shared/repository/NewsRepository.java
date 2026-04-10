@@ -15,6 +15,7 @@ import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
 import ru.katevpy.coursesync.shared.dto.NewsDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.NewsListResponse;
+import ru.katevpy.coursesync.shared.dto.NewsUnreadCountResponse;
 import ru.katevpy.coursesync.shared.network.NewsApi;
 import ru.katevpy.coursesync.shared.util.Result;
 
@@ -40,6 +41,18 @@ public class NewsRepository {
     public Result<NewsListResponse> getNewsList() {
         try {
             Response<NewsListResponse> r = api.listNews().execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<NewsUnreadCountResponse> getUnreadCount() {
+        try {
+            Response<NewsUnreadCountResponse> r = api.unreadCount().execute();
             if (r.isSuccessful() && r.body() != null) {
                 return Result.success(r.body());
             }

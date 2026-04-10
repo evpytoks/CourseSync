@@ -122,17 +122,17 @@ public sealed class NewsControllerTests
         var userSvc = new UserService(tdb.Db);
         var controller = CreateController(newsSvc, userSvc, user.Id);
 
-        var listBeforeRes = await controller.List(CancellationToken.None);
-        var listBeforeOk = Assert.IsType<OkObjectResult>(listBeforeRes.Result);
-        Assert.Equal(1, Assert.IsType<NewsListResponse>(listBeforeOk.Value!).UnreadCount);
+        var unreadBeforeRes = await controller.UnreadCount(CancellationToken.None);
+        var unreadBeforeOk = Assert.IsType<OkObjectResult>(unreadBeforeRes.Result);
+        Assert.Equal(1, Assert.IsType<NewsUnreadCountResponse>(unreadBeforeOk.Value!).UnreadCount);
 
         var readRes = await controller.MarkAllRead(CancellationToken.None);
         var readOk = Assert.IsType<OkObjectResult>(readRes.Result);
         var body = Assert.IsType<MarkAllNewsReadResponse>(readOk.Value);
         Assert.Equal(1, body.MarkedCount);
 
-        var listAfterRes = await controller.List(CancellationToken.None);
-        var listAfterOk = Assert.IsType<OkObjectResult>(listAfterRes.Result);
-        Assert.Equal(0, Assert.IsType<NewsListResponse>(listAfterOk.Value!).UnreadCount);
+        var unreadAfterRes = await controller.UnreadCount(CancellationToken.None);
+        var unreadAfterOk = Assert.IsType<OkObjectResult>(unreadAfterRes.Result);
+        Assert.Equal(0, Assert.IsType<NewsUnreadCountResponse>(unreadAfterOk.Value!).UnreadCount);
     }
 }
