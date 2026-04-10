@@ -11,6 +11,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
+    public DbSet<GroupMemberBlock> GroupMemberBlocks => Set<GroupMemberBlock>();
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<CourseGradingElement> CourseGradingElements => Set<CourseGradingElement>();
     public DbSet<CourseGradingScore> CourseGradingScores => Set<CourseGradingScore>();
@@ -151,6 +152,27 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
             e.Property(x => x.Role).HasColumnName("role").IsRequired();
             e.Property(x => x.JoinedAt).HasColumnName("joined_at").IsRequired();
+
+            e.HasOne(x => x.Group)
+                .WithMany()
+                .HasForeignKey(x => x.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.UserId);
+        });
+
+        b.Entity<GroupMemberBlock>(e =>
+        {
+            e.ToTable("group_member_blocks");
+            e.HasKey(x => new { x.GroupId, x.UserId });
+
+            e.Property(x => x.GroupId).HasColumnName("group_id").IsRequired();
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.BlockedAt).HasColumnName("blocked_at").IsRequired();
 
             e.HasOne(x => x.Group)
                 .WithMany()

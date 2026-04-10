@@ -100,8 +100,8 @@ public sealed class GroupServiceTests
         var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var result = await svc.JoinByCodeAsync(joiner.Id, create.Value.Code, CancellationToken.None);
-        Assert.NotNull(result);
-        Assert.Equal("participant", result.Value.Role);
+        Assert.True(result.Ok);
+        Assert.Equal("participant", result.Role);
     }
 
     [Fact]
@@ -115,20 +115,102 @@ public sealed class GroupServiceTests
         var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
         var result = await svc.JoinByCodeAsync(owner.Id, create.Value.Code, CancellationToken.None);
-        Assert.NotNull(result);
-        Assert.Equal("owner", result.Value.Role);
+        Assert.True(result.Ok);
+        Assert.Equal("owner", result.Role);
     }
 
     [Fact]
-    public async Task JoinByCodeAsync_invalid_code_returns_null()
+    public async Task JoinByCodeAsync_invalid_code_or_unknown_group_returns_error()
     {
         await using var tdb = new TestDb();
         var user = new User { Id = Guid.NewGuid(), Email = "user@edu.hse.ru" };
         tdb.Db.Users.Add(user);
         await tdb.Db.SaveChangesAsync();
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
-        Assert.Null(await svc.JoinByCodeAsync(user.Id, "short", CancellationToken.None));
-        Assert.Null(await svc.JoinByCodeAsync(user.Id, "ABCDEF", CancellationToken.None));
+        var invalidFormat = await svc.JoinByCodeAsync(user.Id, "short", CancellationToken.None);
+        Assert.False(invalidFormat.Ok);
+        Assert.Equal("invalid_code_format", invalidFormat.ErrorCode);
+        var groupNotFound = await svc.JoinByCodeAsync(user.Id, "ABCDEF", CancellationToken.None);
+        Assert.False(groupNotFound.Ok);
+        Assert.Equal("group_not_found", groupNotFound.ErrorCode);
+    }
+
+    [Fact]
+    public async Task BlockParticipantByEmailAsync_removes_from_list_and_blocks_join_by_code()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var joiner = new User { Id = Guid.NewGuid(), Email = "joiner@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, joiner);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
+        Assert.NotNull(create);
+        await svc.JoinByCodeAsync(joiner.Id, create.Value.Code, CancellationToken.None);
+
+        var (ok, errorCode) = await svc.BlockParticipantByEmailAsync(owner.Id, create.Value.GroupId, "joiner@edu.hse.ru", CancellationToken.None);
+        Assert.True(ok);
+        Assert.Null(errorCode);
+
+        var list = await svc.GetUserGroupsAsync(joiner.Id, CancellationToken.None);
+        Assert.Empty(list);
+
+        var joinAfterBlock = await svc.JoinByCodeAsync(joiner.Id, create.Value.Code, CancellationToken.None);
+        Assert.False(joinAfterBlock.Ok);
+        Assert.Equal("group_join_blocked", joinAfterBlock.ErrorCode);
+    }
+
+    [Fact]
+    public async Task UnblockParticipantByEmailAsync_restores_membership_and_allows_join_by_code()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var joiner = new User { Id = Guid.NewGuid(), Email = "joiner@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, joiner);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
+        Assert.NotNull(create);
+        await svc.JoinByCodeAsync(joiner.Id, create.Value.Code, CancellationToken.None);
+        await svc.BlockParticipantByEmailAsync(owner.Id, create.Value.GroupId, "joiner@edu.hse.ru", CancellationToken.None);
+
+        var (ok, errorCode) = await svc.UnblockParticipantByEmailAsync(owner.Id, create.Value.GroupId, "joiner@edu.hse.ru", CancellationToken.None);
+        Assert.True(ok);
+        Assert.Null(errorCode);
+
+        var list = await svc.GetUserGroupsAsync(joiner.Id, CancellationToken.None);
+        Assert.Single(list);
+        Assert.Equal("participant", list[0].Role);
+
+        var joinAfterUnblock = await svc.JoinByCodeAsync(joiner.Id, create.Value.Code, CancellationToken.None);
+        Assert.True(joinAfterUnblock.Ok);
+        Assert.Equal("participant", joinAfterUnblock.Role);
+    }
+
+    [Fact]
+    public async Task GetParticipantEmailsForOwnerAsync_lists_active_and_blocked()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var activeParticipant = new User { Id = Guid.NewGuid(), Email = "active@edu.hse.ru" };
+        var blockedParticipant = new User { Id = Guid.NewGuid(), Email = "blocked@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, activeParticipant, blockedParticipant);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var create = await svc.CreateGroupAsync(owner.Id, "Линейная алгебра 2026", CancellationToken.None);
+        Assert.NotNull(create);
+        await svc.JoinByCodeAsync(activeParticipant.Id, create.Value.Code, CancellationToken.None);
+        await svc.JoinByCodeAsync(blockedParticipant.Id, create.Value.Code, CancellationToken.None);
+        await svc.BlockParticipantByEmailAsync(owner.Id, create.Value.GroupId, "blocked@edu.hse.ru", CancellationToken.None);
+
+        var (ok, items, errorCode) = await svc.GetParticipantEmailsForOwnerAsync(owner.Id, create.Value.GroupId, CancellationToken.None);
+        Assert.True(ok);
+        Assert.Null(errorCode);
+        Assert.Equal(2, items!.Count);
+        var activeItem = items.Single(x => x.Email == "active@edu.hse.ru");
+        Assert.False(activeItem.IsBlocked);
+        var blockedItem = items.Single(x => x.Email == "blocked@edu.hse.ru");
+        Assert.True(blockedItem.IsBlocked);
     }
 
     [Fact]

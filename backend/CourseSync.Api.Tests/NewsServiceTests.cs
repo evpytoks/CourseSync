@@ -165,4 +165,49 @@ public sealed class NewsServiceTests
         Assert.True((await svc.GetAllForUserAsync(user.Id, CancellationToken.None)).All(x => x.IsRead));
         Assert.Equal(0, await svc.MarkAllReadAsync(user.Id, CancellationToken.None));
     }
+
+    [Fact]
+    public async Task GetAllForUserAsync_and_GetByIdAsync_member_joined_news_visible_only_to_owner()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
+        var g = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "Учебная группа 2026",
+            Code = "aaaaaa",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var n = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "Группы",
+            Detail = "К группе присоединился новый участник",
+            Type = NewsService.MemberJoinedByCodeNewsType
+        };
+        tdb.Db.Users.AddRange(owner, participant);
+        tdb.Db.Groups.Add(g);
+        tdb.Db.GroupMembers.AddRange(
+            new GroupMember { GroupId = g.Id, UserId = owner.Id, Role = GroupRole.Owner, JoinedAt = DateTimeOffset.UtcNow },
+            new GroupMember { GroupId = g.Id, UserId = participant.Id, Role = GroupRole.Participant, JoinedAt = DateTimeOffset.UtcNow });
+        tdb.Db.News.Add(n);
+        await tdb.Db.SaveChangesAsync();
+
+        var svc = CreateSvc(tdb);
+        Assert.Empty(await svc.GetAllForUserAsync(participant.Id, CancellationToken.None));
+        Assert.Single(await svc.GetAllForUserAsync(owner.Id, CancellationToken.None));
+
+        var (participantOk, _, participantErr) = await svc.GetByIdAsync(participant.Id, n.Id, CancellationToken.None);
+        Assert.False(participantOk);
+        Assert.Equal("forbidden", participantErr);
+
+        var (ownerOk, _, ownerErr) = await svc.GetByIdAsync(owner.Id, n.Id, CancellationToken.None);
+        Assert.True(ownerOk);
+        Assert.Null(ownerErr);
+    }
 }
