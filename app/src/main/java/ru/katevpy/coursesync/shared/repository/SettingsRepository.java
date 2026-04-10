@@ -10,6 +10,9 @@ import retrofit2.Response;
 
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
+import java.util.List;
+
+import ru.katevpy.coursesync.shared.dto.UpdateCalendarEventTypeColorItem;
 import ru.katevpy.coursesync.shared.dto.UpdateUserSettingsRequest;
 import ru.katevpy.coursesync.shared.dto.UserSettingsResponse;
 import ru.katevpy.coursesync.shared.network.SettingsApi;
@@ -47,8 +50,16 @@ public class SettingsRepository {
     }
 
     public Result<Void> updateSettings(boolean notificationsOn, boolean darkThemeOn) {
+        return updateSettings(notificationsOn, darkThemeOn, null);
+    }
+
+    public Result<Void> updateSettings(
+            Boolean notificationsOn,
+            Boolean darkThemeOn,
+            List<UpdateCalendarEventTypeColorItem> calendarEventTypeColors) {
         try {
-            UpdateUserSettingsRequest req = new UpdateUserSettingsRequest(notificationsOn, darkThemeOn);
+            UpdateUserSettingsRequest req = new UpdateUserSettingsRequest(
+                    notificationsOn, darkThemeOn, calendarEventTypeColors);
             Response<Void> r = api.updateSettings(req).execute();
             if (r.isSuccessful()) {
                 return Result.success(null);

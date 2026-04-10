@@ -39,4 +39,7 @@ public interface CalendarApi {
 
     @DELETE("calendar/{id}/delete")
     Call<Void> deleteEvent(@Path("id") UUID id);
+
+    @PUT("calendar/{id}/done")
+    Call<Void> toggleEventDone(@Path("id") UUID id);
 }

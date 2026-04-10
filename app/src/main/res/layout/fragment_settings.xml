@@ -84,6 +84,29 @@
                 android:layout_marginBottom="@dimen/divider_margin_vertical"
                 app:dividerColor="?attr/colorOutlineVariant" />
 
+            <TextView
+                android:id="@+id/calendarColorsSectionTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/grid_1"
+                android:text="@string/settings_calendar_colors_title"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/settingsEventColorsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <com.google.android.material.divider.MaterialDivider
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/divider_margin_vertical"
+                android:layout_marginBottom="@dimen/divider_margin_vertical"
+                app:dividerColor="?attr/colorOutlineVariant" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogout"
                 style="@style/Widget.CourseSync.Button.Tonal"
