@@ -73,6 +73,18 @@ public class CourseRepository {
         }
     }
 
+    public Result<CourseListResponse> getCourseListForGroup(UUID groupId) {
+        try {
+            Response<CourseListResponse> r = api.listCoursesForGroup(groupId).execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
     public Result<CourseDetailsResponse> getCourse(UUID courseId) {
         try {
             Response<CourseDetailsResponse> r = api.getCourse(courseId).execute();

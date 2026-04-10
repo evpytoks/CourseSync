@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import ru.katevpy.coursesync.shared.dto.AddCalendarEventRequest;
 import ru.katevpy.coursesync.shared.dto.CalendarEventDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.CalendarEventTypeColorsResponse;
 import ru.katevpy.coursesync.shared.dto.CalendarListResponse;
 import ru.katevpy.coursesync.shared.dto.UpdateCalendarEventRequest;
 
@@ -23,6 +24,9 @@ public interface CalendarApi {
             @Query("startDate") String startDate,
             @Query("endDate") String endDate
     );
+
+    @GET("calendar/event-types")
+    Call<CalendarEventTypeColorsResponse> getEventTypes();
 
     @POST("calendar/add")
     Call<Void> addEvent(@Body AddCalendarEventRequest request);

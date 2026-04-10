@@ -188,6 +188,12 @@
     <string name="calendar_prev_month">Предыдущий месяц</string>
     <string name="calendar_next_month">Следующий месяц</string>
     <string name="add_event">Добавить событие</string>
+    <string name="calendar_event_group_hint">Группа</string>
+    <string name="calendar_event_course_hint">Курс</string>
+    <string name="calendar_event_type_hint">Тип события</string>
+    <string name="calendar_event_no_course">Без курса</string>
+    <string name="calendar_create_need_owner_group">Для создания события нужно быть владельцем хотя бы одной группы</string>
+    <string name="calendar_event_group_required">Выберите группу</string>
     <string name="event_name_hint">Название события</string>
     <string name="event_date_hint">Дата и время</string>
     <string name="event_description_hint">Описание</string>

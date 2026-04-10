@@ -50,6 +50,7 @@ import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
 import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListItem;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
+import ru.katevpy.coursesync.shared.dto.OwnerGroupListItem;
 import ru.katevpy.coursesync.shared.dto.OwnerGroupListResponse;
 import ru.katevpy.coursesync.shared.util.Result;
 import ru.katevpy.coursesync.shared.dto.UserSettingsResponse;
@@ -77,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean appliedThemeFromServer;
     @Nullable
     private ListPopupWindow toolbarGroupListPopup;
+    private int previousNavDestinationId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
         eventDetailToolbarVm = new ViewModelProvider(this, new EventDetailToolbarViewModelFactory()).get(EventDetailToolbarViewModel.class);
         eventDetailToolbarVm.getDeleteResult().observe(this, this::onEventDeleteResult);
+        eventDetailToolbarVm.getEventEditAllowed().observe(this, this::syncCalendarEventEditButton);
 
         btnToolbarCreate.setOnClickListener(v -> {
             if (navController.getCurrentDestination() == null) return;
@@ -118,7 +121,27 @@ public class MainActivity extends AppCompatActivity {
             if (destId == R.id.newsFragment) {
                 navController.navigate(R.id.action_newsFragment_to_createNewsFragment);
             } else if (destId == R.id.calendarFragment) {
-                navController.navigate(R.id.action_calendarFragment_to_createCalendarEventFragment);
+                View snackRoot = findViewById(android.R.id.content);
+                new Thread(() -> {
+                    GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
+                    Result<OwnerGroupListResponse> ownerResult = repo.getOwnerGroups();
+                    runOnUiThread(() -> {
+                        if (isFinishing() || isDestroyed()) {
+                            return;
+                        }
+                        if (!(ownerResult instanceof Result.Success)) {
+                            ErrorUi.show(MainActivity.this, snackRoot, R.string.internal_error, ErrorUi.Duration.SHORT);
+                            return;
+                        }
+                        OwnerGroupListResponse payload = ((Result.Success<OwnerGroupListResponse>) ownerResult).data;
+                        List<OwnerGroupListItem> owned = payload != null ? payload.groups : null;
+                        if (owned == null || owned.isEmpty()) {
+                            ErrorUi.show(MainActivity.this, snackRoot, R.string.calendar_create_need_owner_group, ErrorUi.Duration.SHORT);
+                            return;
+                        }
+                        navController.navigate(R.id.action_calendarFragment_to_createCalendarEventFragment);
+                    });
+                }).start();
             } else if (destId == R.id.coursesFragment) {
                 navController.navigate(R.id.action_coursesFragment_to_createCourseFragment);
             }
@@ -182,10 +205,7 @@ public class MainActivity extends AppCompatActivity {
                     && navController.getCurrentDestination().getId() == R.id.courseDetailFragment) {
                 btnEditCourse.setVisibility(showOwnerToolbarActions(state) ? View.VISIBLE : View.GONE);
             }
-            if (btnEditEvent != null && navController.getCurrentDestination() != null
-                    && navController.getCurrentDestination().getId() == R.id.calendarEventDetailFragment) {
-                btnEditEvent.setVisibility(showOwnerToolbarActions(state) ? View.VISIBLE : View.GONE);
-            }
+            syncCalendarEventEditButton();
         });
 
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
@@ -196,8 +216,11 @@ public class MainActivity extends AppCompatActivity {
             boolean isEventScreen = (id == R.id.createCalendarEventFragment || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment);
             boolean isNewsScreenWithGroup = (id == R.id.newsDetailFragment || id == R.id.createNewsFragment);
             boolean isCourseScreenWithGroup = (id == R.id.courseDetailFragment || id == R.id.editCourseFragment || id == R.id.editCourseGradingFormulaFragment);
+            boolean isCalendarFlow = (id == R.id.calendarFragment || id == R.id.createCalendarEventFragment
+                    || id == R.id.calendarEventDetailFragment || id == R.id.editCalendarEventFragment);
             boolean hideGroupIndicator = isLogin || id == R.id.settingsFragment || id == R.id.newsFragment
                     || id == R.id.newsDetailFragment || id == R.id.groupsFragment
+                    || isCalendarFlow
                     || (isCreateOrJoinGroup && !isEventScreen && !isNewsScreenWithGroup && !isCourseScreenWithGroup);
 
             if (isLogin) {
@@ -235,11 +258,12 @@ public class MainActivity extends AppCompatActivity {
             if (btnToolbarGroup != null) {
                 btnToolbarGroup.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
             }
-            boolean isEventDetailScreen = (id == R.id.calendarEventDetailFragment);
-            if (btnEditEvent != null) {
-                btnEditEvent.setVisibility(
-                        isEventDetailScreen && showOwnerToolbarActions(groupState) ? View.VISIBLE : View.GONE);
+            if (previousNavDestinationId == R.id.calendarEventDetailFragment
+                    && id != R.id.calendarEventDetailFragment) {
+                eventDetailToolbarVm.clearEventEditAllowed();
             }
+            previousNavDestinationId = id;
+            syncCalendarEventEditButton();
 
             if (toolbar != null && getSupportActionBar() != null) {
                 getSupportActionBar().setDisplayHomeAsUpEnabled(false);
@@ -311,6 +335,15 @@ public class MainActivity extends AppCompatActivity {
                 if (ownerResult instanceof Result.Success) {
                     OwnerGroupListResponse og = ((Result.Success<OwnerGroupListResponse>) ownerResult).data;
                     ownsAny = og != null && og.groups != null && !og.groups.isEmpty();
+                    List<String> ownedIdStrings = new ArrayList<>();
+                    if (og != null && og.groups != null) {
+                        for (OwnerGroupListItem it : og.groups) {
+                            if (it != null && it.id != null && !it.id.trim().isEmpty()) {
+                                ownedIdStrings.add(it.id);
+                            }
+                        }
+                    }
+                    groupVm.setOwnedGroupIds(ownedIdStrings);
                 }
                 groupVm.setOwnerOfAnyGroup(ownsAny);
 
@@ -594,6 +627,26 @@ public class MainActivity extends AppCompatActivity {
         ViewCompat.requestApplyInsets(bottomNav);
     }
 
+    private void syncCalendarEventEditButton(@Nullable Boolean allowed) {
+        if (btnEditEvent == null || navController == null || navController.getCurrentDestination() == null) {
+            return;
+        }
+        int destId = navController.getCurrentDestination().getId();
+        if (destId != R.id.calendarEventDetailFragment) {
+            btnEditEvent.setVisibility(View.GONE);
+            return;
+        }
+        btnEditEvent.setVisibility(Boolean.TRUE.equals(allowed) ? View.VISIBLE : View.GONE);
+    }
+
+    private void syncCalendarEventEditButton() {
+        syncCalendarEventEditButton(eventDetailToolbarVm.getEventEditAllowed().getValue());
+    }
+
+    public void refreshCalendarEventEditButton() {
+        syncCalendarEventEditButton();
+    }
+
     private void syncToolbarCreateButton() {
         if (btnToolbarCreate == null || navController == null || navController.getCurrentDestination() == null) {
             return;
@@ -611,6 +664,11 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 btnToolbarCreate.setVisibility(View.GONE);
             }
+            return;
+        }
+        if (destId == R.id.calendarFragment) {
+            btnToolbarCreate.setVisibility(View.VISIBLE);
+            btnToolbarCreate.setContentDescription(getString(R.string.add_event));
             return;
         }
         if (onListTab && showOwnerToolbarActions(gs)) {

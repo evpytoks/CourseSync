@@ -13,6 +13,7 @@ import java.util.UUID;
 import ru.katevpy.coursesync.shared.dto.AddCalendarEventRequest;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.CalendarEventDetailsResponse;
+import ru.katevpy.coursesync.shared.dto.CalendarEventTypeColorsResponse;
 import ru.katevpy.coursesync.shared.dto.CalendarListResponse;
 import ru.katevpy.coursesync.shared.dto.UpdateCalendarEventRequest;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
@@ -38,6 +39,18 @@ public class CalendarRepository {
         }
     }
 
+    public Result<CalendarEventTypeColorsResponse> getEventTypes() {
+        try {
+            Response<CalendarEventTypeColorsResponse> r = api.getEventTypes().execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
     public Result<CalendarListResponse> getEvents(String startDate, String endDate) {
         try {
             Response<CalendarListResponse> r = api.listEvents(startDate, endDate).execute();
@@ -50,9 +63,9 @@ public class CalendarRepository {
         }
     }
 
-    public Result<Void> addEvent(String name, String dateIso, String description) {
+    public Result<Void> addEvent(UUID groupId, UUID courseId, String eventType, String name, String dateIso, String description) {
         try {
-            AddCalendarEventRequest req = new AddCalendarEventRequest(name, dateIso, description);
+            AddCalendarEventRequest req = new AddCalendarEventRequest(groupId, courseId, eventType, name, dateIso, description);
             Response<Void> r = api.addEvent(req).execute();
             if (r.isSuccessful()) {
                 return Result.success(null);
@@ -78,9 +91,9 @@ public class CalendarRepository {
         }
     }
 
-    public Result<Void> updateEvent(UUID id, String name, String dateIso, String description) {
+    public Result<Void> updateEvent(UUID id, UUID courseId, String eventType, String name, String dateIso, String description) {
         try {
-            UpdateCalendarEventRequest req = new UpdateCalendarEventRequest(name, dateIso, description);
+            UpdateCalendarEventRequest req = new UpdateCalendarEventRequest(courseId, eventType, name, dateIso, description);
             Response<Void> r = api.changeEvent(id, req).execute();
             if (r.isSuccessful()) {
                 return Result.success(null);

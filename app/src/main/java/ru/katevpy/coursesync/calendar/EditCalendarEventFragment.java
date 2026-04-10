@@ -39,6 +39,10 @@ public class EditCalendarEventFragment extends Fragment {
     private EditCalendarEventViewModel viewModel;
     private LocalDateTime chosenDateTime;
     private UUID eventId;
+    @Nullable
+    private UUID loadedCourseId;
+    @Nullable
+    private String loadedEventType;
 
     public EditCalendarEventFragment() {
         super(R.layout.fragment_edit_calendar_event);
@@ -90,6 +94,10 @@ public class EditCalendarEventFragment extends Fragment {
     }
 
     private void fillForm(CalendarEventDetailsResponse data) {
+        loadedCourseId = data.courseId;
+        loadedEventType = data.eventType != null && !data.eventType.trim().isEmpty()
+                ? data.eventType.trim()
+                : "Другое";
         if (eventNameLayout.getEditText() != null) {
             eventNameLayout.getEditText().setText(data.name != null ? data.name : "");
         }
@@ -176,7 +184,8 @@ public class EditCalendarEventFragment extends Fragment {
         }
 
         String dateIso = chosenDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-        viewModel.updateEvent(eventId, name, dateIso, desc);
+        String eventType = loadedEventType != null ? loadedEventType : "Другое";
+        viewModel.updateEvent(eventId, loadedCourseId, eventType, name, dateIso, desc);
     }
 
     private void onLoadResult(@Nullable Result<CalendarEventDetailsResponse> result) {

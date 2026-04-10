@@ -46,9 +46,9 @@ public class EditCalendarEventViewModel extends ViewModel {
         });
     }
 
-    public void updateEvent(UUID eventId, String name, String dateIso, String description) {
+    public void updateEvent(UUID eventId, UUID courseId, String eventType, String name, String dateIso, String description) {
         io.execute(() -> {
-            Result<Void> r = repository.updateEvent(eventId, name, dateIso, description);
+            Result<Void> r = repository.updateEvent(eventId, courseId, eventType, name, dateIso, description);
             if (r instanceof Result.Success) {
                 updateResult.postValue(Result.success(null));
             } else if (r instanceof Result.HttpError) {

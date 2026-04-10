@@ -1,5 +1,7 @@
 package ru.katevpy.coursesync.calendar;
 
+import android.os.Looper;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -16,6 +18,7 @@ public class EventDetailToolbarViewModel extends ViewModel {
     private final CalendarRepository repository;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final MutableLiveData<Result<Void>> deleteResult = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> eventEditAllowed = new MutableLiveData<>(false);
 
     public EventDetailToolbarViewModel(CalendarRepository repository) {
         this.repository = repository;
@@ -23,6 +26,26 @@ public class EventDetailToolbarViewModel extends ViewModel {
 
     public LiveData<Result<Void>> getDeleteResult() {
         return deleteResult;
+    }
+
+    public LiveData<Boolean> getEventEditAllowed() {
+        return eventEditAllowed;
+    }
+
+    public void setEventEditAllowed(boolean allowed) {
+        if (Looper.getMainLooper().isCurrentThread()) {
+            eventEditAllowed.setValue(allowed);
+        } else {
+            eventEditAllowed.postValue(allowed);
+        }
+    }
+
+    public void clearEventEditAllowed() {
+        if (Looper.getMainLooper().isCurrentThread()) {
+            eventEditAllowed.setValue(false);
+        } else {
+            eventEditAllowed.postValue(false);
+        }
     }
 
     public void deleteEvent(UUID eventId) {

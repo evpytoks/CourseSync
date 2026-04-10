@@ -35,6 +35,9 @@ public interface CourseApi {
     @GET("course/list")
     Call<CourseListResponse> listCourses();
 
+    @GET("course/group/{groupId}/list")
+    Call<CourseListResponse> listCoursesForGroup(@Path("groupId") UUID groupId);
+
     @GET("course/{id}")
     Call<CourseDetailsResponse> getCourse(@Path("id") UUID id);
 

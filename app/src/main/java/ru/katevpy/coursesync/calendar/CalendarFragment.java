@@ -21,12 +21,14 @@ import com.kizitonwose.calendar.core.DayPosition;
 import com.kizitonwose.calendar.view.CalendarView;
 import com.kizitonwose.calendar.view.MonthDayBinder;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -35,7 +37,6 @@ import java.util.UUID;
 
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
-import ru.katevpy.coursesync.shared.SharedGroupViewModel;
 import ru.katevpy.coursesync.shared.dto.CalendarListItem;
 import ru.katevpy.coursesync.shared.util.Result;
 
@@ -70,27 +71,20 @@ public class CalendarFragment extends Fragment {
 
         viewModel = new ViewModelProvider(this, new CalendarViewModelFactory()).get(CalendarViewModel.class);
 
+        calendarNoGroupMessage.setVisibility(View.GONE);
+        calendarScroll.setVisibility(View.VISIBLE);
+
         calendarView.setOnTouchListener((v, event) -> event.getAction() == MotionEvent.ACTION_MOVE);
 
         btnMonthPrev.setOnClickListener(v -> moveMonth(-1));
         btnMonthNext.setOnClickListener(v -> moveMonth(1));
 
-        SharedGroupViewModel groupVm = new ViewModelProvider(requireActivity()).get(SharedGroupViewModel.class);
-        groupVm.getGroupState().observe(getViewLifecycleOwner(), state -> {
-            if (state != null && state.hasGroup()) {
-                calendarNoGroupMessage.setVisibility(View.GONE);
-                calendarScroll.setVisibility(View.VISIBLE);
-                setupCalendar();
-                YearMonth now = YearMonth.now();
-                currentDisplayMonth = now;
-                updateMonthYearTitle();
-                viewModel.setCurrentMonth(now.getYear(), now.getMonthValue() - 1);
-                viewModel.loadEventsForMonth(now.getYear(), now.getMonthValue() - 1);
-            } else {
-                calendarNoGroupMessage.setVisibility(View.VISIBLE);
-                calendarScroll.setVisibility(View.GONE);
-            }
-        });
+        YearMonth now = YearMonth.now();
+        currentDisplayMonth = now;
+        setupCalendar();
+        updateMonthYearTitle();
+        viewModel.setCurrentMonth(now.getYear(), now.getMonthValue() - 1);
+        viewModel.loadEventsForMonth(now.getYear(), now.getMonthValue() - 1);
 
         viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
     }
@@ -118,7 +112,7 @@ public class CalendarFragment extends Fragment {
         YearMonth start = now.minusMonths(24);
         YearMonth end = now.plusMonths(24);
         int calFirst = java.util.Calendar.getInstance().getFirstDayOfWeek();
-        DayOfWeek firstDay = calFirst == java.util.Calendar.SUNDAY ? DayOfWeek.SUNDAY : DayOfWeek.of(calFirst - 1);
+        java.time.DayOfWeek firstDay = calFirst == java.util.Calendar.SUNDAY ? java.time.DayOfWeek.SUNDAY : java.time.DayOfWeek.of(calFirst - 1);
         calendarView.setDayBinder(new MonthDayBinder<CalendarDayViewContainer>() {
             @Override
             public CalendarDayViewContainer create(View itemView) {
@@ -155,8 +149,9 @@ public class CalendarFragment extends Fragment {
             List<CalendarListItem> list = ((Result.Success<List<CalendarListItem>>) result).data;
             daysWithEvents.clear();
             for (CalendarListItem item : list) {
-                if (item.date != null && item.date.length() >= 10) {
-                    daysWithEvents.add(item.date.substring(0, 10));
+                String dayKey = dayKeyFromEventDate(item.date);
+                if (dayKey != null) {
+                    daysWithEvents.add(dayKey);
                 }
             }
             Integer year = viewModel.getCurrentYear().getValue();
@@ -181,6 +176,16 @@ public class CalendarFragment extends Fragment {
             }
         }
         ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
+    }
+
+    @Nullable
+    private static String dayKeyFromEventDate(@Nullable String raw) {
+        if (raw == null || raw.length() < 10) return null;
+        try {
+            return raw.substring(0, 10);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void renderEventsList(List<CalendarListItem> events) {
@@ -216,22 +221,69 @@ public class CalendarFragment extends Fragment {
         }
     }
 
-    private static String formatEventLine(CalendarListItem item, DateTimeFormatter dateFmt, DateTimeFormatter dateTimeFmt) {
-        String name = item.name != null ? item.name : "";
-        if (item.date == null || item.date.isEmpty()) {
-            return name;
+    @Nullable
+    private static String formatEventTypeForLine(@Nullable String eventType) {
+        if (eventType == null) return null;
+        String t = eventType.trim();
+        if (t.isEmpty()) return null;
+        if ("Другое".equalsIgnoreCase(t)) return null;
+        return t;
+    }
+
+    private static void appendPart(StringBuilder sb, @Nullable String part) {
+        if (part == null) return;
+        String t = part.trim();
+        if (t.isEmpty()) return;
+        if (sb.length() > 0) {
+            sb.append(" · ");
         }
+        sb.append(t);
+    }
+
+    private static String formatEventLine(CalendarListItem item, DateTimeFormatter dateFmt, DateTimeFormatter dateTimeFmt) {
+        StringBuilder sb = new StringBuilder();
+        appendPart(sb, formatEventDateTimeForLine(item.date, dateFmt, dateTimeFmt));
+        appendPart(sb, item.courseName);
+        appendPart(sb, formatEventTypeForLine(item.eventType));
+        appendPart(sb, item.name);
+        appendPart(sb, item.groupName);
+        return sb.length() > 0 ? sb.toString() : "";
+    }
+
+    @Nullable
+    private static String formatEventDateTimeForLine(@Nullable String dateStr, DateTimeFormatter dateFmt, DateTimeFormatter dateTimeFmt) {
+        if (dateStr == null || dateStr.isEmpty()) return null;
+        String core = dateStr;
+        if (core.endsWith("Z")) {
+            core = core.substring(0, core.length() - 1);
+        }
+        int tzPlus = core.indexOf('+', 10);
+        if (tzPlus > 0) {
+            core = core.substring(0, tzPlus);
+        }
+        if (core.length() < 10) return null;
         try {
-            if (item.date.length() > 10 && !item.date.substring(11).startsWith("00:00")) {
-                LocalDate date = LocalDate.parse(item.date.substring(0, 10));
-                String timePart = item.date.length() >= 16 ? item.date.substring(11, 16) : "";
-                return date.format(dateFmt) + (timePart.isEmpty() ? "" : " " + timePart) + " - " + name;
-            } else {
-                LocalDate date = LocalDate.parse(item.date.substring(0, 10));
-                return date.format(dateFmt) + " - " + name;
+            LocalDate date = LocalDate.parse(core.substring(0, 10));
+            if (core.length() <= 10) {
+                return date.format(dateFmt);
             }
-        } catch (DateTimeParseException e) {
-            return name;
+            String afterT = core.substring(11);
+            if (afterT.isEmpty()) {
+                return date.format(dateFmt);
+            }
+            String timePart = afterT.length() >= 5 ? afterT.substring(0, 5) : afterT;
+            String[] parts = timePart.split(":");
+            if (parts.length >= 2) {
+                int h = Integer.parseInt(parts[0]);
+                int m = Integer.parseInt(parts[1]);
+                if (h == 0 && m == 0) {
+                    return date.format(dateFmt);
+                }
+                return LocalDateTime.of(date, LocalTime.of(h, m)).format(dateTimeFmt);
+            }
+            return date.format(dateFmt);
+        } catch (DateTimeParseException | NumberFormatException e) {
+            return null;
         }
     }
 }
