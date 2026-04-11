@@ -103,6 +103,7 @@
     <string name="create_course_server_error">Не удалось создать курс. Попробуйте позже</string>
     <string name="update_course_server_error">Не удалось сохранить курс. Попробуйте позже</string>
     <string name="course_load_error">Не удалось загрузить курс. Попробуйте позже</string>
+    <string name="course_calendar_events_title">События курса</string>
     <string name="delete_course_dialog_message">Вы действительно хотите удалить курс %1$s?</string>
     <string name="delete_course_unnamed_placeholder">без названия</string>
     <string name="delete_course_server_error">Не удалось удалить курс. Попробуйте позже</string>

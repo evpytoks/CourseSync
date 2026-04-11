@@ -23,13 +23,16 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import ru.katevpy.coursesync.ui.ErrorUi;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import ru.katevpy.coursesync.calendar.CalendarEventListBinder;
 import ru.katevpy.coursesync.App;
 import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.CourseContactMethodItem;
 import ru.katevpy.coursesync.shared.dto.CourseContactPersonItem;
+import ru.katevpy.coursesync.shared.dto.CalendarListItem;
 import ru.katevpy.coursesync.shared.dto.CourseDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.CourseUsefulLinkItem;
 import ru.katevpy.coursesync.shared.util.Result;
@@ -42,6 +45,8 @@ public class CourseDetailFragment extends Fragment {
     private LinearLayout courseDetailContactsList;
     private View courseDetailLinksCard;
     private View courseDetailContactsCard;
+    private View courseDetailEventsCard;
+    private LinearLayout courseDetailEventsList;
     private UUID courseUuid;
     private String courseIdStr;
     private String loadedCourseName;
@@ -61,6 +66,8 @@ public class CourseDetailFragment extends Fragment {
         courseDetailContactsList = view.findViewById(R.id.courseDetailContactsList);
         courseDetailLinksCard = view.findViewById(R.id.courseDetailLinksCard);
         courseDetailContactsCard = view.findViewById(R.id.courseDetailContactsCard);
+        courseDetailEventsCard = view.findViewById(R.id.courseDetailEventsCard);
+        courseDetailEventsList = view.findViewById(R.id.courseDetailEventsList);
 
         if (getArguments() == null) {
             NavHostFragment.findNavController(this).navigateUp();
@@ -83,6 +90,8 @@ public class CourseDetailFragment extends Fragment {
                 .get(CourseDetailViewModel.class);
         viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
         viewModel.getDeleteCourseResult().observe(getViewLifecycleOwner(), this::onDeleteCourseResult);
+        viewModel.getCourseCalendarResult().observe(getViewLifecycleOwner(), this::onCourseCalendarResult);
+        viewModel.getToggleCalendarFailure().observe(getViewLifecycleOwner(), this::onToggleCalendarFailure);
 
         view.findViewById(R.id.courseMaterialsShared).setOnClickListener(v -> {
             Bundle args = new Bundle();
@@ -110,6 +119,7 @@ public class CourseDetailFragment extends Fragment {
         attachCourseToolbarMenu();
         if (courseUuid != null) {
             viewModel.loadCourse(courseUuid);
+            viewModel.loadCourseCalendar(courseUuid);
         }
     }
 
@@ -170,6 +180,68 @@ public class CourseDetailFragment extends Fragment {
                 .setPositiveButton(R.string.event_yes, (dialog, which) -> viewModel.deleteCourse(courseUuid))
                 .setNegativeButton(R.string.event_no, null)
                 .show();
+    }
+
+    private void onCourseCalendarResult(@Nullable Result<List<CalendarListItem>> result) {
+        if (result == null) {
+            return;
+        }
+        if (result instanceof Result.Success) {
+            List<CalendarListItem> list = ((Result.Success<List<CalendarListItem>>) result).data;
+            if (list == null) {
+                list = Collections.emptyList();
+            }
+            courseDetailEventsCard.setVisibility(View.VISIBLE);
+            CalendarEventListBinder.bind(
+                    courseDetailEventsList,
+                    list,
+                    this,
+                    id -> viewModel.toggleCourseCalendarEventDone(id),
+                    R.id.action_courseDetailFragment_to_calendarEventDetailFragment);
+            return;
+        }
+        courseDetailEventsCard.setVisibility(View.GONE);
+        if (result instanceof Result.HttpError) {
+            int code = ((Result.HttpError<List<CalendarListItem>>) result).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
+                return;
+            }
+            if (code == 400) {
+                ErrorUi.show(this, R.string.calendar_no_group, ErrorUi.Duration.SHORT);
+                return;
+            }
+            if (code == 500) {
+                ErrorUi.show(this, R.string.calendar_load_error, ErrorUi.Duration.SHORT);
+                return;
+            }
+        } else if (result instanceof Result.NetworkError) {
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
+        }
+    }
+
+    private void onToggleCalendarFailure(@Nullable Result<Void> r) {
+        if (r == null) {
+            return;
+        }
+        if (r instanceof Result.HttpError) {
+            int code = ((Result.HttpError<?>) r).httpCode;
+            if (code == 401) {
+                App.getDeps().tokenStorage.clear();
+                NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
+                viewModel.consumeToggleCalendarFailure();
+                return;
+            }
+            if (code == 500) {
+                ErrorUi.show(this, R.string.calendar_load_error, ErrorUi.Duration.SHORT);
+            } else {
+                ErrorUi.show(this, R.string.internal_error, ErrorUi.Duration.SHORT);
+            }
+        } else if (r instanceof Result.NetworkError) {
+            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
+        }
+        viewModel.consumeToggleCalendarFailure();
     }
 
     private void onDeleteCourseResult(@Nullable Result<Void> result) {

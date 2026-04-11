@@ -18,6 +18,7 @@ import okhttp3.ResponseBody;
 import retrofit2.Response;
 
 import ru.katevpy.coursesync.shared.dto.AddCourseRequest;
+import ru.katevpy.coursesync.shared.dto.CalendarListResponse;
 import ru.katevpy.coursesync.shared.dto.CourseUsefulLinkItem;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.CourseCumulativeGradeResponse;
@@ -96,6 +97,18 @@ public class CourseRepository {
             return Result.networkError(e);
         } catch (RuntimeException e) {
             return Result.logicalError("Ошибка разбора ответа");
+        }
+    }
+
+    public Result<CalendarListResponse> getCourseCalendar(UUID courseId) {
+        try {
+            Response<CalendarListResponse> r = api.getCourseCalendar(courseId).execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
         }
     }
 
