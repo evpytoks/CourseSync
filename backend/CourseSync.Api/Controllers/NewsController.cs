@@ -41,7 +41,7 @@ public sealed class NewsController : ControllerBase
         return Ok(new NewsListResponse(news));
     }
 
-    [HttpGet("unread_count")]
+    [HttpGet("unread-count")]
     public async Task<ActionResult<NewsUnreadCountResponse>> UnreadCount(CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -56,7 +56,7 @@ public sealed class NewsController : ControllerBase
         return Ok(new NewsUnreadCountResponse(count));
     }
 
-    [HttpPost("read-all")]
+    [HttpPost("read")]
     public async Task<ActionResult<MarkAllNewsReadResponse>> MarkAllRead(CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -99,7 +99,7 @@ public sealed class NewsController : ControllerBase
         return Ok(new NewsDetailsResponse(item!.Id, item.Time, item.Group, item.Section, item.Text));
     }
 
-    [HttpPost("add")]
+    [HttpPost]
     public async Task<IActionResult> Add([FromBody] AddNewsRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();

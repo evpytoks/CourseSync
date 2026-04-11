@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CourseSync.Api.Controllers;
 
 [ApiController]
-[Route("group")]
+[Route("groups")]
 [Authorize]
 [Produces("application/json")]
 public sealed class GroupController : ControllerBase
@@ -16,7 +16,31 @@ public sealed class GroupController : ControllerBase
 
     public GroupController(GroupService groupService) => _groupService = groupService;
 
-    [HttpPost("create")]
+    [HttpGet]
+    public async Task<ActionResult<GroupListResponse>> List(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var dtos = await _groupService.GetUserGroupsAsync(userId.Value, ct);
+        var items = dtos.Select(d => new GroupListItem(d.Id, d.Name, d.Role, d.GroupCode, d.CreatorEmail)).ToList();
+        return Ok(new GroupListResponse(items));
+    }
+
+    [HttpGet("owned")]
+    public async Task<ActionResult<OwnerGroupListResponse>> OwnerList(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        var dtos = await _groupService.GetOwnerGroupsAsync(userId.Value, ct);
+        var items = dtos.Select(d => new OwnerGroupListItem(d.Id, d.Name)).ToList();
+        return Ok(new OwnerGroupListResponse(items));
+    }
+
+    [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateGroupRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -32,30 +56,6 @@ public sealed class GroupController : ControllerBase
             return StatusCode(500, new ErrorEnvelope(new ApiError("group_creation_failed")));
 
         return Ok();
-    }
-
-    [HttpGet("list")]
-    public async Task<ActionResult<GroupListResponse>> List(CancellationToken ct)
-    {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var dtos = await _groupService.GetUserGroupsAsync(userId.Value, ct);
-        var items = dtos.Select(d => new GroupListItem(d.Id, d.Name, d.Role, d.GroupCode, d.CreatorEmail)).ToList();
-        return Ok(new GroupListResponse(items));
-    }
-
-    [HttpGet("owner-list")]
-    public async Task<ActionResult<OwnerGroupListResponse>> OwnerList(CancellationToken ct)
-    {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var dtos = await _groupService.GetOwnerGroupsAsync(userId.Value, ct);
-        var items = dtos.Select(d => new OwnerGroupListItem(d.Id, d.Name)).ToList();
-        return Ok(new OwnerGroupListResponse(items));
     }
 
     [HttpPost("join")]
@@ -99,7 +99,7 @@ public sealed class GroupController : ControllerBase
         return Ok(new GroupParticipantsResponse(items!));
     }
 
-    [HttpPost("{id:guid}/block")]
+    [HttpPost("{id:guid}/blocks")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
@@ -124,19 +124,22 @@ public sealed class GroupController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("{id:guid}/unblock")]
+    [HttpDelete("{id:guid}/blocks")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UnblockParticipant(Guid id, [FromBody] GroupParticipantEmailRequest req, CancellationToken ct)
+    public async Task<IActionResult> UnblockParticipant(Guid id, [FromQuery] string? email, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        var (ok, errorCode) = await _groupService.UnblockParticipantByEmailAsync(userId.Value, id, req.Email ?? "", ct);
+        if (string.IsNullOrWhiteSpace(email))
+            return BadRequest(new ErrorEnvelope(new ApiError("participant_email_required")));
+
+        var (ok, errorCode) = await _groupService.UnblockParticipantByEmailAsync(userId.Value, id, email, ct);
         if (!ok)
         {
             if (errorCode == "forbidden")
@@ -149,7 +152,7 @@ public sealed class GroupController : ControllerBase
         return Ok();
     }
 
-    [HttpPut("{id:guid}/change")]
+    [HttpPut("{id:guid}")]
     public async Task<IActionResult> Change(Guid id, [FromBody] GroupChangeRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -187,7 +190,7 @@ public sealed class GroupController : ControllerBase
         return NoContent();
     }
 
-    [HttpPost("{id:guid}/leave")]
+    [HttpDelete("{id:guid}/members/me")]
     public async Task<IActionResult> Leave(Guid id, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -207,38 +210,6 @@ public sealed class GroupController : ControllerBase
         }
 
         return NoContent();
-    }
-
-    [HttpPost("{id:guid}/choose")]
-    public async Task<IActionResult> Choose(Guid id, CancellationToken ct)
-    {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var (ok, groupId, name) = await _groupService.ChooseGroupAsync(userId.Value, id, ct);
-        if (!ok)
-            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-
-        return Ok();
-    }
-
-    [HttpGet("current")]
-    public async Task<ActionResult<GroupDetailsResponse>> GetCurrent(CancellationToken ct)
-    {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var (ok, groupId, name, role, groupCode, errorCode) = await _groupService.GetGroupDetailsAsync(userId.Value, ct);
-        if (!ok)
-        {
-            if (errorCode == "no_group_selected")
-                return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
-            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-        }
-
-        return Ok(new GroupDetailsResponse(groupId, name, role, groupCode));
     }
 
     private Guid? GetCurrentUserId()

@@ -33,86 +33,86 @@ import ru.katevpy.coursesync.shared.dto.UpdateCourseGradingScoresRequest;
 
 public interface CourseApi {
 
-    @GET("course/list")
+    @GET("courses")
     Call<CourseListResponse> listCourses();
 
-    @GET("course/group/{groupId}/list")
+    @GET("groups/{groupId}/courses")
     Call<CourseListResponse> listCoursesForGroup(@Path("groupId") UUID groupId);
 
-    @GET("course/{id}")
+    @GET("courses/{id}")
     Call<CourseDetailsResponse> getCourse(@Path("id") UUID id);
 
-    @GET("course/{id}/calendar")
+    @GET("courses/{id}/calendar")
     Call<CalendarListResponse> getCourseCalendar(@Path("id") UUID id);
 
-    @GET("course/{id}/grading/text")
+    @GET("courses/{id}/grading/text")
     Call<CourseGradingTextResponse> getGradingText(@Path("id") UUID id);
 
-    @GET("course/{id}/grading")
+    @GET("courses/{id}/grading")
     Call<CourseGradingElementsResponse> getGrading(@Path("id") UUID id);
 
-    @GET("course/{id}/grading/elements")
+    @GET("courses/{id}/grading/elements")
     Call<CourseGradingElementListResponse> getGradingElementOptions(@Path("id") UUID id);
 
-    @GET("course/{id}/cumulative-grades")
+    @GET("courses/{id}/cumulative-grades")
     Call<CourseCumulativeGradeResponse> getCumulativeGrade(@Path("id") UUID id);
 
-    @PUT("course/{id}/cumulative-grades")
+    @PUT("courses/{id}/cumulative-grades")
     Call<Void> saveCumulativeGrade(
             @Path("id") UUID id,
             @Body SaveCourseCumulativeGradeRequest body);
 
-    @GET("course/{id}/grading/scores")
+    @GET("courses/{id}/grading/scores")
     Call<CourseGradingScoresResponse> getGradingScores(
             @Path("id") UUID id,
             @Query("name") String elementName);
 
-    @PUT("course/{id}/grading/scores")
+    @PUT("courses/{id}/grading/scores")
     Call<Void> updateGradingScores(
             @Path("id") UUID id,
             @Body UpdateCourseGradingScoresRequest body);
 
-    @POST("course/{id}/grading")
+    @POST("courses/{id}/grading")
     Call<Void> saveGrading(@Path("id") UUID id, @Body SaveCourseGradingRequest body);
 
-    @GET("course/{id}/general_materials")
+    @GET("courses/{id}/general-materials")
     Call<CourseMaterialListResponse> listGeneralMaterials(@Path("id") UUID id);
 
     @Streaming
-    @GET("course/{courseId}/general_materials/{materialId}/pdf")
+    @GET("courses/{courseId}/general-materials/{materialId}/pdf")
     Call<ResponseBody> downloadGeneralMaterialPdf(
             @Path("courseId") UUID courseId,
             @Path("materialId") UUID materialId);
 
     @Multipart
-    @POST("course/{id}/general_materials/add")
+    @POST("courses/{id}/general-materials")
     Call<Void> addGeneralMaterial(@Path("id") UUID id, @Part MultipartBody.Part file);
 
-    @DELETE("course/{id}/general_materials/{materialId}")
+    @DELETE("courses/{id}/general-materials/{materialId}")
     Call<Void> deleteGeneralMaterial(@Path("id") UUID id, @Path("materialId") UUID materialId);
 
-    @GET("course/{id}/personal_materials")
+    @GET("courses/{id}/personal-materials")
     Call<CoursePersonalMaterialListResponse> listPersonalMaterials(@Path("id") UUID id);
 
     @Streaming
-    @GET("course/{courseId}/personal_materials/{materialId}/pdf")
+    @GET("courses/{courseId}/personal-materials/{materialId}/pdf")
     Call<ResponseBody> downloadPersonalMaterialPdf(
             @Path("courseId") UUID courseId,
             @Path("materialId") UUID materialId);
 
     @Multipart
-    @POST("course/{id}/personal_materials/add")
+    @POST("courses/{id}/personal-materials")
     Call<Void> addPersonalMaterial(@Path("id") UUID id, @Part MultipartBody.Part file);
 
-    @DELETE("course/{id}/personal_materials/{materialId}")
+    @DELETE("courses/{id}/personal-materials/{materialId}")
     Call<Void> deletePersonalMaterial(@Path("id") UUID id, @Path("materialId") UUID materialId);
 
-    @POST("course/add")
+    @POST("courses")
     Call<Void> addCourse(@Body AddCourseRequest request);
 
-    @PUT("course/{id}/change")
+    @PUT("courses/{id}")
     Call<Void> changeCourse(@Path("id") UUID id, @Body AddCourseRequest request);
 
-    @DELETE("course/{id}")
+    @DELETE("courses/{id}")
     Call<Void> deleteCourse(@Path("id") UUID id);
 }

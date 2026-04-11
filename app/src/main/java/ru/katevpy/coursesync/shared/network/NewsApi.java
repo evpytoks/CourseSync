@@ -18,12 +18,12 @@ public interface NewsApi {
     @GET("news")
     Call<NewsListResponse> listNews();
 
-    @GET("news/unread_count")
+    @GET("news/unread-count")
     Call<NewsUnreadCountResponse> unreadCount();
 
     @GET("news/{id}")
     Call<NewsDetailsResponse> getNews(@Path("id") UUID id);
 
-    @POST("news/add")
+    @POST("news")
     Call<Void> addNews(@Body AddNewsRequest request);
 }

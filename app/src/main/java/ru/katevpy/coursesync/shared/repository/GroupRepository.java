@@ -11,7 +11,6 @@ import okhttp3.ResponseBody;
 import retrofit2.Response;
 
 import ru.katevpy.coursesync.shared.dto.ApiError;
-import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
 import ru.katevpy.coursesync.shared.dto.CreateGroupRequest;
 import ru.katevpy.coursesync.shared.dto.CreateGroupResponse;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
@@ -22,6 +21,7 @@ import ru.katevpy.coursesync.shared.dto.GroupJoinRequest;
 import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
 import ru.katevpy.coursesync.shared.dto.OwnerGroupListResponse;
+import ru.katevpy.coursesync.shared.dto.SetCurrentGroupRequest;
 import ru.katevpy.coursesync.shared.network.GroupApi;
 import ru.katevpy.coursesync.shared.util.Result;
 
@@ -122,12 +122,12 @@ public class GroupRepository {
         }
     }
 
-    public Result<ChooseGroupResponse> chooseGroup(UUID groupId) {
+    public Result<Void> chooseGroup(UUID groupId) {
         try {
-            Response<ChooseGroupResponse> r = api.chooseGroup(groupId).execute();
+            Response<Void> r = api.setCurrentGroup(new SetCurrentGroupRequest(groupId)).execute();
 
             if (r.isSuccessful()) {
-                return Result.success(r.body());
+                return Result.success(null);
             }
 
             return Result.httpError(r.code(), parseError(r.errorBody()));

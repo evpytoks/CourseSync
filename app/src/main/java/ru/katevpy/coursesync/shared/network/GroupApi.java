@@ -9,7 +9,6 @@ import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
-import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
 import ru.katevpy.coursesync.shared.dto.CreateGroupRequest;
 import ru.katevpy.coursesync.shared.dto.CreateGroupResponse;
 import ru.katevpy.coursesync.shared.dto.GroupChangeRequest;
@@ -19,33 +18,34 @@ import ru.katevpy.coursesync.shared.dto.GroupJoinRequest;
 import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
 import ru.katevpy.coursesync.shared.dto.OwnerGroupListResponse;
+import ru.katevpy.coursesync.shared.dto.SetCurrentGroupRequest;
 
 public interface GroupApi {
 
-    @GET("group/list")
+    @GET("groups")
     Call<GroupListResponse> listGroups();
 
-    @GET("group/owner-list")
+    @GET("groups/owned")
     Call<OwnerGroupListResponse> ownerListGroups();
 
-    @GET("group/current")
+    @GET("me/current-group")
     Call<GroupDetailsResponse> getCurrentGroup(@Query("_t") long timestamp);
 
-    @POST("group/create")
+    @POST("groups")
     Call<CreateGroupResponse> createGroup(@Body CreateGroupRequest request);
 
-    @POST("group/join")
+    @POST("groups/join")
     Call<GroupJoinResponse> joinGroup(@Body GroupJoinRequest request);
 
-    @POST("group/{id}/choose")
-    Call<ChooseGroupResponse> chooseGroup(@Path("id") java.util.UUID id);
+    @PUT("me/current-group")
+    Call<Void> setCurrentGroup(@Body SetCurrentGroupRequest request);
 
-    @POST("group/{id}/leave")
+    @DELETE("groups/{id}/members/me")
     Call<Void> leaveGroup(@Path("id") java.util.UUID id);
 
-    @PUT("group/{id}/change")
+    @PUT("groups/{id}")
     Call<GroupChangeResponse> changeGroup(@Path("id") java.util.UUID id, @Body GroupChangeRequest request);
 
-    @DELETE("group/{id}")
+    @DELETE("groups/{id}")
     Call<Void> deleteGroup(@Path("id") java.util.UUID id);
 }
