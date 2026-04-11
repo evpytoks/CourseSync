@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import ru.katevpy.coursesync.shared.dto.CalendarListItem;
 import ru.katevpy.coursesync.shared.dto.CalendarListResponse;
@@ -32,6 +33,7 @@ public class CalendarViewModel extends ViewModel {
     private final MutableLiveData<Result<Void>> toggleEventFailure = new MutableLiveData<>();
     private final List<CalendarListItem> monthEventsBuffer = new ArrayList<>();
     private final Set<UUID> togglingEventIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final AtomicInteger calendarLoadGeneration = new AtomicInteger(0);
 
     public CalendarViewModel(CalendarRepository repository) {
         this.repository = repository;
@@ -83,8 +85,12 @@ public class CalendarViewModel extends ViewModel {
         currentMonth.postValue(a.getMonthValue() - 1);
         String startDate = formatLocalDate(a);
         String endDate = formatLocalDate(b);
+        final int loadGen = calendarLoadGeneration.incrementAndGet();
         io.execute(() -> {
             Result<CalendarListResponse> res = repository.getEvents(startDate, endDate);
+            if (loadGen != calendarLoadGeneration.get()) {
+                return;
+            }
             if (res instanceof Result.Success) {
                 CalendarListResponse body = ((Result.Success<CalendarListResponse>) res).data;
                 List<CalendarListItem> list = body != null && body.events != null ? body.events : Collections.emptyList();

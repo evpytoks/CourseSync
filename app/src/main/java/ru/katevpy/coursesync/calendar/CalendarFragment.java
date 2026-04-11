@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -66,6 +67,10 @@ public class CalendarFragment extends Fragment {
     private CalendarViewModel viewModel;
     private final Map<String, List<CalendarListItem>> eventsByDay = new HashMap<>();
     private YearMonth currentDisplayMonth;
+    @Nullable
+    private YearMonth monthYearBeforeWeek;
+    @Nullable
+    private YearMonth monthBeforeDayMode;
     private ViewMode viewMode = ViewMode.MONTH;
     private LocalDate selectedDayForDayView;
     private java.time.DayOfWeek firstDayOfWeek;
@@ -153,22 +158,33 @@ public class CalendarFragment extends Fragment {
 
     private void goToMonthMode(ViewMode from) {
         viewMode = ViewMode.MONTH;
-        if (from == ViewMode.WEEK && weekTimelineStart != null) {
-            currentDisplayMonth = YearMonth.from(weekTimelineStart);
-            calendarView.scrollToMonth(currentDisplayMonth);
+        if (from == ViewMode.WEEK) {
+            if (monthYearBeforeWeek != null) {
+                currentDisplayMonth = monthYearBeforeWeek;
+                monthYearBeforeWeek = null;
+            } else if (weekTimelineStart != null) {
+                currentDisplayMonth = YearMonth.from(weekTimelineStart);
+            }
         } else if (from == ViewMode.DAY) {
-            currentDisplayMonth = YearMonth.from(selectedDayForDayView);
-            calendarView.scrollToMonth(currentDisplayMonth);
+            if (monthBeforeDayMode != null) {
+                currentDisplayMonth = monthBeforeDayMode;
+                monthBeforeDayMode = null;
+            } else {
+                currentDisplayMonth = YearMonth.from(selectedDayForDayView);
+            }
         }
         applyViewMode();
+        viewModel.setCurrentMonth(currentDisplayMonth.getYear(), currentDisplayMonth.getMonthValue() - 1);
         viewModel.loadEventsForMonth(currentDisplayMonth.getYear(), currentDisplayMonth.getMonthValue() - 1);
         updateNavTitleAndDescriptions();
         updateEventsSectionTitle();
-        calendarView.post(this::syncCalendarGridHeight);
     }
 
     private void goToWeekMode(ViewMode from) {
         viewMode = ViewMode.WEEK;
+        if (from == ViewMode.MONTH) {
+            monthYearBeforeWeek = currentDisplayMonth;
+        }
         LocalDate anchor;
         if (from == ViewMode.DAY) {
             anchor = selectedDayForDayView;
@@ -188,6 +204,8 @@ public class CalendarFragment extends Fragment {
     }
 
     private void goToDayMode() {
+        monthYearBeforeWeek = null;
+        monthBeforeDayMode = currentDisplayMonth;
         viewMode = ViewMode.DAY;
         applyViewMode();
         viewModel.loadEventsForRange(selectedDayForDayView, selectedDayForDayView);
@@ -196,6 +214,8 @@ public class CalendarFragment extends Fragment {
     }
 
     private void openDayView(@NonNull LocalDate date) {
+        monthYearBeforeWeek = null;
+        monthBeforeDayMode = YearMonth.from(date);
         selectedDayForDayView = date;
         suppressViewModeCallback = true;
         viewModeGroup.check(R.id.btnViewModeDay);
@@ -217,7 +237,7 @@ public class CalendarFragment extends Fragment {
                     scheduleHost.setVisibility(View.GONE);
                     CalendarScheduleTimelineBinder.clear(scheduleHost);
                 }
-                calendarView.post(this::syncCalendarGridHeight);
+                calendarView.post(this::syncMonthViewAfterShown);
                 break;
             case WEEK:
             case DAY:
@@ -382,7 +402,7 @@ public class CalendarFragment extends Fragment {
             return;
         }
         currentDisplayMonth = currentDisplayMonth.plusMonths(delta);
-        calendarView.smoothScrollToMonth(currentDisplayMonth);
+        calendarView.scrollToMonth(currentDisplayMonth);
         calendarView.post(this::syncCalendarGridHeight);
         viewModel.setCurrentMonth(currentDisplayMonth.getYear(), currentDisplayMonth.getMonthValue() - 1);
         viewModel.loadEventsForMonth(currentDisplayMonth.getYear(), currentDisplayMonth.getMonthValue() - 1);
@@ -454,6 +474,15 @@ public class CalendarFragment extends Fragment {
         calendarView.post(this::syncCalendarGridHeight);
     }
 
+    private void syncMonthViewAfterShown() {
+        if (viewMode != ViewMode.MONTH || calendarView == null || currentDisplayMonth == null) {
+            return;
+        }
+        calendarView.scrollToMonth(currentDisplayMonth);
+        calendarView.notifyMonthChanged(currentDisplayMonth);
+        syncCalendarGridHeight();
+    }
+
     private void syncCalendarGridHeight() {
         if (viewMode != ViewMode.MONTH || calendarView == null || calendarViewHost == null) {
             return;
@@ -520,10 +549,21 @@ public class CalendarFragment extends Fragment {
         int gapPx = ctx.getResources().getDimensionPixelSize(R.dimen.calendar_day_event_dot_gap);
         int defaultArgb = ContextCompat.getColor(ctx, R.color.calendar_event_type_default);
         final int maxDots = 4;
-        int n = Math.min(dayEvents.size(), maxDots);
-        for (int i = 0; i < n; i++) {
+        HashSet<Integer> seenArgb = new HashSet<>();
+        List<Integer> dotColors = new ArrayList<>();
+        for (CalendarListItem it : dayEvents) {
+            int c = parseEventTypeColorArgb(it.eventColor, defaultArgb);
+            if (!seenArgb.add(c)) {
+                continue;
+            }
+            dotColors.add(c);
+            if (dotColors.size() >= maxDots) {
+                break;
+            }
+        }
+        for (int i = 0; i < dotColors.size(); i++) {
             View dot = new View(ctx);
-            int c = parseEventTypeColorArgb(dayEvents.get(i).eventColor, defaultArgb);
+            int c = dotColors.get(i);
             GradientDrawable g = new GradientDrawable();
             g.setShape(GradientDrawable.OVAL);
             g.setColor(c);
@@ -546,10 +586,22 @@ public class CalendarFragment extends Fragment {
             lastLoadedEvents = list != null ? new ArrayList<>(list) : Collections.emptyList();
             rebuildEventsByDay(list);
             if (viewMode == ViewMode.MONTH) {
+                YearMonth ym = null;
                 Integer year = viewModel.getCurrentYear().getValue();
                 Integer month = viewModel.getCurrentMonth().getValue();
                 if (year != null && month != null) {
-                    calendarView.notifyMonthChanged(YearMonth.of(year, month + 1));
+                    ym = YearMonth.of(year, month + 1);
+                }
+                if (ym == null) {
+                    ym = currentDisplayMonth;
+                }
+                if (ym != null) {
+                    CalendarMonth visible = calendarView.findFirstVisibleMonth();
+                    YearMonth visibleYm = visible != null ? visible.getYearMonth() : null;
+                    if (visibleYm == null || !visibleYm.equals(ym)) {
+                        calendarView.scrollToMonth(ym);
+                    }
+                    calendarView.notifyMonthChanged(ym);
                 }
                 calendarView.post(this::syncCalendarGridHeight);
             } else {

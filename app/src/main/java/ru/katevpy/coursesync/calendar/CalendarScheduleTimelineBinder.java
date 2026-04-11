@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -18,12 +19,13 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -41,7 +43,6 @@ public final class CalendarScheduleTimelineBinder {
 
     private static final int HOURS = 24;
     private static final int DEFAULT_DURATION_MIN = 60;
-    private static final int MIN_BLOCK_MIN = 30;
 
     private CalendarScheduleTimelineBinder() {
     }
@@ -61,9 +62,6 @@ public final class CalendarScheduleTimelineBinder {
             int navigateActionId) {
         Context ctx = fragment.requireContext();
         host.removeAllViews();
-        int hourPx = ctx.getResources().getDimensionPixelSize(R.dimen.calendar_timeline_hour_height);
-        int gutterPx = ctx.getResources().getDimensionPixelSize(R.dimen.calendar_timeline_time_gutter_width);
-        int totalPx = HOURS * hourPx;
         int defaultColor = ContextCompat.getColor(ctx, R.color.calendar_event_type_default);
 
         List<CalendarListItem> allDay = new ArrayList<>();
@@ -90,22 +88,27 @@ public final class CalendarScheduleTimelineBinder {
         LinearLayout allDayRow = buildAllDayRow(ctx, allDay, defaultColor, fragment, navigateActionId);
         root.addView(allDayRow);
 
-        LinearLayout row = new LinearLayout(ctx);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                totalPx));
+        if (!timed.isEmpty()) {
+            LinearLayout stack = new LinearLayout(ctx);
+            stack.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams stackLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            if (!allDay.isEmpty()) {
+                stackLp.topMargin = timelineBlockGapPx(ctx);
+            }
+            stack.setLayoutParams(stackLp);
+            addTimedEventStack(
+                    ctx,
+                    stack,
+                    timed,
+                    defaultColor,
+                    fragment,
+                    navigateActionId,
+                    LinearLayout.LayoutParams.MATCH_PARENT);
+            root.addView(stack);
+        }
 
-        LinearLayout gutter = buildTimeGutter(ctx, hourPx, gutterPx, totalPx);
-        row.addView(gutter);
-
-        FrameLayout grid = new FrameLayout(ctx);
-        grid.setLayoutParams(new LinearLayout.LayoutParams(0, totalPx, 1f));
-        addHourLines(ctx, grid, hourPx, totalPx);
-        placeTimedEvents(ctx, grid, timed, hourPx, totalPx, defaultColor, fragment, navigateActionId, 1);
-        row.addView(grid);
-
-        root.addView(row);
         host.addView(root);
     }
 
@@ -118,10 +121,7 @@ public final class CalendarScheduleTimelineBinder {
             @NonNull Consumer<LocalDate> onDayHeaderClick) {
         Context ctx = fragment.requireContext();
         host.removeAllViews();
-        int hourPx = ctx.getResources().getDimensionPixelSize(R.dimen.calendar_timeline_hour_height);
-        int gutterPx = ctx.getResources().getDimensionPixelSize(R.dimen.calendar_timeline_time_gutter_width);
         int colMinPx = ctx.getResources().getDimensionPixelSize(R.dimen.calendar_timeline_day_column_min);
-        int totalPx = HOURS * hourPx;
         int defaultColor = ContextCompat.getColor(ctx, R.color.calendar_event_type_default);
 
         LocalDate[] weekDays = new LocalDate[7];
@@ -163,7 +163,7 @@ public final class CalendarScheduleTimelineBinder {
 
         HorizontalScrollView hsv = new HorizontalScrollView(ctx);
         hsv.setHorizontalScrollBarEnabled(false);
-        hsv.setFillViewport(true);
+        hsv.setFillViewport(false);
         hsv.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -171,15 +171,12 @@ public final class CalendarScheduleTimelineBinder {
         LinearLayout outer = new LinearLayout(ctx);
         outer.setOrientation(LinearLayout.HORIZONTAL);
         int screenW = ctx.getResources().getDisplayMetrics().widthPixels;
-        int reserved = gutterPx + (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 32, ctx.getResources().getDisplayMetrics());
+        int reserved = (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 24, ctx.getResources().getDisplayMetrics());
         int colW = Math.max(colMinPx, (screenW - reserved) / 7);
         outer.setLayoutParams(new HorizontalScrollView.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        LinearLayout gutter = buildTimeGutter(ctx, hourPx, gutterPx, totalPx);
-        outer.addView(gutter);
 
         for (int d = 0; d < 7; d++) {
             LinearLayout col = new LinearLayout(ctx);
@@ -205,11 +202,19 @@ public final class CalendarScheduleTimelineBinder {
             allDayRow.setLayoutParams(adLp);
             col.addView(allDayRow);
 
-            FrameLayout grid = new FrameLayout(ctx);
-            grid.setLayoutParams(new LinearLayout.LayoutParams(colW, totalPx));
-            addHourLines(ctx, grid, hourPx, totalPx);
-            placeTimedEvents(ctx, grid, timedByDay.get(d), hourPx, totalPx, defaultColor, fragment, navigateActionId, colW);
-            col.addView(grid);
+            List<Timed> dayTimed = timedByDay.get(d);
+            if (!dayTimed.isEmpty()) {
+                LinearLayout stack = new LinearLayout(ctx);
+                stack.setOrientation(LinearLayout.VERTICAL);
+                LinearLayout.LayoutParams stackLp = new LinearLayout.LayoutParams(
+                        colW, LinearLayout.LayoutParams.WRAP_CONTENT);
+                if (!allDayByDay.get(d).isEmpty()) {
+                    stackLp.topMargin = timelineBlockGapPx(ctx);
+                }
+                stack.setLayoutParams(stackLp);
+                addTimedEventStack(ctx, stack, dayTimed, defaultColor, fragment, navigateActionId, colW);
+                col.addView(stack);
+            }
 
             outer.addView(col);
         }
@@ -228,21 +233,19 @@ public final class CalendarScheduleTimelineBinder {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.VERTICAL);
         int pad = ctx.getResources().getDimensionPixelSize(R.dimen.grid_1);
+        int gap = timelineBlockGapPx(ctx);
         row.setPadding(0, 0, 0, items.isEmpty() ? 0 : pad);
         if (items.isEmpty()) {
             row.setVisibility(View.GONE);
             return row;
         }
-        TextView label = new TextView(ctx);
-        label.setText(R.string.calendar_timeline_all_day);
-        label.setTextAppearance(R.style.TextAppearance_CourseSync_Caption);
-        row.addView(label);
-        for (CalendarListItem item : items) {
+        for (int i = 0; i < items.size(); i++) {
+            CalendarListItem item = items.get(i);
             TextView chip = new TextView(ctx);
-            chip.setText(item.name != null ? item.name : "");
+            chip.setText(buildCourseTypeNameLine(item));
             chip.setPadding(pad, pad / 2, pad, pad / 2);
             chip.setMaxLines(2);
-            chip.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            chip.setEllipsize(TextUtils.TruncateAt.END);
             GradientDrawable bg = new GradientDrawable();
             bg.setCornerRadius(TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_DIP, 6, ctx.getResources().getDisplayMetrics()));
@@ -255,102 +258,51 @@ public final class CalendarScheduleTimelineBinder {
             chip.setOnClickListener(v -> navigateToEvent(fragment, navigateActionId, id));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.topMargin = pad / 2;
+            lp.topMargin = i > 0 ? gap : 0;
             chip.setLayoutParams(lp);
             row.addView(chip);
         }
         return row;
     }
 
-    private static LinearLayout buildTimeGutter(Context ctx, int hourPx, int gutterPx, int totalPx) {
-        LinearLayout gutter = new LinearLayout(ctx);
-        gutter.setOrientation(LinearLayout.VERTICAL);
-        gutter.setLayoutParams(new LinearLayout.LayoutParams(gutterPx, totalPx));
-        DateTimeFormatter hf = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
-        for (int h = 0; h < HOURS; h++) {
-            TextView tv = new TextView(ctx);
-            tv.setText(LocalTime.of(h, 0).format(hf));
-            tv.setTextAppearance(R.style.TextAppearance_CourseSync_Caption);
-            tv.setGravity(Gravity.TOP | Gravity.END);
-            int pr = ctx.getResources().getDimensionPixelSize(R.dimen.grid_1);
-            tv.setPadding(0, 0, pr, 0);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, hourPx);
-            gutter.addView(tv, lp);
-        }
-        return gutter;
+    private static int timelineBlockGapPx(Context ctx) {
+        return ctx.getResources().getDimensionPixelSize(R.dimen.calendar_timeline_block_gap);
     }
 
-    private static void addHourLines(Context ctx, FrameLayout grid, int hourPx, int totalPx) {
-        int lineColor = ContextCompat.getColor(ctx, R.color.calendar_timeline_grid_line);
-        for (int h = 0; h < HOURS; h++) {
-            View line = new View(ctx);
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT, 1);
-            lp.topMargin = h * hourPx;
-            line.setBackgroundColor(lineColor);
-            grid.addView(line, lp);
-        }
-        View bottom = new View(ctx);
-        FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, 1);
-        blp.topMargin = totalPx - 1;
-        bottom.setBackgroundColor(lineColor);
-        grid.addView(bottom, blp);
-    }
-
-    private static void placeTimedEvents(
+    private static void addTimedEventStack(
             Context ctx,
-            FrameLayout grid,
+            LinearLayout parent,
             List<Timed> timed,
-            int hourPx,
-            int totalPx,
             int defaultColor,
             Fragment fragment,
             int navigateActionId,
-            int columnWidthPx) {
+            int widthPx) {
         if (timed.isEmpty()) {
             return;
         }
-        List<Placed> placed = assignLanes(timed);
-        int maxLane = 0;
-        for (Placed p : placed) {
-            maxLane = Math.max(maxLane, p.lane);
-        }
-        int lanes = maxLane + 1;
-        int innerW = Math.max(1, columnWidthPx - 4);
-        int slotW = innerW / lanes;
-
-        for (Placed p : placed) {
-            int top = p.startMin * hourPx / 60;
-            int h = Math.max(MIN_BLOCK_MIN * hourPx / 60, (p.endMin - p.startMin) * hourPx / 60);
-            if (top + h > totalPx) {
-                h = totalPx - top;
-            }
-            if (h < 8) {
-                h = 8;
-            }
+        int pad = ctx.getResources().getDimensionPixelSize(R.dimen.grid_1);
+        int gap = timelineBlockGapPx(ctx);
+        for (int i = 0; i < timed.size(); i++) {
+            Timed t = timed.get(i);
             TextView tv = new TextView(ctx);
-            tv.setText(buildEventLabel(p.item));
+            tv.setText(buildEventLabel(t.item));
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-            tv.setMaxLines(3);
-            tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            int pad = ctx.getResources().getDimensionPixelSize(R.dimen.grid_1);
+            tv.setMaxLines(4);
+            tv.setEllipsize(TextUtils.TruncateAt.END);
             tv.setPadding(pad, pad / 2, pad, pad / 2);
-            int c = parseColor(p.item.eventColor, defaultColor);
+            int c = parseColor(t.item.eventColor, defaultColor);
             GradientDrawable bg = new GradientDrawable();
             bg.setCornerRadius(TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_DIP, 4, ctx.getResources().getDisplayMetrics()));
             bg.setColor(Color.argb(200, Color.red(c), Color.green(c), Color.blue(c)));
             tv.setBackground(bg);
             tv.setTextColor(contrastTextColor(c));
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(slotW - 2, h);
-            lp.topMargin = top;
-            lp.leftMargin = 2 + p.lane * slotW;
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(widthPx, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = i > 0 ? gap : 0;
             tv.setLayoutParams(lp);
-            UUID id = p.item.id;
+            UUID id = t.item.id;
             tv.setOnClickListener(v -> navigateToEvent(fragment, navigateActionId, id));
-            grid.addView(tv);
+            parent.addView(tv);
         }
     }
 
@@ -370,8 +322,45 @@ public final class CalendarScheduleTimelineBinder {
             int m = p.startMinute % 60;
             time = String.format(Locale.getDefault(), "%02d:%02d\n", h, m);
         }
-        String name = item.name != null ? item.name : "";
-        return time + name;
+        return time + buildCourseTypeNameLine(item);
+    }
+
+    @NonNull
+    private static String buildCourseTypeNameLine(@NonNull CalendarListItem item) {
+        StringBuilder sb = new StringBuilder();
+        appendDotSegment(sb, item.courseName);
+        appendDotSegment(sb, formatEventTypeForTimeline(item.eventType));
+        appendDotSegment(sb, item.name);
+        return sb.toString();
+    }
+
+    private static void appendDotSegment(@NonNull StringBuilder sb, @Nullable String part) {
+        if (part == null) {
+            return;
+        }
+        String t = part.trim();
+        if (t.isEmpty()) {
+            return;
+        }
+        if (sb.length() > 0) {
+            sb.append(" · ");
+        }
+        sb.append(t);
+    }
+
+    @Nullable
+    private static String formatEventTypeForTimeline(@Nullable String eventType) {
+        if (eventType == null) {
+            return null;
+        }
+        String t = eventType.trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        if ("Другое".equalsIgnoreCase(t)) {
+            return null;
+        }
+        return t;
     }
 
     private static void navigateToEvent(Fragment fragment, int actionId, UUID eventId) {
@@ -383,38 +372,63 @@ public final class CalendarScheduleTimelineBinder {
         NavHostFragment.findNavController(fragment).navigate(actionId, args);
     }
 
-    private static List<Placed> assignLanes(List<Timed> timed) {
-        List<Integer> laneEnds = new ArrayList<>();
-        List<Placed> out = new ArrayList<>();
-        for (Timed t : timed) {
-            int lane = 0;
-            while (lane < laneEnds.size() && laneEnds.get(lane) > t.startMin) {
-                lane++;
-            }
-            if (lane == laneEnds.size()) {
-                laneEnds.add(t.endMin);
-            } else {
-                laneEnds.set(lane, t.endMin);
-            }
-            out.add(new Placed(t.item, t.startMin, t.endMin, lane));
-        }
-        return out;
-    }
-
     @Nullable
     private static Parsed parse(CalendarListItem item) {
         if (item == null || item.date == null) {
             return null;
         }
-        LocalDateTime ldt = parseToLocalDateTime(item.date.trim());
+        String raw = item.date.trim();
+        if (raw.length() == 10 && raw.charAt(4) == '-' && raw.charAt(7) == '-') {
+            try {
+                LocalDate d = LocalDate.parse(raw);
+                return new Parsed(d, true, 0);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        if (raw.length() > 10 && isMidnightInSerializedZone(raw)) {
+            try {
+                LocalDate date;
+                if (raw.endsWith("Z")) {
+                    Instant i = Instant.parse(raw);
+                    date = i.atZone(ZoneOffset.UTC).toLocalDate();
+                } else {
+                    OffsetDateTime odt = OffsetDateTime.parse(raw);
+                    date = odt.toLocalDate();
+                }
+                return new Parsed(date, true, 0);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        LocalDateTime ldt = parseToLocalDateTime(raw);
         if (ldt == null) {
             return null;
         }
         LocalDate date = ldt.toLocalDate();
         LocalTime time = ldt.toLocalTime();
-        boolean allDay = time.getHour() == 0 && time.getMinute() == 0 && time.getSecond() == 0;
+        boolean allDay = time.getHour() == 0
+                && time.getMinute() == 0
+                && time.getSecond() == 0
+                && time.getNano() == 0;
         int startMin = time.getHour() * 60 + time.getMinute();
         return new Parsed(date, allDay, startMin);
+    }
+
+    private static boolean isMidnightInSerializedZone(String raw) {
+        try {
+            if (raw.endsWith("Z")) {
+                Instant i = Instant.parse(raw);
+                return i.atZone(ZoneOffset.UTC).toLocalTime().equals(LocalTime.MIDNIGHT);
+            }
+            if (raw.length() > 10) {
+                char c = raw.charAt(10);
+                if (c == 'T') {
+                    OffsetDateTime odt = OffsetDateTime.parse(raw);
+                    return odt.toLocalTime().equals(LocalTime.MIDNIGHT);
+                }
+            }
+        } catch (DateTimeParseException ignored) {
+        }
+        return false;
     }
 
     @Nullable
@@ -495,17 +509,4 @@ public final class CalendarScheduleTimelineBinder {
         }
     }
 
-    private static final class Placed {
-        final CalendarListItem item;
-        final int startMin;
-        final int endMin;
-        final int lane;
-
-        Placed(CalendarListItem item, int startMin, int endMin, int lane) {
-            this.item = item;
-            this.startMin = startMin;
-            this.endMin = endMin;
-            this.lane = lane;
-        }
-    }
 }
