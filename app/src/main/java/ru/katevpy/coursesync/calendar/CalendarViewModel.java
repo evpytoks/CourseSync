@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -65,9 +66,23 @@ public class CalendarViewModel extends ViewModel {
     }
 
     public void loadEventsForMonth(int year, int month) {
-        int lastDay = getLastDayOfMonth(year, month);
-        String startDate = formatDate(year, month, 1);
-        String endDate = formatDate(year, month, lastDay);
+        LocalDate start = LocalDate.of(year, month + 1, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        loadEventsForRange(start, end);
+    }
+
+    public void loadEventsForRange(LocalDate start, LocalDate end) {
+        LocalDate a = start;
+        LocalDate b = end;
+        if (b.isBefore(a)) {
+            LocalDate t = a;
+            a = b;
+            b = t;
+        }
+        currentYear.postValue(a.getYear());
+        currentMonth.postValue(a.getMonthValue() - 1);
+        String startDate = formatLocalDate(a);
+        String endDate = formatLocalDate(b);
         io.execute(() -> {
             Result<CalendarListResponse> res = repository.getEvents(startDate, endDate);
             if (res instanceof Result.Success) {
@@ -88,6 +103,10 @@ public class CalendarViewModel extends ViewModel {
                 loadResult.postValue(Result.logicalError("Неизвестная ошибка"));
             }
         });
+    }
+
+    private static String formatLocalDate(LocalDate d) {
+        return formatDate(d.getYear(), d.getMonthValue() - 1, d.getDayOfMonth());
     }
 
     public void toggleEventDone(@Nullable UUID eventId) {
@@ -127,14 +146,6 @@ public class CalendarViewModel extends ViewModel {
         list.sort(Comparator
                 .comparing((CalendarListItem it) -> it.isDone)
                 .thenComparing(it -> it.date != null ? it.date : "", Comparator.naturalOrder()));
-    }
-
-    private static int getLastDayOfMonth(int year, int month) {
-        Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.YEAR, year);
-        cal.set(Calendar.MONTH, month);
-        cal.set(Calendar.DAY_OF_MONTH, 1);
-        return cal.getActualMaximum(Calendar.DAY_OF_MONTH);
     }
 
     private static String formatDate(int year, int month, int day) {
