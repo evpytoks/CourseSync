@@ -41,19 +41,27 @@ public final class TokenAuthenticator implements Authenticator {
             }
 
             Call<RefreshResponse> call = refreshApi.refresh(new RefreshRequest(refresh));
-            retrofit2.Response<RefreshResponse> r = call.execute();
-
-            if (!r.isSuccessful() || r.body() == null) {
-                tokenStorage.clear();
+            try {
+                retrofit2.Response<RefreshResponse> r = call.execute();
+                if (r.isSuccessful()) {
+                    RefreshResponse body = r.body();
+                    if (body == null || body.token == null || body.token.isEmpty()
+                            || body.refreshToken == null || body.refreshToken.isEmpty()) {
+                        return null;
+                    }
+                    tokenStorage.save(body.token, body.refreshToken);
+                    return response.request().newBuilder()
+                            .header("Authorization", "Bearer " + body.token)
+                            .build();
+                }
+                int code = r.code();
+                if (code == 400 || code == 401 || code == 403) {
+                    tokenStorage.clear();
+                }
+                return null;
+            } catch (IOException e) {
                 return null;
             }
-
-            RefreshResponse body = r.body();
-            tokenStorage.save(body.token, body.refreshToken);
-
-            return response.request().newBuilder()
-                    .header("Authorization", "Bearer " + body.token)
-                    .build();
         }
     }
 
