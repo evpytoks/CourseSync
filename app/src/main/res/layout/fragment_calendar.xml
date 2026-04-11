@@ -47,6 +47,40 @@
                     android:orientation="vertical"
                     android:padding="@dimen/card_content_padding">
 
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/calendarViewModeGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/grid_2"
+                        app:checkedButton="@+id/btnViewModeMonth"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnViewModeMonth"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/calendar_view_month" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnViewModeWeek"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/calendar_view_week" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnViewModeDay"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/calendar_view_day" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -95,6 +129,12 @@
                             app:cv_daySize="square"
                             app:cv_orientation="vertical"
                             app:cv_scrollPaged="true" />
+
+                        <FrameLayout
+                            android:id="@+id/calendarScheduleHost"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone" />
                     </FrameLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

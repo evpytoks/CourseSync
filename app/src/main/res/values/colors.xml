@@ -30,4 +30,5 @@
 
     <color name="calendar_event_type_default">#2563EB</color>
     <color name="calendar_event_done">#2E7D32</color>
+    <color name="calendar_timeline_grid_line">#33000000</color>
 </resources>

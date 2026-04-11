@@ -49,6 +49,9 @@
     <dimen name="calendar_event_done_touch_size">48dp</dimen>
     <dimen name="calendar_day_event_dot_size">5dp</dimen>
     <dimen name="calendar_day_event_dot_gap">2dp</dimen>
+    <dimen name="calendar_timeline_hour_height">48dp</dimen>
+    <dimen name="calendar_timeline_block_gap">6dp</dimen>
+    <dimen name="calendar_timeline_day_column_min">48dp</dimen>
     <dimen name="card_elevation_default">3dp</dimen>
     <dimen name="elevation_toolbar">3dp</dimen>
     <dimen name="elevation_bottom_nav">6dp</dimen>
