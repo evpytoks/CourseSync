@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CourseSync.Api.Controllers;
 
 [ApiController]
-[Route("course")]
+[Route("courses")]
 [Authorize]
 [Produces("application/json")]
 public sealed class CourseController : ControllerBase
@@ -31,7 +31,7 @@ public sealed class CourseController : ControllerBase
         _calendarService = calendarService;
     }
 
-    [HttpGet("list")]
+    [HttpGet]
     public async Task<ActionResult<CourseListResponse>> List(CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -50,7 +50,7 @@ public sealed class CourseController : ControllerBase
         return Ok(new CourseListResponse(items));
     }
 
-    [HttpGet("group/{groupId:guid}/list")]
+    [HttpGet("~/groups/{groupId:guid}/courses")]
     public async Task<ActionResult<CourseListResponse>> ListByGroup(Guid groupId, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -73,7 +73,7 @@ public sealed class CourseController : ControllerBase
         return Ok(new CourseListResponse(items));
     }
 
-    [HttpPost("add")]
+    [HttpPost]
     public async Task<IActionResult> Add([FromBody] AddCourseRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -463,7 +463,7 @@ public sealed class CourseController : ControllerBase
             data.ElementNames));
     }
 
-    [HttpPut("{id:guid}/change")]
+    [HttpPut("{id:guid}")]
     public async Task<IActionResult> Change(Guid id, [FromBody] ChangeCourseRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -543,7 +543,7 @@ public sealed class CourseController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("{id:guid}/general_materials")]
+    [HttpGet("{id:guid}/general-materials")]
     public async Task<IActionResult> ListGeneralMaterials(Guid id, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -574,7 +574,7 @@ public sealed class CourseController : ControllerBase
         return Ok(new CourseMaterialListResponse(list));
     }
 
-    [HttpPost("{id:guid}/general_materials/add")]
+    [HttpPost("{id:guid}/general-materials")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(CourseMaterialUploadLimits.MaxMultipartRequestBytes)]
     public async Task<IActionResult> AddGeneralMaterial(Guid id, IFormFile? file, CancellationToken ct)
@@ -607,7 +607,7 @@ public sealed class CourseController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("{id:guid}/personal_materials")]
+    [HttpGet("{id:guid}/personal-materials")]
     public async Task<IActionResult> ListPersonalMaterials(Guid id, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -639,7 +639,7 @@ public sealed class CourseController : ControllerBase
         return Ok(new CoursePersonalMaterialListResponse(list));
     }
 
-    [HttpPost("{id:guid}/personal_materials/add")]
+    [HttpPost("{id:guid}/personal-materials")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(CourseMaterialUploadLimits.MaxMultipartRequestBytes)]
     public async Task<IActionResult> AddPersonalMaterial(Guid id, IFormFile? file, CancellationToken ct)
@@ -672,7 +672,7 @@ public sealed class CourseController : ControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id:guid}/general_materials/{materialId:guid}")]
+    [HttpDelete("{id:guid}/general-materials/{materialId:guid}")]
     public async Task<IActionResult> DeleteGeneralMaterial(Guid id, Guid materialId, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -699,7 +699,7 @@ public sealed class CourseController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("{id:guid}/general_materials/{materialId:guid}/pdf")]
+    [HttpGet("{id:guid}/general-materials/{materialId:guid}/pdf")]
     public async Task<IActionResult> OpenGeneralMaterialPdf(Guid id, Guid materialId, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -726,7 +726,7 @@ public sealed class CourseController : ControllerBase
         return File(file!.Content, "application/pdf", file.FileName, enableRangeProcessing: true);
     }
 
-    [HttpDelete("{id:guid}/personal_materials/{materialId:guid}")]
+    [HttpDelete("{id:guid}/personal-materials/{materialId:guid}")]
     public async Task<IActionResult> DeletePersonalMaterial(Guid id, Guid materialId, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -753,7 +753,7 @@ public sealed class CourseController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("{id:guid}/personal_materials/{materialId:guid}/pdf")]
+    [HttpGet("{id:guid}/personal-materials/{materialId:guid}/pdf")]
     public async Task<IActionResult> OpenPersonalMaterialPdf(Guid id, Guid materialId, CancellationToken ct)
     {
         var userId = GetCurrentUserId();

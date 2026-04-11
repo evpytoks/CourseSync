@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CourseSync.Api.Controllers;
 
 [ApiController]
-[Route("device")]
+[Route("devices")]
 [Authorize]
 [Produces("application/json")]
 public sealed class DeviceController : ControllerBase
@@ -17,7 +17,7 @@ public sealed class DeviceController : ControllerBase
 
     public DeviceController(UserDeviceService devices) => _devices = devices;
 
-    [HttpPost("register")]
+    [HttpPost]
     public async Task<IActionResult> Register([FromBody] RegisterDeviceRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -41,7 +41,7 @@ public sealed class DeviceController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("unregister")]
+    [HttpDelete]
     public async Task<IActionResult> Unregister([FromBody] UnregisterDeviceRequest req, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
@@ -62,4 +62,3 @@ public sealed class DeviceController : ControllerBase
         return Guid.TryParse(sub, out var id) ? id : null;
     }
 }
-

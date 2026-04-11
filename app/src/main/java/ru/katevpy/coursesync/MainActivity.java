@@ -47,7 +47,6 @@ import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModel;
 import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModelFactory;
 import ru.katevpy.coursesync.shared.GroupState;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
-import ru.katevpy.coursesync.shared.dto.ChooseGroupResponse;
 import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListItem;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
@@ -519,7 +518,7 @@ public class MainActivity extends AppCompatActivity {
     private void chooseGroupFromToolbar(@NonNull UUID groupId) {
         new Thread(() -> {
             GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
-            Result<ChooseGroupResponse> r = repo.chooseGroup(groupId);
+            Result<Void> r = repo.chooseGroup(groupId);
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) {
                     return;
@@ -530,7 +529,7 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
                 if (r instanceof Result.HttpError) {
-                    int code = ((Result.HttpError<ChooseGroupResponse>) r).httpCode;
+                    int code = ((Result.HttpError<Void>) r).httpCode;
                     if (code == 401) {
                         App.getDeps().tokenStorage.clear();
                         navigateToLoginClearingStack();

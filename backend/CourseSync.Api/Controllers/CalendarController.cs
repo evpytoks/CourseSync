@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CourseSync.Api.Controllers;
 
 [ApiController]
-[Route("calendar")]
+[Route("calendar-events")]
 [Authorize]
 [Produces("application/json")]
 public sealed class CalendarController : ControllerBase
@@ -83,7 +83,7 @@ public sealed class CalendarController : ControllerBase
         return Ok(new CalendarListResponse(items));
     }
 
-    [HttpGet("event-types")]
+    [HttpGet("types")]
     [ProducesResponseType(typeof(CalendarEventTypeColorsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<CalendarEventTypeColorsResponse>> EventTypes(CancellationToken ct)
@@ -103,7 +103,7 @@ public sealed class CalendarController : ControllerBase
         return Ok(new CalendarEventTypeColorsResponse(items));
     }
 
-    [HttpPost("add")]
+    [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
@@ -194,7 +194,7 @@ public sealed class CalendarController : ControllerBase
         return Ok(resp);
     }
 
-    [HttpPut("{id:guid}/change")]
+    [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
@@ -244,7 +244,7 @@ public sealed class CalendarController : ControllerBase
         return Ok();
     }
 
-    [HttpDelete("{id:guid}/delete")]
+    [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status403Forbidden)]
@@ -276,7 +276,7 @@ public sealed class CalendarController : ControllerBase
         return Ok();
     }
 
-    [HttpPut("{id:guid}/done")]
+    [HttpPatch("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status403Forbidden)]

@@ -31,6 +31,8 @@ public sealed record OwnerGroupListResponse(IReadOnlyList<OwnerGroupListItem> Gr
 
 public sealed record GroupJoinRequest(string Code);
 
+public sealed record SetCurrentGroupRequest([property: JsonPropertyName("group_id")] Guid GroupId);
+
 public sealed record GroupChangeRequest(string Name);
 public sealed record GroupChangeResponse(Guid Id, string Name);
 
