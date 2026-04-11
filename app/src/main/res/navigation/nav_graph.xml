@@ -123,6 +123,9 @@
         <action
             android:id="@+id/action_courseDetailFragment_to_courseGradingFormulaFragment"
             app:destination="@id/courseGradingFormulaFragment" />
+        <action
+            android:id="@+id/action_courseDetailFragment_to_calendarEventDetailFragment"
+            app:destination="@id/calendarEventDetailFragment" />
     </fragment>
 
     <fragment
