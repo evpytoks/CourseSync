@@ -42,6 +42,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.color.MaterialColors;
 import ru.katevpy.coursesync.ui.ErrorUi;
 
+import ru.katevpy.coursesync.push.CourseSyncFirebaseMessagingService;
 import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModel;
 import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModelFactory;
 import ru.katevpy.coursesync.shared.GroupState;
@@ -271,7 +272,22 @@ public class MainActivity extends AppCompatActivity {
         });
 
         if (savedInstanceState == null) {
+            tryEnterAppIfSessionPresent();
             handleNotificationIntent(getIntent());
+        }
+    }
+
+    private void tryEnterAppIfSessionPresent() {
+        String refresh = App.getDeps().tokenStorage.getRefresh();
+        if (refresh == null || refresh.trim().isEmpty()) {
+            return;
+        }
+        navController.navigate(R.id.action_loginFragment_to_groupsFragment);
+        CourseSyncFirebaseMessagingService.registerDeviceAfterLogin(getApplicationContext());
+        App app = (App) getApplication();
+        if (app.pendingOpenNewsListFromNotification) {
+            app.pendingOpenNewsListFromNotification = false;
+            scheduleOpenNewsTab();
         }
     }
 

@@ -15,6 +15,7 @@ services:
       Jwt__Key: "${JWT_KEY}"
       AuthCode__HashKey: "${AUTHCODE_HASH_KEY}"
       AuthTokens__RefreshTokenHashKey: "${REFRESH_HASH_KEY}"
+      AuthTokens__RefreshTokenTtlDays: "90"
       Fcm__ProjectId: "coursesync-b553f"
       Fcm__CredentialsPath: "/app/secrets/firebase-admin.json"
       Smtp__Username: "${SMTP_USERNAME}"
