@@ -39,12 +39,15 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.color.MaterialColors;
 import ru.katevpy.coursesync.ui.ErrorUi;
 
 import ru.katevpy.coursesync.push.CourseSyncFirebaseMessagingService;
 import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModel;
 import ru.katevpy.coursesync.calendar.EventDetailToolbarViewModelFactory;
+import ru.katevpy.coursesync.news.NewsViewModel;
+import ru.katevpy.coursesync.news.NewsViewModelFactory;
 import ru.katevpy.coursesync.shared.GroupState;
 import ru.katevpy.coursesync.shared.SharedGroupViewModel;
 import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
@@ -72,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton btnToolbarCreate;
     private ImageButton btnToolbarGroup;
     private ImageButton btnEditEvent;
+    private MaterialButton btnMarkAllNewsRead;
     private NavController navController;
     private SharedGroupViewModel groupVm;
     private EventDetailToolbarViewModel eventDetailToolbarVm;
@@ -106,6 +110,11 @@ public class MainActivity extends AppCompatActivity {
         btnToolbarCreate = findViewById(R.id.btnToolbarCreate);
         btnToolbarGroup = findViewById(R.id.btnToolbarGroup);
         btnEditEvent = findViewById(R.id.btnEditEvent);
+        btnMarkAllNewsRead = findViewById(R.id.btnMarkAllNewsRead);
+        btnMarkAllNewsRead.setOnClickListener(v -> {
+            NewsViewModel vm = new ViewModelProvider(this, new NewsViewModelFactory()).get(NewsViewModel.class);
+            vm.markAllRead();
+        });
 
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
 
@@ -257,6 +266,9 @@ public class MainActivity extends AppCompatActivity {
             }
             if (btnToolbarGroup != null) {
                 btnToolbarGroup.setVisibility(isGroupsScreen ? View.VISIBLE : View.GONE);
+            }
+            if (btnMarkAllNewsRead != null) {
+                btnMarkAllNewsRead.setVisibility(id == R.id.newsFragment ? View.VISIBLE : View.GONE);
             }
             if (previousNavDestinationId == R.id.calendarEventDetailFragment
                     && id != R.id.calendarEventDetailFragment) {

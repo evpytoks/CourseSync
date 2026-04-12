@@ -9,6 +9,7 @@ import retrofit2.http.Path;
 import java.util.UUID;
 
 import ru.katevpy.coursesync.shared.dto.AddNewsRequest;
+import ru.katevpy.coursesync.shared.dto.MarkAllNewsReadResponse;
 import ru.katevpy.coursesync.shared.dto.NewsDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.NewsListResponse;
 import ru.katevpy.coursesync.shared.dto.NewsUnreadCountResponse;
@@ -20,6 +21,9 @@ public interface NewsApi {
 
     @GET("news/unread-count")
     Call<NewsUnreadCountResponse> unreadCount();
+
+    @POST("news/read")
+    Call<MarkAllNewsReadResponse> markAllRead();
 
     @GET("news/{id}")
     Call<NewsDetailsResponse> getNews(@Path("id") UUID id);

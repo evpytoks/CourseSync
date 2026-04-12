@@ -55,12 +55,13 @@ public class NewsFragment extends Fragment {
         });
         newsRecycler.setAdapter(listAdapter);
 
-        viewModel = new ViewModelProvider(this, new NewsViewModelFactory()).get(NewsViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity(), new NewsViewModelFactory()).get(NewsViewModel.class);
 
         SharedGroupViewModel groupVm = new ViewModelProvider(requireActivity()).get(SharedGroupViewModel.class);
         groupVm.getGroupState().observe(getViewLifecycleOwner(), state -> viewModel.loadNews());
 
         viewModel.getLoadResult().observe(getViewLifecycleOwner(), this::onLoadResult);
+        viewModel.getMarkAllReadError().observe(getViewLifecycleOwner(), this::onMarkAllReadError);
         viewModel.getUnreadCount().observe(getViewLifecycleOwner(), count -> {
             if (count == null) {
                 return;
@@ -126,5 +127,30 @@ public class NewsFragment extends Fragment {
             return false;
         }
         return "no_group_selected".equals(he.error.code);
+    }
+
+    private void onMarkAllReadError(@Nullable Result<Void> result) {
+        if (result == null) {
+            return;
+        }
+        if (result instanceof Result.HttpError) {
+            int code = ((Result.HttpError<Void>) result).httpCode;
+            if (code == 401) {
+                viewModel.consumeMarkAllReadError();
+                App.getDeps().tokenStorage.clear();
+                NavHostFragment.findNavController(this).navigate(R.id.loginFragment);
+                return;
+            }
+            ErrorUi.show(this, R.string.news_mark_all_read_error, ErrorUi.Duration.SHORT);
+            viewModel.consumeMarkAllReadError();
+            return;
+        }
+        if (result instanceof Result.NetworkError) {
+            ErrorUi.show(this, R.string.news_mark_all_read_error, ErrorUi.Duration.SHORT);
+            viewModel.consumeMarkAllReadError();
+            return;
+        }
+        ErrorUi.show(this, R.string.news_mark_all_read_error, ErrorUi.Duration.SHORT);
+        viewModel.consumeMarkAllReadError();
     }
 }
