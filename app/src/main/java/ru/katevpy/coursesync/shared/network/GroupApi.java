@@ -17,6 +17,8 @@ import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupJoinRequest;
 import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
+import ru.katevpy.coursesync.shared.dto.GroupParticipantEmailRequest;
+import ru.katevpy.coursesync.shared.dto.GroupParticipantsResponse;
 import ru.katevpy.coursesync.shared.dto.OwnerGroupListResponse;
 import ru.katevpy.coursesync.shared.dto.SetCurrentGroupRequest;
 
@@ -48,4 +50,17 @@ public interface GroupApi {
 
     @DELETE("groups/{id}")
     Call<Void> deleteGroup(@Path("id") java.util.UUID id);
+
+    @GET("groups/{id}/participants")
+    Call<GroupParticipantsResponse> getGroupParticipants(@Path("id") java.util.UUID id);
+
+    @POST("groups/{id}/blocks")
+    Call<Void> blockGroupParticipant(
+            @Path("id") java.util.UUID id,
+            @Body GroupParticipantEmailRequest body);
+
+    @DELETE("groups/{id}/blocks")
+    Call<Void> unblockGroupParticipant(
+            @Path("id") java.util.UUID id,
+            @Query("email") String email);
 }

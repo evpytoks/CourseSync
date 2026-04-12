@@ -332,6 +332,13 @@ public class MainActivity extends AppCompatActivity {
         bottomNav.post(() -> bottomNav.setSelectedItemId(R.id.newsFragment));
     }
 
+    public void scheduleOpenCoursesTab() {
+        if (bottomNav == null) {
+            return;
+        }
+        bottomNav.post(() -> bottomNav.setSelectedItemId(R.id.coursesFragment));
+    }
+
     public void setCurrentGroupName(String name) {
         if (name != null && !name.trim().isEmpty()) {
             groupVm.setGroup(name.trim(), null);

@@ -20,6 +20,8 @@ import ru.katevpy.coursesync.shared.dto.GroupDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.GroupJoinRequest;
 import ru.katevpy.coursesync.shared.dto.GroupJoinResponse;
 import ru.katevpy.coursesync.shared.dto.GroupListResponse;
+import ru.katevpy.coursesync.shared.dto.GroupParticipantEmailRequest;
+import ru.katevpy.coursesync.shared.dto.GroupParticipantsResponse;
 import ru.katevpy.coursesync.shared.dto.OwnerGroupListResponse;
 import ru.katevpy.coursesync.shared.dto.SetCurrentGroupRequest;
 import ru.katevpy.coursesync.shared.network.GroupApi;
@@ -182,6 +184,54 @@ public class GroupRepository {
             }
             return Result.httpError(r.code(), parseError(r.errorBody()));
         } catch (IOException e) {
+            return Result.networkError(e);
+        } catch (RuntimeException e) {
+            return Result.logicalError("Ошибка разбора ответа");
+        }
+    }
+
+    public Result<GroupParticipantsResponse> getGroupParticipants(UUID groupId) {
+        try {
+            Response<GroupParticipantsResponse> r = api.getGroupParticipants(groupId).execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        } catch (RuntimeException e) {
+            return Result.logicalError("Ошибка разбора ответа");
+        }
+    }
+
+    public Result<Void> blockGroupParticipant(UUID groupId, String email) {
+        try {
+            Response<Void> r = api.blockGroupParticipant(groupId, new GroupParticipantEmailRequest(email)).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
+            return Result.networkError(e);
+        } catch (RuntimeException e) {
+            return Result.logicalError("Ошибка разбора ответа");
+        }
+    }
+
+    public Result<Void> unblockGroupParticipant(UUID groupId, String email) {
+        try {
+            Response<Void> r = api.unblockGroupParticipant(groupId, email).execute();
+            if (r.isSuccessful()) {
+                return Result.success(null);
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            if (e instanceof EOFException) {
+                return Result.success(null);
+            }
             return Result.networkError(e);
         } catch (RuntimeException e) {
             return Result.logicalError("Ошибка разбора ответа");

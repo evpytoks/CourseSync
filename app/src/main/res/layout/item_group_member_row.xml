@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="false"
+    android:focusable="false"
+    app:cardCornerRadius="@dimen/card_corner_radius"
+    app:cardElevation="@dimen/card_elevation_default"
+    app:cardUseCompatPadding="true"
+    app:strokeWidth="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/list_row_min_height"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/card_content_padding"
+        android:paddingTop="@dimen/grid_2"
+        android:paddingEnd="@dimen/card_content_padding"
+        android:paddingBottom="@dimen/grid_2">
+
+        <TextView
+            android:id="@+id/groupMemberEmail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            tools:text="user@edu.hse.ru" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/groupMemberAccessBtn"
+            android:layout_width="@dimen/calendar_event_done_touch_size"
+            android:layout_height="@dimen/calendar_event_done_touch_size"
+            android:layout_marginStart="@dimen/grid_1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_group_member_access_active"
+            android:padding="@dimen/grid_1"
+            android:scaleType="centerInside"
+            app:srcCompat="@drawable/ic_person_24"
+            app:tint="?attr/colorOnSurface" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
