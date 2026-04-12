@@ -122,17 +122,21 @@ public class EditCourseFragment extends Fragment {
                     continue;
                 }
                 String personName = person.name != null ? person.name.trim() : "";
-                if (personName.isEmpty() || person.contactMethods == null) {
+                if (personName.isEmpty()) {
                     continue;
                 }
                 EditableContactPerson editable = new EditableContactPerson(personName);
+                if (person.contactMethods == null) {
+                    editingContacts.add(editable);
+                    continue;
+                }
                 for (CourseContactMethodItem method : person.contactMethods) {
                     if (method == null) {
                         continue;
                     }
                     String type = CourseContactsForm.trim(method.type);
                     String value = CourseContactsForm.trim(method.value);
-                    if (type.isEmpty() || value.isEmpty()) {
+                    if (value.isEmpty()) {
                         continue;
                     }
                     editable.methods.add(new CourseContactMethodItem(type, value));

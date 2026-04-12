@@ -109,6 +109,17 @@
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:visibility="gone" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnMarkAllNewsRead"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/grid_1"
+                    android:minHeight="48dp"
+                    android:text="@string/news_mark_all_read"
+                    android:visibility="gone"
+                    app:rippleColor="?attr/colorPrimary" />
+
                 <LinearLayout
                     android:id="@+id/groupIndicatorContainer"
                     android:layout_width="wrap_content"

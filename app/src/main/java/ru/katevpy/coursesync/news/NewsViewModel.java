@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import ru.katevpy.coursesync.shared.dto.MarkAllNewsReadResponse;
 import ru.katevpy.coursesync.shared.dto.NewsListItem;
 import ru.katevpy.coursesync.shared.dto.NewsListResponse;
 import ru.katevpy.coursesync.shared.dto.NewsUnreadCountResponse;
@@ -21,6 +22,7 @@ public class NewsViewModel extends ViewModel {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final MutableLiveData<Result<List<NewsListItem>>> loadResult = new MutableLiveData<>();
     private final MutableLiveData<Integer> unreadCount = new MutableLiveData<>(0);
+    private final MutableLiveData<Result<Void>> markAllReadError = new MutableLiveData<>();
 
     public NewsViewModel(NewsRepository repo) {
         this.repo = repo;
@@ -32,6 +34,35 @@ public class NewsViewModel extends ViewModel {
 
     public LiveData<Integer> getUnreadCount() {
         return unreadCount;
+    }
+
+    public LiveData<Result<Void>> getMarkAllReadError() {
+        return markAllReadError;
+    }
+
+    public void consumeMarkAllReadError() {
+        markAllReadError.setValue(null);
+    }
+
+    public void markAllRead() {
+        io.execute(() -> {
+            Result<MarkAllNewsReadResponse> r = repo.markAllRead();
+            if (r instanceof Result.Success) {
+                markAllReadError.postValue(null);
+                loadNews();
+                return;
+            }
+            if (r instanceof Result.HttpError) {
+                Result.HttpError<MarkAllNewsReadResponse> he = (Result.HttpError<MarkAllNewsReadResponse>) r;
+                markAllReadError.postValue(Result.httpError(he.httpCode, he.error));
+                return;
+            }
+            if (r instanceof Result.NetworkError) {
+                markAllReadError.postValue(Result.networkError(((Result.NetworkError<MarkAllNewsReadResponse>) r).t));
+                return;
+            }
+            markAllReadError.postValue(Result.logicalError("mark_all_read"));
+        });
     }
 
     public void loadNews() {

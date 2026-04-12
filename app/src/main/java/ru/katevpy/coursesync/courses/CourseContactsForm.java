@@ -3,6 +3,7 @@ package ru.katevpy.coursesync.courses;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 
 import ru.katevpy.coursesync.R;
@@ -23,7 +24,7 @@ final class CourseContactsForm {
 
     static int validateForSubmit(@Nullable List<EditableContactPerson> people) {
         if (people == null || people.isEmpty()) {
-            return R.string.contacts_need_at_least_one;
+            return 0;
         }
         if (people.size() > MAX_PEOPLE) {
             return R.string.contacts_too_many_people;
@@ -36,10 +37,9 @@ final class CourseContactsForm {
             if (person.length() < NAME_MIN || person.length() > NAME_MAX) {
                 return R.string.contact_person_name_invalid;
             }
-            List<CourseContactMethodItem> methods = personItem.methods;
-            if (methods == null || methods.isEmpty()) {
-                return R.string.contacts_need_at_least_one_method;
-            }
+            List<CourseContactMethodItem> methods = personItem.methods != null
+                    ? personItem.methods
+                    : Collections.<CourseContactMethodItem>emptyList();
             if (methods.size() > MAX_METHODS_PER_PERSON) {
                 return R.string.contacts_too_many_methods;
             }

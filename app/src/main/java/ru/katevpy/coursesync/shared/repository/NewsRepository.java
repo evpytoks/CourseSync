@@ -13,6 +13,7 @@ import java.util.UUID;
 import ru.katevpy.coursesync.shared.dto.AddNewsRequest;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.ErrorEnvelope;
+import ru.katevpy.coursesync.shared.dto.MarkAllNewsReadResponse;
 import ru.katevpy.coursesync.shared.dto.NewsDetailsResponse;
 import ru.katevpy.coursesync.shared.dto.NewsListResponse;
 import ru.katevpy.coursesync.shared.dto.NewsUnreadCountResponse;
@@ -53,6 +54,18 @@ public class NewsRepository {
     public Result<NewsUnreadCountResponse> getUnreadCount() {
         try {
             Response<NewsUnreadCountResponse> r = api.unreadCount().execute();
+            if (r.isSuccessful() && r.body() != null) {
+                return Result.success(r.body());
+            }
+            return Result.httpError(r.code(), parseError(r.errorBody()));
+        } catch (IOException e) {
+            return Result.networkError(e);
+        }
+    }
+
+    public Result<MarkAllNewsReadResponse> markAllRead() {
+        try {
+            Response<MarkAllNewsReadResponse> r = api.markAllRead().execute();
             if (r.isSuccessful() && r.body() != null) {
                 return Result.success(r.body());
             }

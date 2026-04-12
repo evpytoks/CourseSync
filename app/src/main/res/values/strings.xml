@@ -234,6 +234,8 @@
     <string name="update_event_server_error">Не удалось изменить событие. Попробуйте позже</string>
     <string name="delete_event_server_error">Не удалось удалить событие. Попробуйте позже</string>
     <string name="news_load_error">Не удалось загрузить новости. Уже работаем над этим.</string>
+    <string name="news_mark_all_read">Прочитать все</string>
+    <string name="news_mark_all_read_error">Не удалось отметить новости прочитанными. Попробуйте позже.</string>
     <string name="news_empty_list">Пока нет ни одной новости…</string>
     <string name="add_news">Добавить новость</string>
     <string name="news_name_hint">Название новости</string>

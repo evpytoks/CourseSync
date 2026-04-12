@@ -363,10 +363,9 @@ public class CourseDetailFragment extends Fragment {
             if (personName.isEmpty()) {
                 continue;
             }
-            List<CourseContactMethodItem> methods = person.contactMethods;
-            if (methods == null || methods.isEmpty()) {
-                continue;
-            }
+            List<CourseContactMethodItem> methods = person.contactMethods != null
+                    ? person.contactMethods
+                    : Collections.emptyList();
 
             View personCard = inflater.inflate(R.layout.item_course_contact_person_detail, courseDetailContactsList, false);
             TextView nameView = personCard.findViewById(R.id.courseDetailContactPersonName);
@@ -438,9 +437,8 @@ public class CourseDetailFragment extends Fragment {
 
                 methodsContainer.addView(row);
             }
-            if (addedAny) {
-                courseDetailContactsList.addView(personCard);
-            }
+            methodsContainer.setVisibility(addedAny ? View.VISIBLE : View.GONE);
+            courseDetailContactsList.addView(personCard);
         }
         if (courseDetailContactsList.getChildCount() == 0) {
             courseDetailContactsCard.setVisibility(View.GONE);
