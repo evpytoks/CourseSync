@@ -88,6 +88,9 @@ public class CourseSharedMaterialsFragment extends Fragment {
         viewModel.getDeleteResult().observe(getViewLifecycleOwner(), this::onDeleteResult);
         viewModel.getOwnerState().observe(getViewLifecycleOwner(), owner -> {
             isOwner = owner != null && owner;
+            if (btnAddDocument != null) {
+                btnAddDocument.setVisibility(Boolean.TRUE.equals(owner) ? View.VISIBLE : View.GONE);
+            }
             viewModel.loadGeneralMaterials(courseId);
         });
         viewModel.getUploadInProgress().observe(getViewLifecycleOwner(), busy -> {
@@ -111,7 +114,7 @@ public class CourseSharedMaterialsFragment extends Fragment {
     }
 
     private void onPdfPicked(@Nullable Uri uri) {
-        if (!isAdded() || uri == null || courseId == null || viewModel == null) {
+        if (!isAdded() || uri == null || courseId == null || viewModel == null || !isOwner) {
             return;
         }
         viewModel.uploadGeneralMaterial(courseId, uri);
