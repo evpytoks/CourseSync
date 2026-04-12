@@ -60,14 +60,34 @@ public class GroupsFragment extends Fragment {
 
         listAdapter = new GroupListAdapter(new GroupListAdapter.Listener() {
             @Override
-            public void onGroupCardClick(@NonNull UUID groupId, boolean isOwner) {
-                if (!isOwner) {
-                    return;
-                }
-                Bundle args = new Bundle();
-                args.putString("groupId", groupId.toString());
-                NavHostFragment.findNavController(GroupsFragment.this)
-                        .navigate(R.id.action_groupsFragment_to_groupMembersFragment, args);
+            public void onGroupCardClick(@NonNull UUID groupId) {
+                new Thread(() -> {
+                    GroupRepository repo = new GroupRepository(App.getDeps().groupApi);
+                    Result<Void> res = repo.chooseGroup(groupId);
+                    requireActivity().runOnUiThread(() -> {
+                        if (!(res instanceof Result.Success)) {
+                            if (res instanceof Result.HttpError) {
+                                int code = ((Result.HttpError<?>) res).httpCode;
+                                if (code == 401) {
+                                    App.getDeps().tokenStorage.clear();
+                                    NavController nav = NavHostFragment.findNavController(GroupsFragment.this);
+                                    NavOptions opts = new NavOptions.Builder()
+                                            .setPopUpTo(R.id.groupsFragment, true)
+                                            .build();
+                                    nav.navigate(R.id.loginFragment, null, opts);
+                                    return;
+                                }
+                            }
+                            ErrorUi.show(GroupsFragment.this, R.string.choose_group_error, ErrorUi.Duration.SHORT);
+                            return;
+                        }
+                        android.app.Activity a = requireActivity();
+                        if (a instanceof MainActivity) {
+                            ((MainActivity) a).refreshCurrentGroup();
+                            ((MainActivity) a).scheduleOpenCoursesTab();
+                        }
+                    });
+                }).start();
             }
 
             @Override
@@ -81,6 +101,13 @@ public class GroupsFragment extends Fragment {
                 popup.getMenuInflater().inflate(R.menu.group_owner_actions, popup.getMenu());
                 popup.setOnMenuItemClickListener(item -> {
                     int itemId = item.getItemId();
+                    if (itemId == R.id.action_owner_members_list) {
+                        Bundle args = new Bundle();
+                        args.putString("groupId", groupId.toString());
+                        NavHostFragment.findNavController(GroupsFragment.this)
+                                .navigate(R.id.action_groupsFragment_to_groupMembersFragment, args);
+                        return true;
+                    }
                     if (itemId == R.id.action_owner_edit_group) {
                         openEditGroup(groupId, name);
                         return true;

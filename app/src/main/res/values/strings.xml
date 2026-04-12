@@ -47,6 +47,12 @@
     <string name="group_role_owner">Владелец</string>
     <string name="group_role_member">Участник</string>
     <string name="group_members_title">Список участников</string>
+    <string name="group_action_members">Список участников</string>
+    <string name="group_members_empty">Участников пока нет</string>
+    <string name="group_members_load_error">Не удалось загрузить участников</string>
+    <string name="group_members_toggle_error">Не удалось изменить доступ</string>
+    <string name="cd_group_member_access_active">Участник в группе, нажмите чтобы заблокировать</string>
+    <string name="cd_group_member_access_blocked">Участник заблокирован, нажмите чтобы разблокировать</string>
     <string name="courses_no_group">Упс…\nВыберите хотя бы одну группу…</string>
     <string name="courses_empty">Пока тут нет ни одного курса…</string>
     <string name="create_course">Создать курс</string>

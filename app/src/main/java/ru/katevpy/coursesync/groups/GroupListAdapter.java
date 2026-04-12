@@ -21,7 +21,7 @@ import ru.katevpy.coursesync.shared.dto.GroupListItem;
 public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapter.VH> {
 
     public interface Listener {
-        void onGroupCardClick(@NonNull UUID groupId, boolean isOwner);
+        void onGroupCardClick(@NonNull UUID groupId);
 
         void onCopyInviteCode(@NonNull UUID groupId);
 
@@ -66,10 +66,10 @@ public final class GroupListAdapter extends RecyclerView.Adapter<GroupListAdapte
             h.subtitle.setText(email.isEmpty() ? member : member + " · " + email);
         }
         UUID groupId = g.id;
-        if (owner && groupId != null) {
+        if (groupId != null) {
             h.itemView.setClickable(true);
             h.itemView.setFocusable(true);
-            h.itemView.setOnClickListener(v -> listener.onGroupCardClick(groupId, true));
+            h.itemView.setOnClickListener(v -> listener.onGroupCardClick(groupId));
         } else {
             h.itemView.setClickable(false);
             h.itemView.setFocusable(false);

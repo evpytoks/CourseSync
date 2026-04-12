@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
+        android:id="@+id/action_owner_members_list"
+        android:title="@string/group_action_members" />
+    <item
         android:id="@+id/action_owner_edit_group"
         android:title="@string/group_action_edit" />
     <item
