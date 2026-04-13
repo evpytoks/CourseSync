@@ -186,6 +186,8 @@
     <string name="notifications_label">Включить уведомления</string>
     <string name="dark_theme_label">Тёмная тема</string>
     <string name="settings_calendar_colors_title">Цвета типов событий календаря</string>
+    <string name="settings_calendar_colors_expand">Развернуть настройки цветов календаря</string>
+    <string name="settings_calendar_colors_collapse">Свернуть настройки цветов календаря</string>
     <string name="settings_calendar_colors_palette_hint">Палитра</string>
     <string name="settings_calendar_colors_hex_hint">Код #RRGGBB</string>
     <string name="settings_calendar_colors_invalid">Цвет в формате #RRGGBB</string>

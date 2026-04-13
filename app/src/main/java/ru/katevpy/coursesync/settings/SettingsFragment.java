@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -44,12 +45,15 @@ import ru.katevpy.coursesync.ui.ErrorUi;
 public class SettingsFragment extends Fragment {
 
     private static final long COLOR_SAVE_DEBOUNCE_MS = 550L;
+    private static final String STATE_CALENDAR_COLORS_EXPANDED = "calendar_colors_expanded";
 
     private SettingsViewModel viewModel;
     private CheckBox notificationsCheckBox;
     private CheckBox darkThemeCheckBox;
     private LinearLayout settingsEventColorsContainer;
-    private TextView calendarColorsSectionTitle;
+    private LinearLayout calendarColorsHeader;
+    private ImageView calendarColorsExpandIcon;
+    private boolean calendarColorsExpanded = false;
     private final List<EventColorRow> eventColorRows = new ArrayList<>();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private Runnable debouncedColorSave;
@@ -67,11 +71,20 @@ public class SettingsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if (savedInstanceState != null) {
+            calendarColorsExpanded = savedInstanceState.getBoolean(STATE_CALENDAR_COLORS_EXPANDED, false);
+        }
+
         notificationsCheckBox = view.findViewById(R.id.notificationsCheckBox);
         darkThemeCheckBox = view.findViewById(R.id.darkThemeCheckBox);
         Button btnLogout = view.findViewById(R.id.btnLogout);
         settingsEventColorsContainer = view.findViewById(R.id.settingsEventColorsContainer);
-        calendarColorsSectionTitle = view.findViewById(R.id.calendarColorsSectionTitle);
+        calendarColorsHeader = view.findViewById(R.id.calendarColorsHeader);
+        calendarColorsExpandIcon = view.findViewById(R.id.calendarColorsExpandIcon);
+        calendarColorsHeader.setOnClickListener(v -> {
+            calendarColorsExpanded = !calendarColorsExpanded;
+            syncCalendarColorsExpansionUi();
+        });
 
         viewModel = new ViewModelProvider(
                 this,
@@ -94,6 +107,29 @@ public class SettingsFragment extends Fragment {
         viewModel.getUpdateResult().observe(getViewLifecycleOwner(), this::onUpdateResult);
 
         viewModel.loadSettings();
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(STATE_CALENDAR_COLORS_EXPANDED, calendarColorsExpanded);
+    }
+
+    private void syncCalendarColorsExpansionUi() {
+        if (calendarColorsHeader == null || calendarColorsExpandIcon == null
+                || settingsEventColorsContainer == null) {
+            return;
+        }
+        if (calendarColorsHeader.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        settingsEventColorsContainer.setVisibility(calendarColorsExpanded ? View.VISIBLE : View.GONE);
+        calendarColorsExpandIcon.setImageResource(
+                calendarColorsExpanded ? R.drawable.ic_expand_less_24 : R.drawable.ic_expand_more_24);
+        calendarColorsHeader.setContentDescription(getString(
+                calendarColorsExpanded
+                        ? R.string.settings_calendar_colors_collapse
+                        : R.string.settings_calendar_colors_expand));
     }
 
     private void applySettingsChange() {
@@ -223,12 +259,12 @@ public class SettingsFragment extends Fragment {
         eventColorRows.clear();
         settingsEventColorsContainer.removeAllViews();
         if (items == null || items.isEmpty()) {
-            calendarColorsSectionTitle.setVisibility(View.GONE);
+            calendarColorsHeader.setVisibility(View.GONE);
             settingsEventColorsContainer.setVisibility(View.GONE);
             return;
         }
-        calendarColorsSectionTitle.setVisibility(View.VISIBLE);
-        settingsEventColorsContainer.setVisibility(View.VISIBLE);
+        calendarColorsHeader.setVisibility(View.VISIBLE);
+        syncCalendarColorsExpansionUi();
 
         suppressColorPersistence = true;
         LayoutInflater inflater = LayoutInflater.from(requireContext());
