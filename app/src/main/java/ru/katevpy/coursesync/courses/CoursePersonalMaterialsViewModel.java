@@ -3,7 +3,10 @@ package ru.katevpy.coursesync.courses;
 import android.app.Application;
 import android.content.ContentResolver;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.OpenableColumns;
 
 import androidx.annotation.NonNull;
@@ -21,6 +24,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import ru.katevpy.coursesync.App;
+import ru.katevpy.coursesync.util.MaterialPdfThumbnailCallback;
+import ru.katevpy.coursesync.util.PdfFirstPageThumbnail;
 import ru.katevpy.coursesync.shared.dto.CoursePersonalMaterialListItem;
 import ru.katevpy.coursesync.shared.repository.CourseRepository;
 import ru.katevpy.coursesync.shared.util.Result;
@@ -31,6 +36,8 @@ public class CoursePersonalMaterialsViewModel extends AndroidViewModel {
 
     private final CourseRepository repo = new CourseRepository(App.getDeps().courseApi);
     private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private final ExecutorService thumbnailIo = Executors.newFixedThreadPool(2);
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final MutableLiveData<Result<List<CoursePersonalMaterialListItem>>> loadResult = new MutableLiveData<>();
     private final MutableLiveData<Result<Void>> uploadResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> uploadInProgress = new MutableLiveData<>(false);
@@ -122,6 +129,29 @@ public class CoursePersonalMaterialsViewModel extends AndroidViewModel {
 
     public void clearDownloadForViewResult() {
         downloadForViewResult.postValue(null);
+    }
+
+    public void loadPersonalPdfThumbnail(
+            @NonNull UUID courseId,
+            @NonNull UUID materialId,
+            int maxSidePx,
+            @NonNull MaterialPdfThumbnailCallback callback) {
+        thumbnailIo.execute(() -> {
+            File f = new File(getApplication().getCacheDir(), "personal-" + materialId + ".pdf");
+            if (!f.exists() || f.length() == 0L) {
+                Result<File> r = repo.downloadPersonalMaterialPdfToFile(courseId, materialId, f);
+                if (!(r instanceof Result.Success)) {
+                    mainHandler.post(callback::onUnavailable);
+                    return;
+                }
+            }
+            Bitmap bmp = PdfFirstPageThumbnail.renderFirstPage(f, maxSidePx);
+            if (bmp != null) {
+                mainHandler.post(() -> callback.onBitmap(bmp));
+            } else {
+                mainHandler.post(callback::onUnavailable);
+            }
+        });
     }
 
     private static byte[] readPdfLimited(InputStream in, int maxBytes) throws IOException {

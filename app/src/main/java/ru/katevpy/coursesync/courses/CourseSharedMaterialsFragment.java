@@ -4,6 +4,9 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.graphics.Bitmap;
+import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -21,7 +24,9 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.color.MaterialColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.imageview.ShapeableImageView;
 
 import ru.katevpy.coursesync.ui.ErrorUi;
 
@@ -34,6 +39,7 @@ import ru.katevpy.coursesync.R;
 import ru.katevpy.coursesync.shared.dto.ApiError;
 import ru.katevpy.coursesync.shared.dto.CourseMaterialListItem;
 import ru.katevpy.coursesync.shared.util.Result;
+import ru.katevpy.coursesync.util.MaterialPdfThumbnailCallback;
 
 public class CourseSharedMaterialsFragment extends Fragment {
 
@@ -303,9 +309,9 @@ public class CourseSharedMaterialsFragment extends Fragment {
         emptyView.setVisibility(View.GONE);
         android.content.res.Resources res = getResources();
         int marginBottom = res.getDimensionPixelSize(R.dimen.grid_2);
-        int cardPadding = res.getDimensionPixelSize(R.dimen.card_content_padding);
+        int rowPad = res.getDimensionPixelSize(R.dimen.material_document_row_padding);
         float cardRadius = res.getDimension(R.dimen.card_corner_radius);
-        float cardElev = res.getDimension(R.dimen.card_elevation_default);
+        int thumbPx = res.getDimensionPixelSize(R.dimen.material_pdf_thumbnail_size);
         for (CourseMaterialListItem item : items) {
             MaterialCardView card = new MaterialCardView(requireContext());
             LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
@@ -314,7 +320,7 @@ public class CourseSharedMaterialsFragment extends Fragment {
             cardLp.bottomMargin = marginBottom;
             card.setLayoutParams(cardLp);
             card.setRadius(cardRadius);
-            card.setCardElevation(cardElev);
+            MaterialDocumentCardHelper.styleCard(card, res);
             card.setUseCompatPadding(true);
             card.setClickable(true);
             card.setFocusable(true);
@@ -324,35 +330,46 @@ public class CourseSharedMaterialsFragment extends Fragment {
                         viewModel.downloadGeneralPdfForView(courseId, materialId));
             }
 
+            ShapeableImageView thumb = MaterialDocumentCardHelper.createThumbnail(requireContext(), res);
+            thumb.setTag(materialId);
+
             LinearLayout inner = new LinearLayout(requireContext());
             inner.setOrientation(LinearLayout.VERTICAL);
             inner.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            inner.setPadding(cardPadding, cardPadding, cardPadding, cardPadding);
 
             TextView title = new TextView(requireContext());
             title.setTextAppearance(R.style.TextAppearance_CourseSync_BodyEmphasized);
             title.setText(item.name != null ? item.name : "");
+            title.setMaxLines(2);
+            title.setEllipsize(TextUtils.TruncateAt.END);
 
             TextView meta = new TextView(requireContext());
             meta.setTextAppearance(R.style.TextAppearance_CourseSync_Caption);
-            String author = item.authorEmail != null ? item.authorEmail : "";
-            String at = item.createdAt != null ? item.createdAt : "";
-            String metaLine = author;
-            if (!at.isEmpty()) {
-                metaLine = metaLine.isEmpty() ? at : author + "\n" + at;
-            }
+            meta.setTextColor(
+                    MaterialColors.getColor(meta, com.google.android.material.R.attr.colorOnSurfaceVariant));
+            String metaLine = MaterialDocumentCardHelper.formatMetaLine(item.authorEmail, item.createdAt);
             meta.setText(metaLine);
+            meta.setMaxLines(2);
+            meta.setEllipsize(TextUtils.TruncateAt.END);
 
             inner.addView(title);
             if (!metaLine.isEmpty()) {
+                LinearLayout.LayoutParams metaLp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                metaLp.topMargin = res.getDimensionPixelSize(R.dimen.material_document_title_meta_gap);
+                meta.setLayoutParams(metaLp);
                 inner.addView(meta);
             }
 
             LinearLayout row = new LinearLayout(requireContext());
             row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(rowPad, rowPad, rowPad, rowPad);
             row.setLayoutParams(new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
+            row.addView(thumb);
             row.addView(inner);
 
             if (isOwner) {
@@ -365,11 +382,32 @@ public class CourseSharedMaterialsFragment extends Fragment {
                 deleteBtn.setInsetTop(0);
                 deleteBtn.setInsetBottom(0);
                 deleteBtn.setOnClickListener(v -> askDeleteMaterial(item));
+                LinearLayout.LayoutParams delLp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                delLp.gravity = Gravity.CENTER_VERTICAL;
+                deleteBtn.setLayoutParams(delLp);
                 row.addView(deleteBtn);
             }
 
             card.addView(row);
             materialsList.addView(card);
+
+            if (materialId != null && courseId != null) {
+                viewModel.loadGeneralPdfThumbnail(courseId, materialId, thumbPx, new MaterialPdfThumbnailCallback() {
+                    @Override
+                    public void onBitmap(@NonNull Bitmap bitmap) {
+                        if (!isAdded() || !materialId.equals(thumb.getTag())) {
+                            bitmap.recycle();
+                            return;
+                        }
+                        thumb.setImageBitmap(bitmap);
+                    }
+
+                    @Override
+                    public void onUnavailable() {}
+                });
+            }
         }
     }
 }
