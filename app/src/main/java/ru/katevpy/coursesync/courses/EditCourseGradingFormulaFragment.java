@@ -2,7 +2,10 @@ package ru.katevpy.coursesync.courses;
 
 import androidx.appcompat.app.AlertDialog;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -161,16 +164,13 @@ public class EditCourseGradingFormulaFragment extends Fragment {
         if (courseId == null || viewModel == null || descriptionLayout == null || descriptionLayout.getEditText() == null) {
             return;
         }
+        if (!syncAllRowsFromUi()) {
+            ErrorUi.show(this, R.string.grading_fix_element_table_errors, ErrorUi.Duration.SHORT);
+            return;
+        }
         if (!hasValidCoefficientSum(editableElements)) {
             ErrorUi.show(this, R.string.grading_coeff_sum_must_be_one, ErrorUi.Duration.SHORT);
             return;
-        }
-        for (CourseGradingElementItem item : editableElements) {
-            double b = item != null && item.blockGrade != null ? item.blockGrade : 0.0;
-            if (b < 0.0 || b > 10.0) {
-                ErrorUi.show(this, R.string.grading_block_invalid_range, ErrorUi.Duration.SHORT);
-                return;
-            }
         }
         String text = descriptionLayout.getEditText().getText().toString();
         viewModel.saveGrading(courseId, text, editableElements);
@@ -324,51 +324,75 @@ public class EditCourseGradingFormulaFragment extends Fragment {
         android.content.res.Resources res = getResources();
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
         int rowSpacing = res.getDimensionPixelSize(R.dimen.grid_1);
-        int colGap = res.getDimensionPixelSize(R.dimen.grid_1);
+        LayoutInflater inflater = LayoutInflater.from(requireContext());
         for (int i = 0; i < items.size(); i++) {
             CourseGradingElementItem item = items.get(i);
             final int rowIndex = i;
-            LinearLayout row = new LinearLayout(requireContext());
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            View row = inflater.inflate(R.layout.item_edit_grading_element_row, gradingElementsRows, false);
+            LinearLayout.LayoutParams rowLp = (LinearLayout.LayoutParams) row.getLayoutParams();
+            if (rowLp == null) {
+                rowLp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+            }
             rowLp.bottomMargin = rowSpacing;
             row.setLayoutParams(rowLp);
 
-            TextView nameCol = new TextView(requireContext());
-            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            nameLp.setMarginEnd(colGap);
-            nameCol.setLayoutParams(nameLp);
-            nameCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
-            nameCol.setText(item.name != null ? item.name : "");
+            TextView nameView = row.findViewById(R.id.gradingRowName);
+            TextInputLayout coefLayout = row.findViewById(R.id.gradingRowCoefLayout);
+            TextInputEditText coefInput = row.findViewById(R.id.gradingRowCoefInput);
+            TextInputLayout blockLayout = row.findViewById(R.id.gradingRowBlockLayout);
+            TextInputEditText blockInput = row.findViewById(R.id.gradingRowBlockInput);
+            MaterialButton deleteBtn = row.findViewById(R.id.gradingRowDelete);
 
-            TextView coefCol = new TextView(requireContext());
-            LinearLayout.LayoutParams coefLp = new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            coefLp.setMarginEnd(colGap);
-            coefCol.setLayoutParams(coefLp);
-            coefCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
-            coefCol.setText(formatCoefficient(item.coefficient, nf));
+            nameView.setText(item != null && item.name != null ? item.name : "");
 
-            TextView blockCol = new TextView(requireContext());
-            LinearLayout.LayoutParams blockColLp = new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            blockColLp.setMarginEnd(colGap);
-            blockCol.setLayoutParams(blockColLp);
-            blockCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
-            blockCol.setText(formatBlockGradeDisplay(item != null ? item.blockGrade : null));
+            final boolean[] syncing = {false};
+            RowViews refs = new RowViews(coefLayout, coefInput, blockLayout, blockInput);
+            row.setTag(refs);
 
-            MaterialButton deleteBtn = new MaterialButton(
-                    requireContext(),
-                    null,
-                    com.google.android.material.R.attr.materialIconButtonStyle
-            );
-            deleteBtn.setIconResource(android.R.drawable.ic_menu_close_clear_cancel);
-            deleteBtn.setInsetTop(0);
-            deleteBtn.setInsetBottom(0);
-            deleteBtn.setContentDescription(getString(R.string.event_delete));
+            syncing[0] = true;
+            coefLayout.setError(null);
+            blockLayout.setError(null);
+            coefInput.setText(formatCoefficient(item != null ? item.coefficient : null, nf));
+            blockInput.setText(formatBlockGradeForField(item != null ? item.blockGrade : null, nf));
+            syncing[0] = false;
+
+            coefInput.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (syncing[0] || item == null) {
+                        return;
+                    }
+                    refreshCoefFromField(coefLayout, s != null ? s.toString() : "", item);
+                }
+            });
+            blockInput.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (syncing[0] || item == null) {
+                        return;
+                    }
+                    refreshBlockFromField(blockLayout, s != null ? s.toString() : "", item);
+                }
+            });
+
             deleteBtn.setOnClickListener(v -> {
                 if (rowIndex < 0 || rowIndex >= items.size()) {
                     return;
@@ -377,26 +401,153 @@ public class EditCourseGradingFormulaFragment extends Fragment {
                 renderGradingElements(items);
             });
 
-            row.addView(nameCol);
-            row.addView(coefCol);
-            row.addView(blockCol);
-            row.addView(deleteBtn);
             gradingElementsRows.addView(row);
         }
     }
 
-    @NonNull
-    private static String formatBlockGradeDisplay(@Nullable Double value) {
-        if (value == null) {
-            return "0";
+    private boolean syncAllRowsFromUi() {
+        if (gradingElementsRows == null) {
+            return true;
         }
-        NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
+        boolean allOk = true;
+        int n = gradingElementsRows.getChildCount();
+        for (int i = 0; i < n; i++) {
+            View row = gradingElementsRows.getChildAt(i);
+            Object tag = row.getTag();
+            if (!(tag instanceof RowViews) || i >= editableElements.size()) {
+                continue;
+            }
+            CourseGradingElementItem item = editableElements.get(i);
+            if (!applyRowFieldsToItem((RowViews) tag, item)) {
+                allOk = false;
+            }
+        }
+        return allOk;
+    }
+
+    private boolean applyRowFieldsToItem(@NonNull RowViews rv, @NonNull CourseGradingElementItem item) {
+        rv.coefLayout.setError(null);
+        rv.blockLayout.setError(null);
+        String coefRaw = rv.coefInput.getText() != null ? rv.coefInput.getText().toString().trim() : "";
+        if (coefRaw.isEmpty()) {
+            rv.coefLayout.setError(getString(R.string.grading_invalid_element_coefficient));
+            item.coefficient = null;
+            return false;
+        }
+        double c;
+        try {
+            c = Double.parseDouble(coefRaw.replace(',', '.'));
+        } catch (NumberFormatException e) {
+            rv.coefLayout.setError(getString(R.string.grading_invalid_element_coefficient));
+            item.coefficient = null;
+            return false;
+        }
+        if (c < 0.0 || c > 1.0) {
+            rv.coefLayout.setError(getString(R.string.grading_invalid_element_coefficient));
+            item.coefficient = null;
+            return false;
+        }
+        item.coefficient = c;
+
+        String blockRaw = rv.blockInput.getText() != null ? rv.blockInput.getText().toString().trim() : "";
+        double b;
+        if (blockRaw.isEmpty()) {
+            b = 0.0;
+        } else {
+            try {
+                b = Double.parseDouble(blockRaw.replace(',', '.'));
+            } catch (NumberFormatException e) {
+                rv.blockLayout.setError(getString(R.string.grading_block_invalid_range));
+                return false;
+            }
+        }
+        if (b < 0.0 || b > 10.0) {
+            rv.blockLayout.setError(getString(R.string.grading_block_invalid_range));
+            return false;
+        }
+        item.blockGrade = b;
+        return true;
+    }
+
+    private void refreshCoefFromField(
+            @NonNull TextInputLayout layout,
+            @NonNull String rawTrimmed,
+            @NonNull CourseGradingElementItem item) {
+        if (rawTrimmed.isEmpty()) {
+            layout.setError(getString(R.string.grading_invalid_element_coefficient));
+            item.coefficient = null;
+            return;
+        }
+        double c;
+        try {
+            c = Double.parseDouble(rawTrimmed.replace(',', '.'));
+        } catch (NumberFormatException e) {
+            layout.setError(getString(R.string.grading_invalid_element_coefficient));
+            item.coefficient = null;
+            return;
+        }
+        if (c < 0.0 || c > 1.0) {
+            layout.setError(getString(R.string.grading_invalid_element_coefficient));
+            item.coefficient = null;
+            return;
+        }
+        layout.setError(null);
+        item.coefficient = c;
+    }
+
+    private void refreshBlockFromField(
+            @NonNull TextInputLayout layout,
+            @NonNull String rawTrimmed,
+            @NonNull CourseGradingElementItem item) {
+        if (rawTrimmed.isEmpty()) {
+            layout.setError(null);
+            item.blockGrade = 0.0;
+            return;
+        }
+        double b;
+        try {
+            b = Double.parseDouble(rawTrimmed.replace(',', '.'));
+        } catch (NumberFormatException e) {
+            layout.setError(getString(R.string.grading_block_invalid_range));
+            return;
+        }
+        if (b < 0.0 || b > 10.0) {
+            layout.setError(getString(R.string.grading_block_invalid_range));
+            return;
+        }
+        layout.setError(null);
+        item.blockGrade = b;
+    }
+
+    private static final class RowViews {
+        final TextInputLayout coefLayout;
+        final TextInputEditText coefInput;
+        final TextInputLayout blockLayout;
+        final TextInputEditText blockInput;
+
+        RowViews(
+                TextInputLayout coefLayout,
+                TextInputEditText coefInput,
+                TextInputLayout blockLayout,
+                TextInputEditText blockInput) {
+            this.coefLayout = coefLayout;
+            this.coefInput = coefInput;
+            this.blockLayout = blockLayout;
+            this.blockInput = blockInput;
+        }
+    }
+
+    @NonNull
+    private static String formatBlockGradeForField(@Nullable Double value, @NonNull NumberFormat nf) {
+        if (value == null) {
+            return nf.format(0.0);
+        }
         return nf.format(value);
     }
 
     private static String formatCoefficient(@Nullable Double c, NumberFormat nf) {
         if (c == null) {
-            return "—";
+            return "";
         }
         return nf.format(c);
     }

@@ -73,8 +73,8 @@
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginEnd="@dimen/grid_1"
                             android:layout_weight="1"
-                            android:paddingEnd="@dimen/grid_1"
                             android:text="@string/grading_control_element_column"
                             android:textAppearance="?attr/textAppearanceTitleSmall"
                             android:textStyle="bold" />
@@ -82,6 +82,7 @@
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginEnd="@dimen/grid_1"
                             android:layout_weight="1"
                             android:text="@string/grading_coefficient_column"
                             android:textAppearance="?attr/textAppearanceTitleSmall"
@@ -90,10 +91,16 @@
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginEnd="@dimen/grid_1"
                             android:layout_weight="1"
                             android:text="@string/grading_block_column"
                             android:textAppearance="?attr/textAppearanceTitleSmall"
                             android:textStyle="bold" />
+
+                        <View
+                            android:layout_width="@dimen/calendar_event_done_touch_size"
+                            android:layout_height="@dimen/grid_1"
+                            android:importantForAccessibility="no" />
                     </LinearLayout>
 
                     <LinearLayout
