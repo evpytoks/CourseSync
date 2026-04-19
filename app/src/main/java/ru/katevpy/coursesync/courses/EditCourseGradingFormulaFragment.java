@@ -260,7 +260,7 @@ public class EditCourseGradingFormulaFragment extends Fragment {
             } catch (Exception ignored) {
                 coefficient = null;
             }
-            if (coefficient == null || coefficient < 0.0 || coefficient > 1.0) {
+            if (coefficient == null || coefficient <= 0.0 || coefficient > 1.0) {
                 coefLayout.setError(getString(R.string.grading_invalid_element_coefficient));
                 return;
             }
@@ -442,7 +442,7 @@ public class EditCourseGradingFormulaFragment extends Fragment {
             item.coefficient = null;
             return false;
         }
-        if (c < 0.0 || c > 1.0) {
+        if (c <= 0.0 || c > 1.0) {
             rv.coefLayout.setError(getString(R.string.grading_invalid_element_coefficient));
             item.coefficient = null;
             return false;
@@ -486,7 +486,7 @@ public class EditCourseGradingFormulaFragment extends Fragment {
             item.coefficient = null;
             return;
         }
-        if (c < 0.0 || c > 1.0) {
+        if (c <= 0.0 || c > 1.0) {
             layout.setError(getString(R.string.grading_invalid_element_coefficient));
             item.coefficient = null;
             return;

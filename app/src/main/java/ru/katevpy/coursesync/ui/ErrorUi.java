@@ -2,11 +2,13 @@ package ru.katevpy.coursesync.ui;
 
 import android.app.Activity;
 import android.view.View;
+import android.view.Window;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.button.MaterialButton;
@@ -24,21 +26,56 @@ public final class ErrorUi {
     private ErrorUi() {}
 
     public static void show(@NonNull Fragment fragment, @StringRes int messageRes, @NonNull Duration duration) {
-        Snackbar sb = Snackbar.make(
-                fragment.requireView(),
-                messageRes,
-                duration == Duration.SHORT ? Snackbar.LENGTH_SHORT : Snackbar.LENGTH_LONG);
-        applyAnchor(fragment.requireActivity(), sb);
-        sb.show();
+        show(fragment, null, messageRes, duration);
     }
 
     public static void show(@NonNull Fragment fragment, @NonNull CharSequence message, @NonNull Duration duration) {
-        Snackbar sb = Snackbar.make(
-                fragment.requireView(),
-                message,
-                duration == Duration.SHORT ? Snackbar.LENGTH_SHORT : Snackbar.LENGTH_LONG);
-        applyAnchor(fragment.requireActivity(), sb);
+        show(fragment, null, message, duration);
+    }
+
+    public static void show(
+            @NonNull Fragment fragment,
+            @Nullable AlertDialog dialog,
+            @StringRes int messageRes,
+            @NonNull Duration duration) {
+        int length = duration == Duration.SHORT ? Snackbar.LENGTH_SHORT : Snackbar.LENGTH_LONG;
+        Snackbar sb = Snackbar.make(resolveSnackbarHost(fragment, dialog), messageRes, length);
+        if (!shouldUseDialogSnackbarHost(dialog)) {
+            applyAnchor(fragment.requireActivity(), sb);
+        }
         sb.show();
+    }
+
+    public static void show(
+            @NonNull Fragment fragment,
+            @Nullable AlertDialog dialog,
+            @NonNull CharSequence message,
+            @NonNull Duration duration) {
+        int length = duration == Duration.SHORT ? Snackbar.LENGTH_SHORT : Snackbar.LENGTH_LONG;
+        Snackbar sb = Snackbar.make(resolveSnackbarHost(fragment, dialog), message, length);
+        if (!shouldUseDialogSnackbarHost(dialog)) {
+            applyAnchor(fragment.requireActivity(), sb);
+        }
+        sb.show();
+    }
+
+    private static boolean shouldUseDialogSnackbarHost(@Nullable AlertDialog dialog) {
+        return dialog != null && dialog.isShowing();
+    }
+
+    @NonNull
+    private static View resolveSnackbarHost(@NonNull Fragment fragment, @Nullable AlertDialog dialog) {
+        if (dialog != null && dialog.isShowing()) {
+            Window w = dialog.getWindow();
+            if (w != null) {
+                View content = w.findViewById(android.R.id.content);
+                if (content != null) {
+                    return content;
+                }
+                return w.getDecorView();
+            }
+        }
+        return fragment.requireView();
     }
 
     public static void show(@NonNull Activity activity, @NonNull View rootView, @StringRes int messageRes, @NonNull Duration duration) {

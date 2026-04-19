@@ -2,10 +2,9 @@ package ru.katevpy.coursesync.courses;
 
 import android.os.Bundle;
 import android.text.Editable;
-import android.text.InputType;
 import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -18,6 +17,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -139,10 +139,13 @@ public class GradingElementScoresFragment extends Fragment {
         return true;
     }
 
-    private boolean refreshScoreField(@NonNull TextInputEditText edit, int index) {
+    private boolean refreshScoreField(
+            @NonNull TextInputLayout layout,
+            @NonNull TextInputEditText edit,
+            int index) {
         String t = edit.getText() != null ? edit.getText().toString().trim() : "";
         if (t.isEmpty()) {
-            edit.setError(null);
+            layout.setError(null);
             if (index < localScores.size()) {
                 localScores.set(index, 0.0);
             }
@@ -154,13 +157,13 @@ public class GradingElementScoresFragment extends Fragment {
                 localScores.set(index, v);
             }
             if (v < SCORE_MIN || v > SCORE_MAX) {
-                edit.setError(getString(R.string.grading_scores_invalid_range));
+                layout.setError(getString(R.string.grading_scores_invalid_range));
                 return false;
             }
-            edit.setError(null);
+            layout.setError(null);
             return true;
         } catch (NumberFormatException e) {
-            edit.setError(getString(R.string.grading_scores_invalid_range));
+            layout.setError(getString(R.string.grading_scores_invalid_range));
             return false;
         }
     }
@@ -169,18 +172,12 @@ public class GradingElementScoresFragment extends Fragment {
         boolean allOk = true;
         for (int i = 0; i < tableRows.getChildCount(); i++) {
             View rowView = tableRows.getChildAt(i);
-            if (!(rowView instanceof LinearLayout)) {
+            TextInputLayout layout = rowView.findViewById(R.id.gradingScoreInputLayout);
+            TextInputEditText edit = rowView.findViewById(R.id.gradingScoreInput);
+            if (layout == null || edit == null) {
                 continue;
             }
-            LinearLayout row = (LinearLayout) rowView;
-            if (row.getChildCount() < 2) {
-                continue;
-            }
-            View scoreView = row.getChildAt(1);
-            if (!(scoreView instanceof TextInputEditText)) {
-                continue;
-            }
-            if (!refreshScoreField((TextInputEditText) scoreView, i)) {
+            if (!refreshScoreField(layout, edit, i)) {
                 allOk = false;
             }
         }
@@ -288,30 +285,27 @@ public class GradingElementScoresFragment extends Fragment {
     private void renderFromLocal() {
         tableRows.removeAllViews();
         int gap = getResources().getDimensionPixelSize(R.dimen.grid_1);
+        LayoutInflater inflater = LayoutInflater.from(requireContext());
         for (int i = 0; i < localScores.size(); i++) {
             final int index = i;
             double val = localScores.get(i);
 
-            LinearLayout row = new LinearLayout(requireContext());
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            View row = inflater.inflate(R.layout.item_grading_score_row, tableRows, false);
+            LinearLayout.LayoutParams rowLp = (LinearLayout.LayoutParams) row.getLayoutParams();
+            if (rowLp == null) {
+                rowLp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+            }
             rowLp.bottomMargin = gap;
             row.setLayoutParams(rowLp);
 
-            TextView numCol = new TextView(requireContext());
-            numCol.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            numCol.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
-            numCol.setText(String.format(Locale.getDefault(), "%d", i + 1));
+            TextView numCol = row.findViewById(R.id.gradingScoreRowNumber);
+            TextInputLayout scoreLayout = row.findViewById(R.id.gradingScoreInputLayout);
+            TextInputEditText scoreEdit = row.findViewById(R.id.gradingScoreInput);
 
-            TextInputEditText scoreEdit = new TextInputEditText(requireContext());
-            scoreEdit.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            scoreEdit.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-            scoreEdit.setTextAppearance(R.style.TextAppearance_CourseSync_Body);
-            setScoreText(scoreEdit, val);
+            numCol.setText(String.format(Locale.getDefault(), "%d", i + 1));
+            setScoreText(scoreLayout, scoreEdit, val);
             scoreEdit.addTextChangedListener(new TextWatcher() {
                 @Override
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -324,27 +318,28 @@ public class GradingElementScoresFragment extends Fragment {
                     if (suppressScoreWatchers) {
                         return;
                     }
-                    refreshScoreField(scoreEdit, index);
+                    refreshScoreField(scoreLayout, scoreEdit, index);
                     updateAverageDisplay();
                 }
             });
 
-            row.addView(numCol);
-            row.addView(scoreEdit);
             tableRows.addView(row);
         }
         updateAverageDisplay();
         updateRemoveButtonState();
     }
 
-    private void setScoreText(TextInputEditText edit, double value) {
+    private void setScoreText(
+            @NonNull TextInputLayout layout,
+            @NonNull TextInputEditText edit,
+            double value) {
         suppressScoreWatchers = true;
         edit.setText(formatScoreForEdit(value));
         suppressScoreWatchers = false;
         if (value >= SCORE_MIN && value <= SCORE_MAX) {
-            edit.setError(null);
+            layout.setError(null);
         } else {
-            edit.setError(getString(R.string.grading_scores_invalid_range));
+            layout.setError(getString(R.string.grading_scores_invalid_range));
         }
     }
 

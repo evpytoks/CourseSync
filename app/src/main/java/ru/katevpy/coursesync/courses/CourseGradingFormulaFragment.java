@@ -2,13 +2,14 @@ package ru.katevpy.coursesync.courses;
 
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -30,6 +31,8 @@ import com.google.android.material.chip.Chip;
 import com.google.android.material.color.MaterialColors;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import ru.katevpy.coursesync.ui.ErrorUi;
 
 import java.text.NumberFormat;
@@ -249,27 +252,43 @@ public class CourseGradingFormulaFragment extends Fragment {
             ApiError err = ((Result.HttpError<Void>) result).error;
             String ec = err != null ? err.code : null;
             if (code == 403 || "forbidden".equals(ec)) {
-                ErrorUi.show(this, R.string.grading_cumulative_save_forbidden, ErrorUi.Duration.SHORT);
+                ErrorUi.show(
+                        this,
+                        cumulativeEditDialog,
+                        R.string.grading_cumulative_save_forbidden,
+                        ErrorUi.Duration.SHORT);
                 return;
             }
             if ("cumulative_grade_block_greater_than_automatic".equals(ec)) {
-                ErrorUi.show(this, R.string.grading_cumulative_block_gt_auto, ErrorUi.Duration.SHORT);
+                ErrorUi.show(
+                        this,
+                        cumulativeEditDialog,
+                        R.string.grading_cumulative_block_gt_auto,
+                        ErrorUi.Duration.SHORT);
                 return;
             }
             if ("cumulative_grade_elements_required".equals(ec)) {
-                ErrorUi.show(this, R.string.grading_cumulative_need_element, ErrorUi.Duration.SHORT);
+                ErrorUi.show(
+                        this,
+                        cumulativeEditDialog,
+                        R.string.grading_cumulative_need_element,
+                        ErrorUi.Duration.SHORT);
                 return;
             }
             if ("cumulative_grade_threshold_out_of_range".equals(ec)) {
-                ErrorUi.show(this, R.string.grading_cumulative_threshold_range, ErrorUi.Duration.SHORT);
+                ErrorUi.show(
+                        this,
+                        cumulativeEditDialog,
+                        R.string.grading_cumulative_threshold_range,
+                        ErrorUi.Duration.SHORT);
                 return;
             }
         }
         if (result instanceof Result.NetworkError) {
-            ErrorUi.show(this, R.string.network_error, ErrorUi.Duration.SHORT);
+            ErrorUi.show(this, cumulativeEditDialog, R.string.network_error, ErrorUi.Duration.SHORT);
             return;
         }
-        ErrorUi.show(this, R.string.grading_cumulative_save_error, ErrorUi.Duration.SHORT);
+        ErrorUi.show(this, cumulativeEditDialog, R.string.grading_cumulative_save_error, ErrorUi.Duration.SHORT);
     }
 
     private void clearAccumulatedScores() {
@@ -674,8 +693,12 @@ public class CourseGradingFormulaFragment extends Fragment {
         View root = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_cumulative_grade, null);
         ChipGroup chipGroup = root.findViewById(R.id.chipGroupCumulativeElements);
         ImageButton btnAdd = root.findViewById(R.id.btnAddCumulativeElement);
-        EditText editBlock = root.findViewById(R.id.editCumulativeBlock);
-        EditText editAutomatic = root.findViewById(R.id.editCumulativeAutomatic);
+        TextInputLayout blockLayout = root.findViewById(R.id.editCumulativeBlockLayout);
+        TextInputEditText editBlock = root.findViewById(R.id.editCumulativeBlock);
+        TextInputLayout automaticLayout = root.findViewById(R.id.editCumulativeAutomaticLayout);
+        TextInputEditText editAutomatic = root.findViewById(R.id.editCumulativeAutomatic);
+        TextView blockErrorText = root.findViewById(R.id.textCumulativeBlockError);
+        TextView automaticErrorText = root.findViewById(R.id.textCumulativeAutomaticError);
         MaterialButton btnSave = root.findViewById(R.id.btnSaveCumulativeGrade);
 
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
@@ -709,27 +732,69 @@ public class CourseGradingFormulaFragment extends Fragment {
         btnAdd.setVisibility(editable ? View.VISIBLE : View.GONE);
         btnSave.setVisibility(editable ? View.VISIBLE : View.GONE);
 
-        applyCumulativeGradeFieldsEditable(editBlock, editAutomatic, editable);
+        applyCumulativeGradeFieldsEditable(blockLayout, editBlock, automaticLayout, editAutomatic, editable);
 
         if (editable) {
+            TextWatcher clearBlockRange = new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    setCumulativeInlineError(blockErrorText, null);
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {}
+            };
+            TextWatcher clearAutoAndCompare = new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    setCumulativeInlineError(automaticErrorText, null);
+                    setCumulativeInlineError(blockErrorText, null);
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {}
+            };
+            editBlock.addTextChangedListener(clearBlockRange);
+            editAutomatic.addTextChangedListener(clearAutoAndCompare);
+
             btnAdd.setOnClickListener(v -> showCumulativeAddPopup(v, chipGroup, allOptions));
             btnSave.setOnClickListener(v -> {
+                setCumulativeInlineError(blockErrorText, null);
+                setCumulativeInlineError(automaticErrorText, null);
                 List<String> ids = collectCumulativeElementIds(chipGroup);
                 if (ids.isEmpty()) {
-                    ErrorUi.show(this, R.string.grading_cumulative_need_element, ErrorUi.Duration.SHORT);
+                    ErrorUi.show(
+                            this,
+                            cumulativeEditDialog,
+                            R.string.grading_cumulative_need_element,
+                            ErrorUi.Duration.SHORT);
                     return;
                 }
                 double blockVal;
-                Double autoVal;
                 try {
                     blockVal = parseCumulativeBlock(editBlock.getText().toString());
+                } catch (IllegalArgumentException ex) {
+                    setCumulativeInlineError(
+                            blockErrorText, getString(R.string.grading_block_invalid_range));
+                    return;
+                }
+                Double autoVal;
+                try {
                     autoVal = parseCumulativeAutomatic(editAutomatic.getText().toString());
                 } catch (IllegalArgumentException ex) {
-                    ErrorUi.show(this, R.string.grading_cumulative_threshold_range, ErrorUi.Duration.SHORT);
+                    setCumulativeInlineError(
+                            automaticErrorText, getString(R.string.grading_cumulative_threshold_range));
                     return;
                 }
                 if (autoVal != null && blockVal > autoVal) {
-                    ErrorUi.show(this, R.string.grading_cumulative_block_gt_auto, ErrorUi.Duration.SHORT);
+                    setCumulativeInlineError(
+                            blockErrorText, getString(R.string.grading_cumulative_block_gt_auto));
                     return;
                 }
                 viewModel.saveCumulativeGrade(courseId, ids, blockVal, autoVal);
@@ -739,11 +804,31 @@ public class CourseGradingFormulaFragment extends Fragment {
         cumulativeEditDialog.show();
     }
 
-    private static void applyCumulativeGradeFieldsEditable(EditText block, EditText automatic, boolean editable) {
+    private static void setCumulativeInlineError(@Nullable TextView target, @Nullable CharSequence message) {
+        if (target == null) {
+            return;
+        }
+        if (message == null || message.length() == 0) {
+            target.setText("");
+            target.setVisibility(View.GONE);
+        } else {
+            target.setText(message);
+            target.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private static void applyCumulativeGradeFieldsEditable(
+            TextInputLayout blockLayout,
+            TextInputEditText block,
+            TextInputLayout automaticLayout,
+            TextInputEditText automatic,
+            boolean editable) {
+        blockLayout.setEnabled(editable);
         block.setEnabled(editable);
         block.setFocusable(editable);
         block.setFocusableInTouchMode(editable);
         block.setCursorVisible(editable);
+        automaticLayout.setEnabled(editable);
         automatic.setEnabled(editable);
         automatic.setFocusable(editable);
         automatic.setFocusableInTouchMode(editable);

@@ -54,24 +54,44 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:text="@string/grading_cumulative_block"
                 android:textAppearance="?attr/textAppearanceBodyLarge" />
 
-            <EditText
-                android:id="@+id/editCumulativeBlock"
-                android:layout_width="0dp"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/editCumulativeBlockLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="@dimen/grading_cumulative_number_field_size"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/grid_2"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:hint="0"
-                android:importantForAutofill="no"
-                android:inputType="numberDecimal"
-                android:maxLines="1"
-                android:textAlignment="viewEnd" />
+                app:errorEnabled="false"
+                app:hintEnabled="false">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editCumulativeBlock"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:imeOptions="actionNext"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal|numberSigned"
+                    android:maxLength="5"
+                    android:maxLines="1"
+                    android:minHeight="@dimen/grading_cumulative_number_field_size"
+                    android:textAlignment="center" />
+            </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/textCumulativeBlockError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/grid_1"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorError"
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -81,23 +101,44 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:text="@string/grading_cumulative_automatic"
                 android:textAppearance="?attr/textAppearanceBodyLarge" />
 
-            <EditText
-                android:id="@+id/editCumulativeAutomatic"
-                android:layout_width="0dp"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/editCumulativeAutomaticLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="@dimen/grading_cumulative_number_field_size"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/grid_2"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:importantForAutofill="no"
-                android:inputType="numberDecimal"
-                android:maxLines="1"
-                android:textAlignment="viewEnd" />
+                app:errorEnabled="false"
+                app:hintEnabled="false">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editCumulativeAutomatic"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal|numberSigned"
+                    android:maxLength="5"
+                    android:maxLines="1"
+                    android:minHeight="@dimen/grading_cumulative_number_field_size"
+                    android:textAlignment="center" />
+            </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/textCumulativeAutomaticError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/grid_1"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorError"
+            android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSaveCumulativeGrade"
