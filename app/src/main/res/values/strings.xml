@@ -142,19 +142,19 @@
     <string name="grading_cumulative_save_forbidden">Настраивать накопленную оценку может только владелец группы</string>
     <string name="grading_cumulative_need_element">Выберите хотя бы один элемент контроля</string>
     <string name="grading_cumulative_threshold_range">Введите число от 0 до 10</string>
-    <string name="grading_cumulative_block_gt_auto">Блок не может быть больше Автомат</string>
+    <string name="grading_cumulative_block_gt_auto">Блок не может быть больше автомата</string>
     <string name="grading_overall_average_label">Общий средний балл</string>
     <string name="grading_cumulative_read_auto_conditions">Прочтите условия автомата</string>
     <string name="grading_element_score_line_left">%1$s (%2$d)</string>
     <string name="add_control_element">Добавить элемент контроля</string>
     <string name="grading_add_element_title">Новый элемент контроля</string>
     <string name="grading_element_name_hint">Элемент контроля</string>
-    <string name="grading_element_coefficient_hint">Коэффициент (0..1)</string>
+    <string name="grading_element_coefficient_hint">Коэффициент (больше 0, не больше 1)</string>
     <string name="grading_element_block_hint">Блок (0..10)</string>
     <string name="grading_invalid_element_name">Введите название элемента контроля</string>
-    <string name="grading_invalid_element_coefficient">Введите число от 0 до 1</string>
+    <string name="grading_invalid_element_coefficient">Введите число больше 0 и не больше 1</string>
     <string name="grading_coeff_sum_must_be_one">Сумма коэфициентов должна быть 1</string>
-    <string name="grading_fix_element_table_errors">Исправьте ошибки в коэффициентах и блоках в таблице</string>
+    <string name="grading_fix_element_table_errors">Исправьте ошибки в таблице</string>
     <string name="grading_elements_load_error">Не удалось загрузить элементы контроля. Попробуйте позже</string>
     <string name="grading_element_scores_average_was">Средний балл = %1$s</string>
     <string name="grading_score_column_number">Номер</string>

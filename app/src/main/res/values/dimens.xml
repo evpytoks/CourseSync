@@ -59,6 +59,8 @@
 
     <dimen name="dialog_grading_text_max_height">368dp</dimen>
 
+    <dimen name="grading_cumulative_number_field_size">56dp</dimen>
+
     <dimen name="course_form_links_list_max_height">240dp</dimen>
 
     <dimen name="contact_add_method_circle">28dp</dimen>
