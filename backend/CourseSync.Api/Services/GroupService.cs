@@ -119,7 +119,6 @@ public sealed class GroupService
             }
             catch (DbUpdateException ex) when (IsUniqueCodeViolation(ex) && attempt < CodeCollisionRetryCount - 1)
             {
-               
             }
         }
         throw new InvalidOperationException("Failed to generate unique group code after retries.");

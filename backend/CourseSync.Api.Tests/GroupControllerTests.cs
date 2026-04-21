@@ -22,8 +22,24 @@ public sealed class GroupControllerTests
         controller.HttpContext.User = userId is { } id
             ? new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, id.ToString()),
-                new Claim("sub", id.ToString())
+                new Claim(ClaimTypes.NameIdentifier, id.ToString())
+            }, "Test"))
+            : new ClaimsPrincipal();
+        return controller;
+    }
+
+    private static MeController CreateMeController(GroupService service, Guid? userId)
+    {
+        var controller = new MeController(service);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext(),
+            RouteData = new Microsoft.AspNetCore.Routing.RouteData()
+        };
+        controller.HttpContext.User = userId is { } id
+            ? new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, id.ToString())
             }, "Test"))
             : new ClaimsPrincipal();
         return controller;
@@ -217,8 +233,8 @@ public sealed class GroupControllerTests
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
         var create = await svc.CreateGroupAsync(other.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
-        var controller = CreateController(svc, user.Id);
-        var res = await controller.Choose(create.Value.GroupId, CancellationToken.None);
+        var me = CreateMeController(svc, user.Id);
+        var res = await me.SetCurrentGroup(new SetCurrentGroupRequest(create.Value.GroupId), CancellationToken.None);
         Assert.Equal(403, Assert.IsType<ObjectResult>(res).StatusCode);
     }
 
@@ -232,8 +248,8 @@ public sealed class GroupControllerTests
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
         var create = await svc.CreateGroupAsync(user.Id, "ВыбраннаяГруппа", CancellationToken.None);
         Assert.NotNull(create);
-        var controller = CreateController(svc, user.Id);
-        var res = await controller.Choose(create.Value.GroupId, CancellationToken.None);
+        var me = CreateMeController(svc, user.Id);
+        var res = await me.SetCurrentGroup(new SetCurrentGroupRequest(create.Value.GroupId), CancellationToken.None);
         Assert.IsType<OkResult>(res);
     }
 
@@ -248,8 +264,8 @@ public sealed class GroupControllerTests
         var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
         var create = await svc.CreateGroupAsync(other.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
-        var controller = CreateController(svc, user.Id);
-        var res = await controller.GetCurrent(CancellationToken.None);
+        var me = CreateMeController(svc, user.Id);
+        var res = await me.GetCurrentGroup(CancellationToken.None);
         var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
         Assert.Equal("no_group_selected", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
@@ -265,8 +281,8 @@ public sealed class GroupControllerTests
         var create = await svc.CreateGroupAsync(user.Id, "Линейная алгебра 2026", CancellationToken.None);
         Assert.NotNull(create);
 
-        var controller = CreateController(svc, user.Id);
-        var res = await controller.GetCurrent(CancellationToken.None);
+        var me = CreateMeController(svc, user.Id);
+        var res = await me.GetCurrentGroup(CancellationToken.None);
         var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
         Assert.Equal("no_group_selected", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
@@ -284,8 +300,8 @@ public sealed class GroupControllerTests
         var choose = await svc.ChooseGroupAsync(user.Id, create.Value.GroupId, CancellationToken.None);
         Assert.True(choose.Ok);
 
-        var controller = CreateController(svc, user.Id);
-        var res = await controller.GetCurrent(CancellationToken.None);
+        var me = CreateMeController(svc, user.Id);
+        var res = await me.GetCurrentGroup(CancellationToken.None);
         var ok = Assert.IsType<OkObjectResult>(res.Result);
         var payload = Assert.IsType<GroupDetailsResponse>(ok.Value);
         Assert.Equal(create.Value.GroupId, payload.Id);
@@ -431,5 +447,160 @@ public sealed class GroupControllerTests
         var res = await controller.Leave(create.Value.GroupId, CancellationToken.None);
         Assert.IsType<NoContentResult>(res);
         Assert.False(await tdb.Db.Groups.AnyAsync(g => g.Id == create.Value.GroupId));
+    }
+
+    [Fact]
+    public async Task OwnerList_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var controller = CreateController(
+            new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
+            null);
+        var res = await controller.OwnerList(CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+    }
+
+    [Fact]
+    public async Task Join_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var controller = CreateController(
+            new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
+            null);
+        var res = await controller.Join(new GroupJoinRequest("ABCDEF"), CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res);
+    }
+
+    [Fact]
+    public async Task Change_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var controller = CreateController(
+            new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
+            null);
+        var res = await controller.Change(Guid.NewGuid(), new GroupChangeRequest("x"), CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res);
+    }
+
+    [Fact]
+    public async Task Leave_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var controller = CreateController(
+            new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
+            null);
+        var res = await controller.Leave(Guid.NewGuid(), CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res);
+    }
+
+    [Fact]
+    public async Task GetParticipants_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var controller = CreateController(
+            new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
+            null);
+        var res = await controller.GetParticipants(Guid.NewGuid(), CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+    }
+
+    [Fact]
+    public async Task GetParticipants_non_owner_returns_403()
+    {
+        await using var tdb = new TestDb();
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, participant);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var create = await svc.CreateGroupAsync(owner.Id, "Группа", CancellationToken.None);
+        Assert.NotNull(create);
+        await svc.JoinByCodeAsync(participant.Id, create.Value.Code, CancellationToken.None);
+
+        var controller = CreateController(svc, participant.Id);
+        var res = await controller.GetParticipants(create.Value.GroupId, CancellationToken.None);
+        var forbidden = Assert.IsType<ObjectResult>(res.Result);
+        Assert.Equal(403, forbidden.StatusCode);
+    }
+
+    [Fact]
+    public async Task BlockParticipant_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var controller = CreateController(
+            new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
+            null);
+        var res = await controller.BlockParticipant(Guid.NewGuid(), new GroupParticipantEmailRequest("a@b.ru"), CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res);
+    }
+
+    [Fact]
+    public async Task BlockParticipant_non_owner_returns_403()
+    {
+        await using var tdb = new TestDb();
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, participant);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var create = await svc.CreateGroupAsync(owner.Id, "Группа", CancellationToken.None);
+        Assert.NotNull(create);
+        await svc.JoinByCodeAsync(participant.Id, create.Value.Code, CancellationToken.None);
+
+        var controller = CreateController(svc, participant.Id);
+        var res = await controller.BlockParticipant(create.Value.GroupId, new GroupParticipantEmailRequest("owner@edu.hse.ru"), CancellationToken.None);
+        var forbidden = Assert.IsType<ObjectResult>(res);
+        Assert.Equal(403, forbidden.StatusCode);
+    }
+
+    [Fact]
+    public async Task UnblockParticipant_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var controller = CreateController(
+            new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
+            null);
+        var res = await controller.UnblockParticipant(Guid.NewGuid(), "a@b.ru", CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res);
+    }
+
+    [Fact]
+    public async Task UnblockParticipant_non_owner_returns_403()
+    {
+        await using var tdb = new TestDb();
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var participant = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "participant@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, participant);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var create = await svc.CreateGroupAsync(owner.Id, "Группа", CancellationToken.None);
+        Assert.NotNull(create);
+        await svc.JoinByCodeAsync(participant.Id, create.Value.Code, CancellationToken.None);
+
+        var controller = CreateController(svc, participant.Id);
+        var res = await controller.UnblockParticipant(create.Value.GroupId, "owner@edu.hse.ru", CancellationToken.None);
+        var forbidden = Assert.IsType<ObjectResult>(res);
+        Assert.Equal(403, forbidden.StatusCode);
+    }
+
+    [Fact]
+    public async Task Join_when_blocked_returns_403()
+    {
+        await using var tdb = new TestDb();
+        var owner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var joiner = new CourseSync.Api.Data.User { Id = Guid.NewGuid(), Email = "joiner@edu.hse.ru" };
+        tdb.Db.Users.AddRange(owner, joiner);
+        await tdb.Db.SaveChangesAsync();
+        var svc = new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
+        var create = await svc.CreateGroupAsync(owner.Id, "Группа", CancellationToken.None);
+        Assert.NotNull(create);
+        await svc.JoinByCodeAsync(joiner.Id, create.Value.Code, CancellationToken.None);
+        await svc.BlockParticipantByEmailAsync(owner.Id, create.Value.GroupId, "joiner@edu.hse.ru", CancellationToken.None);
+
+        var controller = CreateController(svc, joiner.Id);
+        var res = await controller.Join(new GroupJoinRequest(create.Value.Code), CancellationToken.None);
+        var forbidden = Assert.IsType<ObjectResult>(res);
+        Assert.Equal(403, forbidden.StatusCode);
+        Assert.Equal("group_join_blocked", Assert.IsType<ErrorEnvelope>(forbidden.Value).Error.Code);
     }
 }

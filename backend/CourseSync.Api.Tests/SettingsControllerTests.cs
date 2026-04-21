@@ -23,8 +23,7 @@ public sealed class SettingsControllerTests
         controller.HttpContext.User = userId is { } id
             ? new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, id.ToString()),
-                new Claim("sub", id.ToString())
+                new Claim(ClaimTypes.NameIdentifier, id.ToString())
             }, "Test"))
             : new ClaimsPrincipal();
         return controller;
@@ -39,6 +38,17 @@ public sealed class SettingsControllerTests
 
         var res = await controller.Get(CancellationToken.None);
         Assert.IsType<UnauthorizedObjectResult>(res.Result);
+    }
+
+    [Fact]
+    public async Task Update_unauthorized_when_no_user()
+    {
+        await using var tdb = new TestDb();
+        var users = new UserService(tdb.Db);
+        var controller = CreateController(users, null);
+
+        var res = await controller.Update(new UpdateUserSettingsRequest(NotificationsOn: true, DarkThemeOn: null, CalendarEventTypeColors: null), CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res);
     }
 
     [Fact]
