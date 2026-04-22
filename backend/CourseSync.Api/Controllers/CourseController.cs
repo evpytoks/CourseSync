@@ -84,6 +84,9 @@ public sealed class CourseController : ControllerBase
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("course_name_required")));
+
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
@@ -210,6 +213,9 @@ public sealed class CourseController : ControllerBase
         var user = await _userService.FindByIdAsync(userId.Value, ct);
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("invalid_request")));
 
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
@@ -384,6 +390,9 @@ public sealed class CourseController : ControllerBase
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("grading_element_name_required")));
+
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
@@ -412,6 +421,9 @@ public sealed class CourseController : ControllerBase
         var user = await _userService.FindByIdAsync(userId.Value, ct);
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("cumulative_grade_elements_required")));
 
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
@@ -473,6 +485,9 @@ public sealed class CourseController : ControllerBase
         var user = await _userService.FindByIdAsync(userId.Value, ct);
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("course_name_required")));
 
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
@@ -804,6 +819,8 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError("course_not_in_group")));
         if (errorCode == "material_not_found")
             return NotFound(new ErrorEnvelope(new ApiError("material_not_found")));
+        if (errorCode == "storage_delete_failed")
+            return StatusCode(503, new ErrorEnvelope(new ApiError("storage_delete_failed")));
         return BadRequest(new ErrorEnvelope(new ApiError(errorCode)));
     }
 

@@ -220,6 +220,15 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseMigration");
+    logger.LogInformation("Applying database migrations...");
+    db.Database.Migrate();
+    logger.LogInformation("Database migrations applied successfully.");
+}
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -228,9 +237,9 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter();
 
 app.Use(async (context, next) =>
 {

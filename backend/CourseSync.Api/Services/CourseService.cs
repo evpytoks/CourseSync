@@ -773,7 +773,7 @@ public sealed class CourseService
         var blockToStore = !block.HasValue || block.Value == 0m ? 0m : block.Value;
 
         var existingRows = await _db.CourseCumulativeGradeElements
-            .Where(x => x.CourseId == courseId)
+            .Where(x => x.CourseCumulativeGradeId == courseId)
             .ToListAsync(ct);
         if (existingRows.Count > 0)
             _db.CourseCumulativeGradeElements.RemoveRange(existingRows);
@@ -795,7 +795,7 @@ public sealed class CourseService
             _db.CourseCumulativeGradeElements.Add(new CourseCumulativeGradeElement
             {
                 Id = Guid.NewGuid(),
-                CourseId = courseId,
+                CourseCumulativeGradeId = courseId,
                 CourseGradingElementId = orderedIds[i],
                 Position = i
             });
@@ -826,7 +826,7 @@ public sealed class CourseService
 
         var orderedElementIds = await _db.CourseCumulativeGradeElements
             .AsNoTracking()
-            .Where(x => x.CourseId == courseId)
+            .Where(x => x.CourseCumulativeGradeId == courseId)
             .OrderBy(x => x.Position)
             .Select(x => x.CourseGradingElementId)
             .ToListAsync(ct);

@@ -90,9 +90,11 @@ public sealed class GroupService
                 await _db.SaveChangesAsync(ct);
                 return (group.Id, group.Name, group.Code);
             }
-            catch (DbUpdateException ex) when (IsUniqueCodeViolation(ex) && attempt < CodeCollisionRetryCount - 1)
+            catch (DbUpdateException ex) when (IsUniqueCodeViolation(ex))
             {
                 _db.ChangeTracker.Clear();
+                if (attempt == CodeCollisionRetryCount - 1)
+                    return null;
             }
         }
         return null;
@@ -117,8 +119,10 @@ public sealed class GroupService
                 await _db.SaveChangesAsync(ct);
                 return newCode;
             }
-            catch (DbUpdateException ex) when (IsUniqueCodeViolation(ex) && attempt < CodeCollisionRetryCount - 1)
+            catch (DbUpdateException ex) when (IsUniqueCodeViolation(ex))
             {
+                if (attempt == CodeCollisionRetryCount - 1)
+                    throw new InvalidOperationException("Failed to generate unique group code after retries.");
             }
         }
         throw new InvalidOperationException("Failed to generate unique group code after retries.");

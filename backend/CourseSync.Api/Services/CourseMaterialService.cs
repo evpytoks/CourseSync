@@ -246,16 +246,12 @@ public sealed class CourseMaterialService
         if (entity is null)
             return (false, "material_not_found");
 
+        var storageError = await TryDeleteMaterialBlobAsync(entity.StoragePath, ct);
+        if (storageError is not null)
+            return (false, storageError);
+
         _db.CourseGeneralMaterials.Remove(entity);
         await _db.SaveChangesAsync(ct);
-        try
-        {
-            await _blob.DeleteAsync(entity.StoragePath, ct);
-        }
-        catch
-        {
-        }
-
         return (true, null);
     }
 
@@ -284,17 +280,30 @@ public sealed class CourseMaterialService
         if (!canDelete)
             return (false, "forbidden");
 
+        var storageError = await TryDeleteMaterialBlobAsync(entity.StoragePath, ct);
+        if (storageError is not null)
+            return (false, storageError);
+
         _db.CoursePersonalMaterials.Remove(entity);
         await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    private async Task<string?> TryDeleteMaterialBlobAsync(string storagePath, CancellationToken ct)
+    {
         try
         {
-            await _blob.DeleteAsync(entity.StoragePath, ct);
+            await _blob.DeleteAsync(storagePath, ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {
+            return "storage_delete_failed";
         }
-
-        return (true, null);
     }
 
     private async Task<string> GetGroupNameAsync(Guid groupId, CancellationToken ct)

@@ -47,6 +47,9 @@ public sealed class GroupController : ControllerBase
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("group_name_required")));
+
         var validation = GroupService.ValidateGroupName(req.Name);
         if (!validation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(validation.ErrorCode!)));
@@ -64,6 +67,9 @@ public sealed class GroupController : ControllerBase
         var userId = GetCurrentUserId();
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("invalid_code_format")));
 
         var codeValidation = GroupService.ValidateGroupCode(req.Code);
         if (!codeValidation.Valid)
@@ -110,6 +116,9 @@ public sealed class GroupController : ControllerBase
         var userId = GetCurrentUserId();
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("participant_email_required")));
 
         var (ok, errorCode) = await _groupService.BlockParticipantByEmailAsync(userId.Value, id, req.Email ?? "", ct);
         if (!ok)
@@ -158,6 +167,9 @@ public sealed class GroupController : ControllerBase
         var userId = GetCurrentUserId();
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("group_name_required")));
 
         var (ok, errorCode) = await _groupService.ChangeNameAsync(userId.Value, id, req.Name ?? "", ct);
         if (!ok)

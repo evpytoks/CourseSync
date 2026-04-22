@@ -12,7 +12,6 @@ namespace CourseSync.Api.Controllers;
 [Route("auth")]
 public sealed class AuthController : ControllerBase
 {
-    private const string AllowedEmailDomain = "edu.hse.ru";
     private const string TestEmailPrefix = "test";
     private const string TestLoginCode = "111111";
 
@@ -49,6 +48,9 @@ public sealed class AuthController : ControllerBase
     [HttpPost("send-code")]
     public async Task<ActionResult<SendCodeResponse>> SendCode([FromBody] SendCodeRequest req, CancellationToken ct)
     {
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("email_required")));
+
         var email = (req.Email ?? "").Trim();
 
         var emailValidation = ValidateAllowedEmail(email);
@@ -94,6 +96,9 @@ public sealed class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest req, CancellationToken ct)
     {
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("email_required")));
+
         var email = (req.Email ?? "").Trim();
         var requestId = (req.RequestId ?? "").Trim();
         var code = (req.Code ?? "").Trim();
@@ -133,6 +138,9 @@ public sealed class AuthController : ControllerBase
     [HttpPost("refresh")]
     public async Task<ActionResult<RefreshResponse>> Refresh([FromBody] RefreshRequest req, CancellationToken ct)
     {
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
+
         var refreshToken = (req.RefreshToken ?? "").Trim();
         if (string.IsNullOrWhiteSpace(refreshToken))
             return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
@@ -155,6 +163,9 @@ public sealed class AuthController : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] RefreshRequest req, CancellationToken ct)
     {
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
+
         var refreshToken = (req.RefreshToken ?? "").Trim();
         if (string.IsNullOrWhiteSpace(refreshToken))
             return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
@@ -163,7 +174,7 @@ public sealed class AuthController : ControllerBase
         return NoContent();
     }
 
-    private static ErrorEnvelope? ValidateAllowedEmail(string email)
+    private ErrorEnvelope? ValidateAllowedEmail(string email)
     {
         email = (email ?? "").Trim();
 
@@ -173,7 +184,7 @@ public sealed class AuthController : ControllerBase
         if (!MailAddress.TryCreate(email, out var addr) || !string.Equals(addr.Address, email, StringComparison.OrdinalIgnoreCase))
             return new ErrorEnvelope(new ApiError("invalid_email"));
 
-        if (!string.Equals(addr.Host, AllowedEmailDomain, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(addr.Host, _authOpt.AllowedEmailDomain, StringComparison.OrdinalIgnoreCase))
             return new ErrorEnvelope(new ApiError("not_hse_email"));
 
         return null;
