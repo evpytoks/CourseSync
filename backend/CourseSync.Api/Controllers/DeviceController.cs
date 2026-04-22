@@ -24,6 +24,9 @@ public sealed class DeviceController : ControllerBase
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("device_token_required")));
+
         if (string.IsNullOrWhiteSpace(req.Token))
             return BadRequest(new ErrorEnvelope(new ApiError("device_token_required")));
 
@@ -47,6 +50,9 @@ public sealed class DeviceController : ControllerBase
         var userId = GetCurrentUserId();
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("device_token_required")));
 
         if (string.IsNullOrWhiteSpace(req.Token))
             return BadRequest(new ErrorEnvelope(new ApiError("device_token_required")));

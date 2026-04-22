@@ -41,6 +41,9 @@ public sealed class MeController : ControllerBase
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("group_id_required")));
+
         if (req.GroupId == Guid.Empty)
             return BadRequest(new ErrorEnvelope(new ApiError("group_id_required")));
 

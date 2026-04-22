@@ -130,7 +130,10 @@ public sealed class AppDbContext : DbContext
 
         b.Entity<Group>(e =>
         {
-            e.ToTable("groups");
+            e.ToTable("groups", t =>
+            {
+                t.HasCheckConstraint("ck_groups_code_format", "char_length(code) = 6 AND code ~ '^[A-Za-z0-9]{6}$'");
+            });
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(20);
@@ -251,13 +254,13 @@ public sealed class AppDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Id).HasColumnName("id");
-            e.Property(x => x.CourseId).HasColumnName("course_id").IsRequired();
+            e.Property(x => x.CourseCumulativeGradeId).HasColumnName("course_id").IsRequired();
             e.Property(x => x.CourseGradingElementId).HasColumnName("course_grading_element_id").IsRequired();
             e.Property(x => x.Position).HasColumnName("position").IsRequired();
 
             e.HasOne(x => x.CumulativeGrade)
                 .WithMany(x => x.Elements)
-                .HasForeignKey(x => x.CourseId)
+                .HasForeignKey(x => x.CourseCumulativeGradeId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasOne(x => x.GradingElement)
@@ -265,9 +268,9 @@ public sealed class AppDbContext : DbContext
                 .HasForeignKey(x => x.CourseGradingElementId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            e.HasIndex(x => x.CourseId);
+            e.HasIndex(x => x.CourseCumulativeGradeId);
             e.HasIndex(x => x.CourseGradingElementId);
-            e.HasIndex(x => new { x.CourseId, x.Position });
+            e.HasIndex(x => new { x.CourseCumulativeGradeId, x.Position });
         });
 
         b.Entity<CourseGradingScore>(e =>

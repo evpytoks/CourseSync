@@ -22,8 +22,7 @@ public sealed class NewsControllerTests
         controller.HttpContext.User = userId is { } id
             ? new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, id.ToString()),
-                new Claim("sub", id.ToString())
+                new Claim(ClaimTypes.NameIdentifier, id.ToString())
             }, "Test"))
             : new ClaimsPrincipal();
         return controller;
@@ -134,5 +133,104 @@ public sealed class NewsControllerTests
         var unreadAfterRes = await controller.UnreadCount(CancellationToken.None);
         var unreadAfterOk = Assert.IsType<OkObjectResult>(unreadAfterRes.Result);
         Assert.Equal(0, Assert.IsType<NewsUnreadCountResponse>(unreadAfterOk.Value!).UnreadCount);
+    }
+
+    [Fact]
+    public async Task List_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var news = new NewsService(tdb.Db, new NotificationService(tdb.Db));
+        var userSvc = new UserService(tdb.Db);
+        var controller = CreateController(news, userSvc, null);
+        var res = await controller.List(CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+    }
+
+    [Fact]
+    public async Task UnreadCount_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var news = new NewsService(tdb.Db, new NotificationService(tdb.Db));
+        var userSvc = new UserService(tdb.Db);
+        var controller = CreateController(news, userSvc, null);
+        var res = await controller.UnreadCount(CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+    }
+
+    [Fact]
+    public async Task MarkAllRead_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var news = new NewsService(tdb.Db, new NotificationService(tdb.Db));
+        var userSvc = new UserService(tdb.Db);
+        var controller = CreateController(news, userSvc, null);
+        var res = await controller.MarkAllRead(CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+    }
+
+    [Fact]
+    public async Task Get_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var news = new NewsService(tdb.Db, new NotificationService(tdb.Db));
+        var userSvc = new UserService(tdb.Db);
+        var controller = CreateController(news, userSvc, null);
+        var res = await controller.Get(Guid.NewGuid(), CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+    }
+
+    [Fact]
+    public async Task Add_unauthorized_returns_401()
+    {
+        await using var tdb = new TestDb();
+        var news = new NewsService(tdb.Db, new NotificationService(tdb.Db));
+        var userSvc = new UserService(tdb.Db);
+        var controller = CreateController(news, userSvc, null);
+        var res = await controller.Add(new AddNewsRequest(Guid.NewGuid(), "text"), CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(res);
+    }
+
+    [Fact]
+    public async Task Get_non_member_returns_403_forbidden()
+    {
+        await using var tdb = new TestDb();
+        var owner = new User { Id = Guid.NewGuid(), Email = "owner@edu.hse.ru" };
+        var stranger = new User { Id = Guid.NewGuid(), Email = "other@edu.hse.ru" };
+        var g = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "Г1",
+            Code = "aaaaaa",
+            CodeGeneratedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var n = new News
+        {
+            Id = Guid.NewGuid(),
+            GroupId = g.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            GroupName = g.Name,
+            Section = "Новости",
+            Detail = "текст",
+            Type = "manual"
+        };
+        tdb.Db.Users.AddRange(owner, stranger);
+        tdb.Db.Groups.Add(g);
+        tdb.Db.GroupMembers.Add(new GroupMember
+        {
+            GroupId = g.Id,
+            UserId = owner.Id,
+            Role = GroupRole.Owner,
+            JoinedAt = DateTimeOffset.UtcNow
+        });
+        tdb.Db.News.Add(n);
+        await tdb.Db.SaveChangesAsync();
+
+        var newsSvc = new NewsService(tdb.Db, new NotificationService(tdb.Db));
+        var userSvc = new UserService(tdb.Db);
+        var controller = CreateController(newsSvc, userSvc, stranger.Id);
+        var res = await controller.Get(n.Id, CancellationToken.None);
+        var forbidden = Assert.IsType<ObjectResult>(res.Result);
+        Assert.Equal(403, forbidden.StatusCode);
     }
 }

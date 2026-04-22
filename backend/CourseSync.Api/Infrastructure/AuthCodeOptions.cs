@@ -18,4 +18,9 @@ public sealed class AuthCodeOptions
     [Required]
     [MinLength(16)]
     public string HashKey { get; set; } = null!;
+
+    [Required]
+    [MinLength(3)]
+    [MaxLength(255)]
+    public string AllowedEmailDomain { get; set; } = "edu.hse.ru";
 }

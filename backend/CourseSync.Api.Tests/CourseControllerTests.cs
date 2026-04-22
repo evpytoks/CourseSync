@@ -30,8 +30,7 @@ public sealed class CourseControllerTests
         controller.HttpContext.User = userId is { } id
             ? new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, id.ToString()),
-                new Claim("sub", id.ToString())
+                new Claim(ClaimTypes.NameIdentifier, id.ToString())
             }, "Test"))
             : new ClaimsPrincipal();
         return controller;

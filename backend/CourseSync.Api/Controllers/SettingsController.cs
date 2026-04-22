@@ -47,6 +47,9 @@ public sealed class SettingsController : ControllerBase
         if (userId is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("invalid_request")));
+
         var (ok, errorCode) = await _users.UpdateUserSettingsAsync(
             userId.Value,
             req.NotificationsOn,

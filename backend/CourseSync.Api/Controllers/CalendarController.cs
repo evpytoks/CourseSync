@@ -118,6 +118,9 @@ public sealed class CalendarController : ControllerBase
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("invalid_request")));
+
         var nameValidation = CalendarService.ValidateEventName(req.Name);
         if (!nameValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(nameValidation.ErrorCode!)));
@@ -209,6 +212,9 @@ public sealed class CalendarController : ControllerBase
         var user = await _userService.FindByIdAsync(userId.Value, ct);
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+
+        if (req is null)
+            return BadRequest(new ErrorEnvelope(new ApiError("invalid_request")));
 
         var nameValidation = CalendarService.ValidateEventName(req.Name);
         if (!nameValidation.Valid)
