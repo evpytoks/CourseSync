@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using CourseSync.Api.Application.Courses;
 using CourseSync.Api.Services;
 using CourseSync.Api.Infrastructure.Email;
 using CourseSync.Api.Infrastructure;
@@ -103,7 +104,10 @@ builder.Services.AddSingleton<IEmailSender, MailKitEmailSender>();
 builder.Services.AddScoped<AuthLoginCodeService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<GroupService>();
-builder.Services.AddScoped<CourseService>();
+builder.Services.AddScoped<ICourseQueryService, CourseQueryService>();
+builder.Services.AddScoped<ICourseCommandService, CourseCommandService>();
+builder.Services.AddScoped<ICourseGradingService, CourseGradingService>();
+builder.Services.AddScoped<ICourseCumulativeGradeService, CourseCumulativeGradeService>();
 builder.Services.AddCourseMaterialBlobStorage(builder.Configuration);
 builder.Services.AddScoped<CourseMaterialService>();
 builder.Services.AddScoped<NotificationService>();

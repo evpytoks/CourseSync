@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CourseSync.Api.Application.Courses;
 using CourseSync.Api.Controllers;
 using CourseSync.Api.Data;
 using CourseSync.Api.Models;
@@ -17,11 +18,14 @@ public sealed class CourseControllerTests
     {
         var notifications = new NotificationService(tdb.Db);
         var blob = new NoOpCourseMaterialBlobStorage();
-        var courseSvc = new CourseService(tdb.Db, notifications, blob);
+        var courseQuery = new CourseQueryService(tdb.Db);
+        var courseCommand = new CourseCommandService(tdb.Db, notifications, blob);
+        var courseGrading = new CourseGradingService(tdb.Db, notifications);
+        var courseCumulative = new CourseCumulativeGradeService(tdb.Db);
         var materialSvc = new CourseMaterialService(tdb.Db, blob, notifications);
         var userSvc = new UserService(tdb.Db);
         var calendarSvc = new CalendarService(tdb.Db, notifications);
-        var controller = new CourseController(courseSvc, materialSvc, userSvc, calendarSvc);
+        var controller = new CourseController(courseQuery, courseCommand, courseGrading, courseCumulative, materialSvc, userSvc, calendarSvc);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext(),

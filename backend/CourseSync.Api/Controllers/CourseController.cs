@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CourseSync.Api.Application.Courses;
 using CourseSync.Api.Infrastructure;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
@@ -14,18 +15,27 @@ namespace CourseSync.Api.Controllers;
 [Produces("application/json")]
 public sealed class CourseController : ControllerBase
 {
-    private readonly CourseService _courseService;
+    private readonly ICourseQueryService _courseQuery;
+    private readonly ICourseCommandService _courseCommand;
+    private readonly ICourseGradingService _courseGrading;
+    private readonly ICourseCumulativeGradeService _courseCumulativeGrade;
     private readonly CourseMaterialService _courseMaterialService;
     private readonly UserService _userService;
     private readonly CalendarService _calendarService;
 
     public CourseController(
-        CourseService courseService,
+        ICourseQueryService courseQuery,
+        ICourseCommandService courseCommand,
+        ICourseGradingService courseGrading,
+        ICourseCumulativeGradeService courseCumulativeGrade,
         CourseMaterialService courseMaterialService,
         UserService userService,
         CalendarService calendarService)
     {
-        _courseService = courseService;
+        _courseQuery = courseQuery;
+        _courseCommand = courseCommand;
+        _courseGrading = courseGrading;
+        _courseCumulativeGrade = courseCumulativeGrade;
         _courseMaterialService = courseMaterialService;
         _userService = userService;
         _calendarService = calendarService;
@@ -45,7 +55,7 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var dtos = await _courseService.GetByGroupIdAsync(user.CurrentGroupId.Value, ct);
+        var dtos = await _courseQuery.GetByGroupIdAsync(user.CurrentGroupId.Value, ct);
         var items = dtos.Select(d => new CourseListItem(d.Id, d.Name)).ToList();
         return Ok(new CourseListResponse(items));
     }
@@ -61,7 +71,7 @@ public sealed class CourseController : ControllerBase
         if (user is null)
             return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
 
-        var (ok, dtos, errorCode) = await _courseService.GetByGroupIdForOwnerAsync(userId.Value, groupId, ct);
+        var (ok, dtos, errorCode) = await _courseQuery.GetByGroupIdForOwnerAsync(userId.Value, groupId, ct);
         if (!ok)
         {
             if (errorCode == "forbidden")
@@ -90,23 +100,23 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var nameValidation = CourseService.ValidateCourseName(req.Name);
+        var nameValidation = CourseInputRules.ValidateCourseName(req.Name);
         if (!nameValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(nameValidation.ErrorCode!)));
 
-        var generalInfoValidation = CourseService.ValidateGeneralInfo(req.GeneralInfo);
+        var generalInfoValidation = CourseInputRules.ValidateGeneralInfo(req.GeneralInfo);
         if (!generalInfoValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(generalInfoValidation.ErrorCode!)));
 
-        var contactsValidation = CourseService.ValidateContacts(req.Contacts);
+        var contactsValidation = CourseInputRules.ValidateContacts(req.Contacts);
         if (!contactsValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(contactsValidation.ErrorCode!)));
 
-        var usefulLinksValidation = CourseService.ValidateUsefulLinks(req.UsefulLinks);
+        var usefulLinksValidation = CourseInputRules.ValidateUsefulLinks(req.UsefulLinks);
         if (!usefulLinksValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(usefulLinksValidation.ErrorCode!)));
 
-        var (ok, courseId, name, generalInfo, contacts, usefulLinks, errorCode) = await _courseService.CreateCourseAsync(
+        var (ok, courseId, name, generalInfo, contacts, usefulLinks, errorCode) = await _courseCommand.CreateCourseAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             req.Name!.Trim(),
@@ -139,7 +149,7 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var (ok, data, errorCode) = await _courseService.GetCourseByIdAsync(
+        var (ok, data, errorCode) = await _courseQuery.GetCourseByIdAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -224,7 +234,7 @@ public sealed class CourseController : ControllerBase
             .Select(e => (e.Name ?? "", e.Coefficient, e.Block ?? 0m))
             .ToList();
 
-        var (ok, errorCode) = await _courseService.SaveGradingAsync(
+        var (ok, errorCode) = await _courseGrading.SaveGradingAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -252,7 +262,7 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var (ok, text, errorCode) = await _courseService.GetGradingTextAsync(
+        var (ok, text, errorCode) = await _courseGrading.GetGradingTextAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -278,7 +288,7 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var (ok, items, errorCode) = await _courseService.GetGradingElementOptionsAsync(
+        var (ok, items, errorCode) = await _courseGrading.GetGradingElementOptionsAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -305,7 +315,7 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var (ok, elements, errorCode) = await _courseService.GetGradingAsync(
+        var (ok, elements, errorCode) = await _courseGrading.GetGradingAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -314,7 +324,7 @@ public sealed class CourseController : ControllerBase
         if (!ok)
             return GradingError(errorCode!);
 
-        var payload = (elements ?? Array.Empty<CourseService.GradingElementDto>())
+        var payload = (elements ?? Array.Empty<GradingElementDto>())
             .Select(e => new CourseGradingElementResponse(
                 e.Name,
                 e.Coefficient,
@@ -349,20 +359,20 @@ public sealed class CourseController : ControllerBase
         var trimmed = (name ?? "").Trim();
         if (trimmed.Length == 0)
         {
-            var (allOk, allElements, allError) = await _courseService.GetAllGradingScoresAsync(
+            var (allOk, allElements, allError) = await _courseGrading.GetAllGradingScoresAsync(
                 userId.Value,
                 user.CurrentGroupId.Value,
                 id,
                 ct);
             if (!allOk)
                 return GradingError(allError!);
-            var blocks = (allElements ?? Array.Empty<CourseService.GradingElementScoresRow>())
+            var blocks = (allElements ?? Array.Empty<GradingElementScoresRow>())
                 .Select(e => new CourseGradingScoresResponse(e.Name, e.Count, e.Scores))
                 .ToList();
             return Ok(new CourseGradingAllScoresResponse(blocks));
         }
 
-        var (ok, elementName, count, scores, errorCode) = await _courseService.GetGradingScoresAsync(
+        var (ok, elementName, count, scores, errorCode) = await _courseGrading.GetGradingScoresAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -397,7 +407,7 @@ public sealed class CourseController : ControllerBase
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
         var scores = req.Scores ?? Array.Empty<decimal>();
-        var (ok, errorCode) = await _courseService.UpdateGradingScoresAsync(
+        var (ok, errorCode) = await _courseGrading.UpdateGradingScoresAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -428,7 +438,7 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var (ok, errorCode) = await _courseService.SaveCumulativeGradeAsync(
+        var (ok, errorCode) = await _courseCumulativeGrade.SaveCumulativeGradeAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -457,7 +467,7 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var (ok, data, errorCode) = await _courseService.GetCumulativeGradeAsync(
+        var (ok, data, errorCode) = await _courseCumulativeGrade.GetCumulativeGradeAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -492,23 +502,23 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var nameValidation = CourseService.ValidateCourseName(req.Name);
+        var nameValidation = CourseInputRules.ValidateCourseName(req.Name);
         if (!nameValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(nameValidation.ErrorCode!)));
 
-        var generalInfoValidation = CourseService.ValidateGeneralInfo(req.GeneralInfo);
+        var generalInfoValidation = CourseInputRules.ValidateGeneralInfo(req.GeneralInfo);
         if (!generalInfoValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(generalInfoValidation.ErrorCode!)));
 
-        var contactsValidation = CourseService.ValidateContacts(req.Contacts);
+        var contactsValidation = CourseInputRules.ValidateContacts(req.Contacts);
         if (!contactsValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(contactsValidation.ErrorCode!)));
 
-        var usefulLinksValidation = CourseService.ValidateUsefulLinks(req.UsefulLinks);
+        var usefulLinksValidation = CourseInputRules.ValidateUsefulLinks(req.UsefulLinks);
         if (!usefulLinksValidation.Valid)
             return BadRequest(new ErrorEnvelope(new ApiError(usefulLinksValidation.ErrorCode!)));
 
-        var (ok, errorCode) = await _courseService.UpdateCourseAsync(
+        var (ok, errorCode) = await _courseCommand.UpdateCourseAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
@@ -542,7 +552,7 @@ public sealed class CourseController : ControllerBase
         if (user.CurrentGroupId is null)
             return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
 
-        var (ok, errorCode) = await _courseService.DeleteCourseAsync(
+        var (ok, errorCode) = await _courseCommand.DeleteCourseAsync(
             userId.Value,
             user.CurrentGroupId.Value,
             id,
