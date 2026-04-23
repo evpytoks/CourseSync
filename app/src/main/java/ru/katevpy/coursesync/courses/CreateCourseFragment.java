@@ -86,7 +86,9 @@ public class CreateCourseFragment extends Fragment {
             CourseUsefulLinkItem item = editingLinks.get(i);
             View row = inflater.inflate(R.layout.item_course_useful_link_edit_row, courseFormLinksList, false);
             TextView titleView = row.findViewById(R.id.editCourseLinkTitle);
-            titleView.setText(item.title != null ? item.title : "");
+            String title = item.title != null ? item.title.trim() : "";
+            String url = item.url != null ? item.url.trim() : "";
+            titleView.setText(title.isEmpty() ? url : title);
             row.findViewById(R.id.editCourseLinkRemove).setOnClickListener(v -> {
                 View parentRow = (View) v.getParent();
                 int idx = courseFormLinksList.indexOfChild(parentRow);
