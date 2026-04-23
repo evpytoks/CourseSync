@@ -1,6 +1,6 @@
 using System.Text.Json;
+using CourseSync.Api.Application.Courses;
 using CourseSync.Api.Models;
-using CourseSync.Api.Services;
 using Xunit;
 
 namespace CourseSync.Api.Tests;
@@ -37,7 +37,7 @@ public sealed class CourseChangeRequestJsonTests
         Assert.Equal("Книга", req.UsefulLinks[0].Title);
         Assert.Equal("https://example.com", req.UsefulLinks[0].Url);
 
-        var v = CourseService.ValidateCourseName(req.Name);
+        var v = CourseInputRules.ValidateCourseName(req.Name);
         Assert.True(v.Valid);
         Assert.Null(v.ErrorCode);
     }

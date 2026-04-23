@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CourseSync.Api.Services;
 
-public sealed class CalendarService
+public sealed class CalendarService : ICalendarService
 {
     private const int NameMaxLength = 50;
     private const int DescriptionMaxLength = 1000;

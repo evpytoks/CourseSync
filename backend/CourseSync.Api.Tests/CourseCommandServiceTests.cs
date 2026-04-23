@@ -1,3 +1,4 @@
+using CourseSync.Api.Application.Courses;
 using CourseSync.Api.Data;
 using CourseSync.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -5,11 +6,11 @@ using Xunit;
 
 namespace CourseSync.Api.Tests;
 
-public sealed class CourseServiceTests
+public sealed class CourseCommandServiceTests
 {
     private const string TestUsefulLinksJson = "[{\"title\":\"Сайт\",\"url\":\"https://example.edu/algebra\"}]";
 
-    private static CourseService CreateSvc(TestDb tdb) =>
+    private static CourseCommandService CreateSvc(TestDb tdb) =>
         new(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage());
 
     [Fact]

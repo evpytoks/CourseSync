@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CourseSync.Api.Services;
 
-public sealed class UserDeviceService
+public sealed class UserDeviceService : IUserDeviceService
 {
     private readonly AppDbContext _db;
 

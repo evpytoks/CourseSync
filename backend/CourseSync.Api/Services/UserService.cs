@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CourseSync.Api.Services;
 
-public sealed class UserService
+public sealed class UserService : IUserService
 {
     private readonly AppDbContext _db;
     public UserService(AppDbContext db) => _db = db;

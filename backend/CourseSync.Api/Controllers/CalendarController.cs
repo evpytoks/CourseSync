@@ -1,4 +1,5 @@
-using System.Security.Claims;
+using System;
+using System.Collections.Generic;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -11,12 +12,25 @@ namespace CourseSync.Api.Controllers;
 [Route("calendar-events")]
 [Authorize]
 [Produces("application/json")]
-public sealed class CalendarController : ControllerBase
+public sealed class CalendarController : AuthorizedControllerBase
 {
-    private readonly CalendarService _calendarService;
-    private readonly UserService _userService;
+    private static readonly IReadOnlyDictionary<string, ErrorSpec> ForbiddenOnlyErrors =
+        new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
+        {
+            ["forbidden"] = new(403, "forbidden")
+        };
 
-    public CalendarController(CalendarService calendarService, UserService userService)
+    private static readonly IReadOnlyDictionary<string, ErrorSpec> CalendarEntityErrors =
+        new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
+        {
+            ["forbidden"] = new(403, "forbidden"),
+            ["calendar_event_not_found"] = new(404, "calendar_event_not_found")
+        };
+
+    private readonly ICalendarService _calendarService;
+    private readonly IUserService _userService;
+
+    public CalendarController(ICalendarService calendarService, IUserService userService)
     {
         _calendarService = calendarService;
         _userService = userService;
@@ -31,40 +45,32 @@ public sealed class CalendarController : ControllerBase
         [FromQuery] DateOnly? endDate,
         CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
         if (startDate is null != (endDate is null))
         {
             if (startDate is null)
-                return BadRequest(new ErrorEnvelope(new ApiError("start_date_required")));
-            return BadRequest(new ErrorEnvelope(new ApiError("end_date_required")));
+                return ErrorResponse("start_date_required");
+            return ErrorResponse("end_date_required");
         }
 
         if (startDate is not null && endDate is not null)
         {
             var rangeValidation = CalendarService.ValidateDateRange(startDate.Value, endDate.Value);
             if (!rangeValidation.Valid)
-                return BadRequest(new ErrorEnvelope(new ApiError(rangeValidation.ErrorCode!)));
+                return ErrorResponse(rangeValidation.ErrorCode!);
         }
 
         var (ok, events, errorCode) = await _calendarService.GetEventsAsync(
-            userId.Value,
+            userId,
             startDate,
             endDate,
             ct);
 
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, ForbiddenOnlyErrors);
 
         var items = events!
             .Select(e => new CalendarListItem(
@@ -88,15 +94,11 @@ public sealed class CalendarController : ControllerBase
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<CalendarEventTypeColorsResponse>> EventTypes(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var items = (await _calendarService.GetTypesForUserAsync(userId.Value, ct))
+        var items = (await _calendarService.GetTypesForUserAsync(userId, ct))
             .Select(x => new CalendarEventTypeColorItem(x.Type, x.Color))
             .ToList();
 
@@ -110,31 +112,27 @@ public sealed class CalendarController : ControllerBase
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Add([FromBody] AddCalendarEventRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("invalid_request")));
+            return ErrorResponse("invalid_request");
 
         var nameValidation = CalendarService.ValidateEventName(req.Name);
         if (!nameValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(nameValidation.ErrorCode!)));
+            return ErrorResponse(nameValidation.ErrorCode!);
 
         var typeValidation = CalendarService.ValidateEventType(req.EventType);
         if (!typeValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(typeValidation.ErrorCode!)));
+            return ErrorResponse(typeValidation.ErrorCode!);
 
         var descriptionValidation = CalendarService.ValidateDescription(req.Description);
         if (!descriptionValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(descriptionValidation.ErrorCode!)));
+            return ErrorResponse(descriptionValidation.ErrorCode!);
 
         var (ok, _, errorCode) = await _calendarService.CreateEventAsync(
-            userId.Value,
+            userId,
             req.GroupId,
             req.CourseId,
             req.EventType!,
@@ -144,11 +142,7 @@ public sealed class CalendarController : ControllerBase
             ct);
 
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, ForbiddenOnlyErrors);
 
         return Ok();
     }
@@ -161,27 +155,17 @@ public sealed class CalendarController : ControllerBase
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CalendarEventDetailsResponse>> Get(Guid id, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
         var (ok, evt, errorCode) = await _calendarService.GetEventAsync(
-            userId.Value,
+            userId,
             id,
             ct);
 
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            if (errorCode == "calendar_event_not_found")
-                return NotFound(new ErrorEnvelope(new ApiError("calendar_event_not_found")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, CalendarEntityErrors);
 
         var resp = new CalendarEventDetailsResponse(
             evt!.GroupId,
@@ -205,31 +189,27 @@ public sealed class CalendarController : ControllerBase
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Change(Guid id, [FromBody] UpdateCalendarEventRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("invalid_request")));
+            return ErrorResponse("invalid_request");
 
         var nameValidation = CalendarService.ValidateEventName(req.Name);
         if (!nameValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(nameValidation.ErrorCode!)));
+            return ErrorResponse(nameValidation.ErrorCode!);
 
         var typeValidation = CalendarService.ValidateEventType(req.EventType);
         if (!typeValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(typeValidation.ErrorCode!)));
+            return ErrorResponse(typeValidation.ErrorCode!);
 
         var descriptionValidation = CalendarService.ValidateDescription(req.Description);
         if (!descriptionValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(descriptionValidation.ErrorCode!)));
+            return ErrorResponse(descriptionValidation.ErrorCode!);
 
         var (ok, errorCode) = await _calendarService.UpdateEventAsync(
-            userId.Value,
+            userId,
             id,
             req.CourseId,
             req.EventType!,
@@ -239,13 +219,7 @@ public sealed class CalendarController : ControllerBase
             ct);
 
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            if (errorCode == "calendar_event_not_found")
-                return NotFound(new ErrorEnvelope(new ApiError("calendar_event_not_found")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, CalendarEntityErrors);
 
         return Ok();
     }
@@ -257,27 +231,17 @@ public sealed class CalendarController : ControllerBase
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
         var (ok, errorCode) = await _calendarService.DeleteEventAsync(
-            userId.Value,
+            userId,
             id,
             ct);
 
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            if (errorCode == "calendar_event_not_found")
-                return NotFound(new ErrorEnvelope(new ApiError("calendar_event_not_found")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, CalendarEntityErrors);
 
         return Ok();
     }
@@ -289,30 +253,21 @@ public sealed class CalendarController : ControllerBase
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ToggleDone(Guid id, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var (ok, errorCode) = await _calendarService.ToggleDoneAsync(userId.Value, id, ct);
+        var (ok, errorCode) = await _calendarService.ToggleDoneAsync(userId, id, ct);
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            return NotFound(new ErrorEnvelope(new ApiError("calendar_event_not_found")));
-        }
+            return MapError(errorCode, CalendarEntityErrors, "calendar_event_not_found", 404);
 
         return Ok();
     }
 
-    private Guid? GetCurrentUserId()
+    private async Task<(Guid UserId, ActionResult? Error)> TryResolveAuthenticatedUserAsync(CancellationToken ct)
     {
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                  ?? User.FindFirst("sub")?.Value;
-        return Guid.TryParse(sub, out var id) ? id : null;
+        var (userId, _, error) = await ResolveUserOrUnauthorizedAsync(_userService, ct);
+        return (userId, error);
     }
 }
 

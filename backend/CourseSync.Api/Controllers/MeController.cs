@@ -1,4 +1,5 @@
-using System.Security.Claims;
+using System;
+using System.Collections.Generic;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -10,26 +11,29 @@ namespace CourseSync.Api.Controllers;
 [Route("me")]
 [Authorize]
 [Produces("application/json")]
-public sealed class MeController : ControllerBase
+public sealed class MeController : AuthorizedControllerBase
 {
-    private readonly GroupService _groupService;
+    private static readonly IReadOnlyDictionary<string, ErrorSpec> CurrentGroupErrors =
+        new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
+        {
+            ["no_group_selected"] = new(400, "no_group_selected"),
+            ["forbidden"] = new(403, "forbidden")
+        };
 
-    public MeController(GroupService groupService) => _groupService = groupService;
+    private readonly IGroupService _groupService;
+
+    public MeController(IGroupService groupService) => _groupService = groupService;
 
     [HttpGet("current-group")]
     public async Task<ActionResult<GroupDetailsResponse>> GetCurrentGroup(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
-        var (ok, groupId, name, role, groupCode, errorCode) = await _groupService.GetGroupDetailsAsync(userId.Value, ct);
+        var (ok, groupId, name, role, groupCode, errorCode) = await _groupService.GetGroupDetailsAsync(userId, ct);
         if (!ok)
-        {
-            if (errorCode == "no_group_selected")
-                return BadRequest(new ErrorEnvelope(new ApiError("no_group_selected")));
-            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-        }
+            return MapError(errorCode, CurrentGroupErrors, "forbidden", 403);
 
         return Ok(new GroupDetailsResponse(groupId, name, role, groupCode));
     }
@@ -37,27 +41,21 @@ public sealed class MeController : ControllerBase
     [HttpPut("current-group")]
     public async Task<IActionResult> SetCurrentGroup([FromBody] SetCurrentGroupRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("group_id_required")));
+            return ErrorResponse("group_id_required");
 
         if (req.GroupId == Guid.Empty)
-            return BadRequest(new ErrorEnvelope(new ApiError("group_id_required")));
+            return ErrorResponse("group_id_required");
 
-        var (ok, _, _) = await _groupService.ChooseGroupAsync(userId.Value, req.GroupId, ct);
+        var (ok, _, _) = await _groupService.ChooseGroupAsync(userId, req.GroupId, ct);
         if (!ok)
-            return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
+            return ErrorResponse("forbidden", 403);
 
         return Ok();
     }
 
-    private Guid? GetCurrentUserId()
-    {
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                  ?? User.FindFirst("sub")?.Value;
-        return Guid.TryParse(sub, out var id) ? id : null;
-    }
 }

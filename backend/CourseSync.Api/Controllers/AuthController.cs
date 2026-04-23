@@ -15,25 +15,25 @@ public sealed class AuthController : ControllerBase
     private const string TestEmailPrefix = "test";
     private const string TestLoginCode = "111111";
 
-    private readonly AuthLoginCodeService _codes;
-    private readonly JwtTokenService _jwt;
+    private readonly IAuthLoginCodeService _codes;
+    private readonly IJwtTokenService _jwt;
     private readonly IConfiguration _cfg;
     private readonly IEmailSender _email;
     private readonly ILogger<AuthController> _log;
-    private readonly UserService _userService;
-    private readonly RefreshTokenService _refresh;
+    private readonly IUserService _userService;
+    private readonly IRefreshTokenService _refresh;
     private readonly AuthCodeOptions _authOpt;
 
 
     public AuthController(
-        AuthLoginCodeService codes,
-        JwtTokenService jwt,
+        IAuthLoginCodeService codes,
+        IJwtTokenService jwt,
         IOptions<AuthCodeOptions> authOpt,
         IConfiguration cfg,
         IEmailSender email,
         ILogger<AuthController> log,
-        UserService userService,
-        RefreshTokenService refresh)
+        IUserService userService,
+        IRefreshTokenService refresh)
     {
         _codes = codes;
         _jwt = jwt;
@@ -49,7 +49,7 @@ public sealed class AuthController : ControllerBase
     public async Task<ActionResult<SendCodeResponse>> SendCode([FromBody] SendCodeRequest req, CancellationToken ct)
     {
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("email_required")));
+            return ErrorResponse("email_required");
 
         var email = (req.Email ?? "").Trim();
 
@@ -64,7 +64,7 @@ public sealed class AuthController : ControllerBase
         var (status, requestId, expiresAt, code) = await _codes.CreateAsync(user, ttl, _authOpt.SendCooldownSeconds, codeOverride, ct);
 
         if (status == CreateAuthCodeStatus.RateLimited)
-            return StatusCode(429, new ErrorEnvelope(new ApiError("rate_limited")));
+            return ErrorResponse("rate_limited", 429);
 
         if (!isTestEmail)
         {
@@ -85,7 +85,7 @@ public sealed class AuthController : ControllerBase
                     _cfg["Smtp:FromEmail"],
                     email);
 
-                return StatusCode(500, new ErrorEnvelope(new ApiError("email_send_failed")));
+                return ErrorResponse("email_send_failed", 500);
             }
         }
 
@@ -97,7 +97,7 @@ public sealed class AuthController : ControllerBase
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest req, CancellationToken ct)
     {
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("email_required")));
+            return ErrorResponse("email_required");
 
         var email = (req.Email ?? "").Trim();
         var requestId = (req.RequestId ?? "").Trim();
@@ -107,24 +107,24 @@ public sealed class AuthController : ControllerBase
         if (emailValidation is not null) return BadRequest(emailValidation);
 
         if (string.IsNullOrWhiteSpace(requestId))
-            return BadRequest(new ErrorEnvelope(new ApiError("request_id_required")));
+            return ErrorResponse("request_id_required");
 
         if (string.IsNullOrWhiteSpace(code))
-            return BadRequest(new ErrorEnvelope(new ApiError("code_required")));
+            return ErrorResponse("code_required");
 
         var maxAttempts = _authOpt.MaxAttempts;
 
         var result = await _codes.VerifyAsync(email, requestId, code, maxAttempts, ct);
 
         if (result == VerifyResult.TooManyAttempts)
-            return StatusCode(429, new ErrorEnvelope(new ApiError("code_attempts_exceeded")));
+            return ErrorResponse("code_attempts_exceeded", 429);
 
         if (result == VerifyResult.Invalid)
-            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_code")));
+            return ErrorResponse("invalid_code", 401);
 
         var user = await _userService.FindByEmailAsync(email, ct);
         if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_code")));
+            return ErrorResponse("invalid_code", 401);
 
         var userId = user.Id;
         await _userService.ClearCurrentGroupAsync(userId, ct);
@@ -139,22 +139,22 @@ public sealed class AuthController : ControllerBase
     public async Task<ActionResult<RefreshResponse>> Refresh([FromBody] RefreshRequest req, CancellationToken ct)
     {
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
+            return ErrorResponse("refresh_token_required");
 
         var refreshToken = (req.RefreshToken ?? "").Trim();
         if (string.IsNullOrWhiteSpace(refreshToken))
-            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
+            return ErrorResponse("refresh_token_required");
 
         var (status, userId, newRefreshToken, _) = await _refresh.RotateAsync(refreshToken, ct);
         if (status == RefreshRotateStatus.Reused)
-            return Unauthorized(new ErrorEnvelope(new ApiError("refresh_reused")));
+            return ErrorResponse("refresh_reused", 401);
 
         if (status != RefreshRotateStatus.Ok)
-            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_refresh_token")));
+            return ErrorResponse("invalid_refresh_token", 401);
 
         var user = await _userService.FindByIdAsync(userId, ct);
         if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("invalid_refresh_token")));
+            return ErrorResponse("invalid_refresh_token", 401);
 
         var token = _jwt.CreateToken(userId, user.Email, user.TokenVersion);
         return Ok(new RefreshResponse(token, newRefreshToken));
@@ -164,11 +164,11 @@ public sealed class AuthController : ControllerBase
     public async Task<IActionResult> Logout([FromBody] RefreshRequest req, CancellationToken ct)
     {
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
+            return ErrorResponse("refresh_token_required");
 
         var refreshToken = (req.RefreshToken ?? "").Trim();
         if (string.IsNullOrWhiteSpace(refreshToken))
-            return BadRequest(new ErrorEnvelope(new ApiError("refresh_token_required")));
+            return ErrorResponse("refresh_token_required");
 
         await _refresh.RevokeAsync(refreshToken, ct);
         return NoContent();
@@ -189,6 +189,9 @@ public sealed class AuthController : ControllerBase
 
         return null;
     }
+
+    private ActionResult ErrorResponse(string code, int statusCode = 400)
+        => StatusCode(statusCode, new ErrorEnvelope(new ApiError(code)));
 
     private static bool IsTestEmail(string email)
     {

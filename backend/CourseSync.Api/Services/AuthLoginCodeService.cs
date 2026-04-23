@@ -13,7 +13,7 @@ public enum CreateAuthCodeStatus
     RateLimited
 }
 
-public sealed class AuthLoginCodeService
+public sealed class AuthLoginCodeService : IAuthLoginCodeService
 {
     private readonly AppDbContext _db;
     private readonly ILogger<AuthLoginCodeService> _log;
