@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CourseSync.Api.Services;
 
-public sealed class CourseMaterialService
+public sealed class CourseMaterialService : ICourseMaterialService
 {
     private const long MaxPdfBytes = CourseMaterialUploadLimits.MaxPdfBytes;
 

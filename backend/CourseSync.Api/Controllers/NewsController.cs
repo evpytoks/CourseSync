@@ -1,4 +1,5 @@
-using System.Security.Claims;
+using System;
+using System.Collections.Generic;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -10,12 +11,25 @@ namespace CourseSync.Api.Controllers;
 [Route("news")]
 [Authorize]
 [Produces("application/json")]
-public sealed class NewsController : ControllerBase
+public sealed class NewsController : AuthorizedControllerBase
 {
-    private readonly NewsService _newsService;
-    private readonly UserService _userService;
+    private static readonly IReadOnlyDictionary<string, ErrorSpec> NewsAccessErrors =
+        new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
+        {
+            ["forbidden"] = new(403, "forbidden"),
+            ["news_not_found"] = new(404, "news_not_found")
+        };
 
-    public NewsController(NewsService newsService, UserService userService)
+    private static readonly IReadOnlyDictionary<string, ErrorSpec> NewsCreateErrors =
+        new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
+        {
+            ["forbidden"] = new(403, "forbidden")
+        };
+
+    private readonly INewsService _newsService;
+    private readonly IUserService _userService;
+
+    public NewsController(INewsService newsService, IUserService userService)
     {
         _newsService = newsService;
         _userService = userService;
@@ -24,15 +38,11 @@ public sealed class NewsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<NewsListResponse>> List(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var items = await _newsService.GetAllForUserAsync(userId.Value, ct);
+        var items = await _newsService.GetAllForUserAsync(userId, ct);
 
         var news = items
             .Select(n => new NewsListItem(n.Id, n.Time, n.Group, n.Section, n.Text, n.IsRead))
@@ -44,57 +54,39 @@ public sealed class NewsController : ControllerBase
     [HttpGet("unread-count")]
     public async Task<ActionResult<NewsUnreadCountResponse>> UnreadCount(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var count = await _newsService.GetUnreadCountAsync(userId.Value, ct);
+        var count = await _newsService.GetUnreadCountAsync(userId, ct);
         return Ok(new NewsUnreadCountResponse(count));
     }
 
     [HttpPost("read")]
     public async Task<ActionResult<MarkAllNewsReadResponse>> MarkAllRead(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var marked = await _newsService.MarkAllReadAsync(userId.Value, ct);
+        var marked = await _newsService.MarkAllReadAsync(userId, ct);
         return Ok(new MarkAllNewsReadResponse(marked));
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<NewsDetailsResponse>> Get(Guid id, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
         var (ok, item, errorCode) = await _newsService.GetByIdAsync(
-            userId.Value,
+            userId,
             id,
             ct);
 
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            if (errorCode == "news_not_found")
-                return NotFound(new ErrorEnvelope(new ApiError("news_not_found")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, NewsAccessErrors);
 
         return Ok(new NewsDetailsResponse(item!.Id, item.Time, item.Group, item.Section, item.Text));
     }
@@ -102,44 +94,35 @@ public sealed class NewsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] AddNewsRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
-
-        var user = await _userService.FindByIdAsync(userId.Value, ct);
-        if (user is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = await TryResolveAuthenticatedUserAsync(ct);
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("group_id_required")));
+            return ErrorResponse("group_id_required");
 
         if (req.GroupId == Guid.Empty)
-            return BadRequest(new ErrorEnvelope(new ApiError("group_id_required")));
+            return ErrorResponse("group_id_required");
 
         var textValidation = NewsService.ValidateNewsText(req.Text);
         if (!textValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(textValidation.ErrorCode!)));
+            return ErrorResponse(textValidation.ErrorCode!);
 
         var (ok, errorCode) = await _newsService.CheckOwnerAndCreateNewsAsync(
-            userId.Value,
+            userId,
             req.GroupId,
             req.Text!.Trim(),
             ct);
 
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, NewsCreateErrors);
 
         return Ok();
     }
 
-    private Guid? GetCurrentUserId()
+    private async Task<(Guid UserId, ActionResult? Error)> TryResolveAuthenticatedUserAsync(CancellationToken ct)
     {
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                  ?? User.FindFirst("sub")?.Value;
-        return Guid.TryParse(sub, out var id) ? id : null;
+        var (userId, _, error) = await ResolveUserOrUnauthorizedAsync(_userService, ct);
+        return (userId, error);
     }
 }

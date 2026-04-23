@@ -19,7 +19,7 @@ public sealed record JoinByCodeResult(bool Ok, string? ErrorCode, Guid GroupId, 
         new(false, errorCode, Guid.Empty, "", "");
 }
 
-public sealed class GroupService
+public sealed class GroupService : IGroupService
 {
     private static readonly Regex GroupNameRegex = new(@"^[a-zA-Zа-яА-ЯёЁ0-9]{1,20}$", RegexOptions.Compiled);
     private const string CodeChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

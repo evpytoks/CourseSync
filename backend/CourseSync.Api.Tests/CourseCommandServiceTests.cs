@@ -6,7 +6,7 @@ using Xunit;
 
 namespace CourseSync.Api.Tests;
 
-public sealed class CourseServiceTests
+public sealed class CourseCommandServiceTests
 {
     private const string TestUsefulLinksJson = "[{\"title\":\"Сайт\",\"url\":\"https://example.edu/algebra\"}]";
 

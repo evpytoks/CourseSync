@@ -16,7 +16,7 @@ public enum RefreshRotateStatus
     Reused
 }
 
-public sealed class RefreshTokenService
+public sealed class RefreshTokenService : IRefreshTokenService
 {
     private readonly AppDbContext _db;
     private readonly AuthTokensOptions _opt;

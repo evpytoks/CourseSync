@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CourseSync.Api.Data;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
@@ -11,24 +10,24 @@ namespace CourseSync.Api.Controllers;
 [Route("devices")]
 [Authorize]
 [Produces("application/json")]
-public sealed class DeviceController : ControllerBase
+public sealed class DeviceController : AuthorizedControllerBase
 {
-    private readonly UserDeviceService _devices;
+    private readonly IUserDeviceService _devices;
 
-    public DeviceController(UserDeviceService devices) => _devices = devices;
+    public DeviceController(IUserDeviceService devices) => _devices = devices;
 
     [HttpPost]
     public async Task<IActionResult> Register([FromBody] RegisterDeviceRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("device_token_required")));
+            return ErrorResponse("device_token_required");
 
         if (string.IsNullOrWhiteSpace(req.Token))
-            return BadRequest(new ErrorEnvelope(new ApiError("device_token_required")));
+            return ErrorResponse("device_token_required");
 
         var platform = req.Platform?.ToLowerInvariant() switch
         {
@@ -38,33 +37,26 @@ public sealed class DeviceController : ControllerBase
         };
 
         if (platform == DevicePlatform.Unknown)
-            return BadRequest(new ErrorEnvelope(new ApiError("device_platform_invalid")));
+            return ErrorResponse("device_platform_invalid");
 
-        await _devices.RegisterDeviceAsync(userId.Value, platform, req.Token, ct);
+        await _devices.RegisterDeviceAsync(userId, platform, req.Token, ct);
         return Ok();
     }
 
     [HttpDelete]
     public async Task<IActionResult> Unregister([FromBody] UnregisterDeviceRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("device_token_required")));
+            return ErrorResponse("device_token_required");
 
         if (string.IsNullOrWhiteSpace(req.Token))
-            return BadRequest(new ErrorEnvelope(new ApiError("device_token_required")));
+            return ErrorResponse("device_token_required");
 
-        await _devices.UnregisterDeviceAsync(userId.Value, req.Token, ct);
+        await _devices.UnregisterDeviceAsync(userId, req.Token, ct);
         return Ok();
-    }
-
-    private Guid? GetCurrentUserId()
-    {
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                  ?? User.FindFirst("sub")?.Value;
-        return Guid.TryParse(sub, out var id) ? id : null;
     }
 }

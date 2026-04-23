@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace CourseSync.Api.Services;
 
-public sealed class JwtTokenService
+public sealed class JwtTokenService : IJwtTokenService
 {
     private readonly JwtOptions _options;
 

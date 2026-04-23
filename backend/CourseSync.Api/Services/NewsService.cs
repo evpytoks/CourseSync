@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CourseSync.Api.Services;
 
-public sealed class NewsService
+public sealed class NewsService : INewsService
 {
     private const int NewsTextMaxLength = 3000;
 

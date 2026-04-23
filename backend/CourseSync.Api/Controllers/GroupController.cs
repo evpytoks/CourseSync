@@ -1,4 +1,5 @@
-using System.Security.Claims;
+using System;
+using System.Collections.Generic;
 using CourseSync.Api.Models;
 using CourseSync.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -10,20 +11,44 @@ namespace CourseSync.Api.Controllers;
 [Route("groups")]
 [Authorize]
 [Produces("application/json")]
-public sealed class GroupController : ControllerBase
+public sealed class GroupController : AuthorizedControllerBase
 {
-    private readonly GroupService _groupService;
+    private static readonly IReadOnlyDictionary<string, ErrorSpec> JoinErrors =
+        new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
+        {
+            ["group_join_blocked"] = new(403, "group_join_blocked"),
+            ["invalid_code_format"] = new(400, "invalid_code_format")
+        };
 
-    public GroupController(GroupService groupService) => _groupService = groupService;
+    private static readonly IReadOnlyDictionary<string, ErrorSpec> ParticipantMutateErrors =
+        new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
+        {
+            ["forbidden"] = new(403, "forbidden"),
+            ["user_not_found"] = new(404, "user_not_found"),
+            ["not_in_group"] = new(404, "not_in_group"),
+            ["not_blocked"] = new(404, "not_blocked")
+        };
+
+    private static readonly IReadOnlyDictionary<string, ErrorSpec> GroupMutateErrors =
+        new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
+        {
+            ["forbidden"] = new(403, "forbidden"),
+            ["group_not_found"] = new(404, "group_not_found"),
+            ["not_in_group"] = new(404, "not_in_group")
+        };
+
+    private readonly IGroupService _groupService;
+
+    public GroupController(IGroupService groupService) => _groupService = groupService;
 
     [HttpGet]
     public async Task<ActionResult<GroupListResponse>> List(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
-        var dtos = await _groupService.GetUserGroupsAsync(userId.Value, ct);
+        var dtos = await _groupService.GetUserGroupsAsync(userId, ct);
         var items = dtos.Select(d => new GroupListItem(d.Id, d.Name, d.Role, d.GroupCode, d.CreatorEmail)).ToList();
         return Ok(new GroupListResponse(items));
     }
@@ -31,11 +56,11 @@ public sealed class GroupController : ControllerBase
     [HttpGet("owned")]
     public async Task<ActionResult<OwnerGroupListResponse>> OwnerList(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
-        var dtos = await _groupService.GetOwnerGroupsAsync(userId.Value, ct);
+        var dtos = await _groupService.GetOwnerGroupsAsync(userId, ct);
         var items = dtos.Select(d => new OwnerGroupListItem(d.Id, d.Name)).ToList();
         return Ok(new OwnerGroupListResponse(items));
     }
@@ -43,20 +68,20 @@ public sealed class GroupController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateGroupRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("group_name_required")));
+            return ErrorResponse("group_name_required");
 
         var validation = GroupService.ValidateGroupName(req.Name);
         if (!validation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(validation.ErrorCode!)));
+            return ErrorResponse(validation.ErrorCode!);
 
-        var result = await _groupService.CreateGroupAsync(userId.Value, req.Name!.Trim(), ct);
+        var result = await _groupService.CreateGroupAsync(userId, req.Name!.Trim(), ct);
         if (result is null)
-            return StatusCode(500, new ErrorEnvelope(new ApiError("group_creation_failed")));
+            return ErrorResponse("group_creation_failed", 500);
 
         return Ok();
     }
@@ -64,26 +89,20 @@ public sealed class GroupController : ControllerBase
     [HttpPost("join")]
     public async Task<IActionResult> Join([FromBody] GroupJoinRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("invalid_code_format")));
+            return ErrorResponse("invalid_code_format");
 
         var codeValidation = GroupService.ValidateGroupCode(req.Code);
         if (!codeValidation.Valid)
-            return BadRequest(new ErrorEnvelope(new ApiError(codeValidation.ErrorCode!)));
+            return ErrorResponse(codeValidation.ErrorCode!);
 
-        var result = await _groupService.JoinByCodeAsync(userId.Value, (req.Code ?? "").Trim(), ct);
+        var result = await _groupService.JoinByCodeAsync(userId, (req.Code ?? "").Trim(), ct);
         if (!result.Ok)
-        {
-            if (result.ErrorCode == "group_join_blocked")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("group_join_blocked")));
-            if (result.ErrorCode == "invalid_code_format")
-                return BadRequest(new ErrorEnvelope(new ApiError("invalid_code_format")));
-            return NotFound(new ErrorEnvelope(new ApiError("group_not_found")));
-        }
+            return MapError(result.ErrorCode, JoinErrors, "group_not_found", 404);
 
         return Ok();
     }
@@ -94,13 +113,13 @@ public sealed class GroupController : ControllerBase
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<GroupParticipantsResponse>> GetParticipants(Guid id, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
-        var (ok, items, errorCode) = await _groupService.GetParticipantEmailsForOwnerAsync(userId.Value, id, ct);
+        var (ok, items, errorCode) = await _groupService.GetParticipantEmailsForOwnerAsync(userId, id, ct);
         if (!ok)
-            return StatusCode(403, new ErrorEnvelope(new ApiError(errorCode!)));
+            return ErrorResponse(errorCode!, 403);
 
         return Ok(new GroupParticipantsResponse(items!));
     }
@@ -113,22 +132,16 @@ public sealed class GroupController : ControllerBase
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> BlockParticipant(Guid id, [FromBody] GroupParticipantEmailRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("participant_email_required")));
+            return ErrorResponse("participant_email_required");
 
-        var (ok, errorCode) = await _groupService.BlockParticipantByEmailAsync(userId.Value, id, req.Email ?? "", ct);
+        var (ok, errorCode) = await _groupService.BlockParticipantByEmailAsync(userId, id, req.Email ?? "", ct);
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            if (errorCode is "user_not_found" or "not_in_group")
-                return NotFound(new ErrorEnvelope(new ApiError(errorCode!)));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, ParticipantMutateErrors);
 
         return Ok();
     }
@@ -141,22 +154,16 @@ public sealed class GroupController : ControllerBase
     [ProducesResponseType(typeof(ErrorEnvelope), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UnblockParticipant(Guid id, [FromQuery] string? email, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
         if (string.IsNullOrWhiteSpace(email))
-            return BadRequest(new ErrorEnvelope(new ApiError("participant_email_required")));
+            return ErrorResponse("participant_email_required");
 
-        var (ok, errorCode) = await _groupService.UnblockParticipantByEmailAsync(userId.Value, id, email, ct);
+        var (ok, errorCode) = await _groupService.UnblockParticipantByEmailAsync(userId, id, email, ct);
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            if (errorCode is "user_not_found" or "not_blocked")
-                return NotFound(new ErrorEnvelope(new ApiError(errorCode!)));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, ParticipantMutateErrors);
 
         return Ok();
     }
@@ -164,20 +171,16 @@ public sealed class GroupController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Change(Guid id, [FromBody] GroupChangeRequest req, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
         if (req is null)
-            return BadRequest(new ErrorEnvelope(new ApiError("group_name_required")));
+            return ErrorResponse("group_name_required");
 
-        var (ok, errorCode) = await _groupService.ChangeNameAsync(userId.Value, id, req.Name ?? "", ct);
+        var (ok, errorCode) = await _groupService.ChangeNameAsync(userId, id, req.Name ?? "", ct);
         if (!ok)
-        {
-            if (errorCode is "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, GroupMutateErrors);
 
         return Ok();
     }
@@ -185,19 +188,13 @@ public sealed class GroupController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
-        var (ok, errorCode) = await _groupService.DeleteGroupAsync(userId.Value, id, ct);
+        var (ok, errorCode) = await _groupService.DeleteGroupAsync(userId, id, ct);
         if (!ok)
-        {
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            if (errorCode == "group_not_found")
-                return NotFound(new ErrorEnvelope(new ApiError("group_not_found")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, GroupMutateErrors);
 
         return NoContent();
     }
@@ -205,29 +202,15 @@ public sealed class GroupController : ControllerBase
     [HttpDelete("{id:guid}/members/me")]
     public async Task<IActionResult> Leave(Guid id, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null)
-            return Unauthorized(new ErrorEnvelope(new ApiError("unauthorized")));
+        var (userId, authError) = ResolveCurrentUserIdOrUnauthorized();
+        if (authError is not null)
+            return authError;
 
-        var (ok, errorCode) = await _groupService.LeaveGroupAsync(userId.Value, id, ct);
+        var (ok, errorCode) = await _groupService.LeaveGroupAsync(userId, id, ct);
         if (!ok)
-        {
-            if (errorCode == "not_in_group")
-                return NotFound(new ErrorEnvelope(new ApiError("not_in_group")));
-            if (errorCode == "forbidden")
-                return StatusCode(403, new ErrorEnvelope(new ApiError("forbidden")));
-            if (errorCode == "group_not_found")
-                return NotFound(new ErrorEnvelope(new ApiError("group_not_found")));
-            return BadRequest(new ErrorEnvelope(new ApiError(errorCode!)));
-        }
+            return MapError(errorCode, GroupMutateErrors);
 
         return NoContent();
     }
 
-    private Guid? GetCurrentUserId()
-    {
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                  ?? User.FindFirst("sub")?.Value;
-        return Guid.TryParse(sub, out var id) ? id : null;
-    }
 }
