@@ -12,7 +12,6 @@ import ru.katevpy.coursesync.shared.dto.CourseUsefulLinkItem;
 final class CourseUsefulLinksForm {
 
     private static final int MAX_ITEMS = 50;
-    private static final int TITLE_MIN = 1;
     private static final int TITLE_MAX = 50;
     private static final int URL_MIN = 1;
     private static final int URL_MAX = 200;
@@ -39,7 +38,7 @@ final class CourseUsefulLinksForm {
                 sb.append('\n');
             }
             if (t.isEmpty()) {
-                sb.append("Ссылка|").append(u);
+                sb.append(u);
             } else {
                 sb.append(t).append('|').append(u);
             }
@@ -66,11 +65,11 @@ final class CourseUsefulLinksForm {
                     continue;
                 }
                 if (title.isEmpty()) {
-                    title = "Ссылка";
+                    title = url;
                 }
                 out.add(new CourseUsefulLinkItem(title, url));
             } else if (looksLikeUrl(t)) {
-                out.add(new CourseUsefulLinkItem("Ссылка", t));
+                out.add(new CourseUsefulLinkItem(t, t));
             }
         }
         return out;
@@ -91,7 +90,7 @@ final class CourseUsefulLinksForm {
             }
             String title = item.title != null ? item.title.trim() : "";
             String url = item.url != null ? item.url.trim() : "";
-            if (title.length() < TITLE_MIN || title.length() > TITLE_MAX) {
+            if (title.length() > TITLE_MAX) {
                 return R.string.useful_link_fields_invalid;
             }
             if (url.length() < URL_MIN || url.length() > URL_MAX) {
@@ -107,9 +106,6 @@ final class CourseUsefulLinksForm {
 
     static int validateDraftTitle(@Nullable String title) {
         String t = title != null ? title.trim() : "";
-        if (t.length() < TITLE_MIN) {
-            return R.string.useful_link_enter_title;
-        }
         if (t.length() > TITLE_MAX) {
             return R.string.useful_link_title_too_long;
         }

@@ -64,8 +64,8 @@
                         android:minLines="3" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <include layout="@layout/section_course_useful_links" />
                 <include layout="@layout/section_course_contacts" />
+                <include layout="@layout/section_course_useful_links" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCreate"

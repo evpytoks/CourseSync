@@ -69,14 +69,14 @@
     <string name="useful_links_max_length">Длина не более 1000 символов</string>
     <string name="useful_links_invalid_format">Укажите ссылки как описание|URL или одну ссылку с https:// в строке</string>
     <string name="useful_links_too_many_error">Не более 50 ссылок</string>
-    <string name="useful_link_fields_invalid">Описание 1–50 символов, ссылка до 200 символов</string>
+    <string name="useful_link_fields_invalid">Название до 50 символов, ссылка до 200 символов</string>
     <string name="link_default_title">Ссылка</string>
     <string name="link_open_error">Не удалось открыть ссылку</string>
     <string name="course_useful_link_row_a11y">Открыть ссылку: %1$s</string>
     <string name="cancel">Отмена</string>
     <string name="edit_course_no_links">Пока нет ссылок</string>
     <string name="add_useful_link_dialog_title">Новая ссылка</string>
-    <string name="useful_link_title_hint">Название</string>
+    <string name="useful_link_title_hint">Название (необязательно)</string>
     <string name="useful_link_url_hint">Ссылка</string>
     <string name="remove_link_content_description">Удалить ссылку</string>
     <string name="useful_link_enter_title">Введите название</string>

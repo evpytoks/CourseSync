@@ -332,7 +332,7 @@ public class CourseDetailFragment extends Fragment {
             TextView titleView = row.findViewById(R.id.courseUsefulLinkTitle);
             String title = item.title != null ? item.title.trim() : "";
             if (title.isEmpty()) {
-                title = getString(R.string.link_default_title);
+                title = url;
             }
             titleView.setText(title);
             row.setContentDescription(getString(R.string.course_useful_link_row_a11y, title));
