@@ -177,7 +177,7 @@
     <string name="personal_materials_empty">Пока нет индивидуальных материалов</string>
     <string name="add_document">Добавить документ</string>
     <string name="material_upload_not_pdf">Нужен файл в формате PDF</string>
-    <string name="material_upload_too_large">Размер файла не более 30 МБ</string>
+    <string name="material_upload_too_large">Размер файла не более 100 МБ</string>
     <string name="material_upload_forbidden">Добавлять общие материалы может только владелец группы</string>
     <string name="material_upload_server_error">Не удалось загрузить файл. Попробуйте позже</string>
     <string name="material_delete_server_error">Не удалось удалить материал. Попробуйте позже</string>
