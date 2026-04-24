@@ -34,7 +34,7 @@ import ru.katevpy.coursesync.shared.util.Result;
 
 public class CourseSharedMaterialsViewModel extends AndroidViewModel {
 
-    private static final int MAX_PDF_BYTES = 30 * 1024 * 1024;
+    private static final int MAX_PDF_BYTES = 100 * 1024 * 1024;
 
     private final CourseRepository repo = new CourseRepository(App.getDeps().courseApi);
     private final GroupRepository groupRepo = new GroupRepository(App.getDeps().groupApi);
