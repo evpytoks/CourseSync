@@ -85,7 +85,7 @@ public sealed class AuthController : ControllerBase
                     _cfg["Smtp:FromEmail"],
                     email);
 
-                return ErrorResponse("email_send_failed", 500);
+                return ErrorResponse("email_service_unavailable", 503);
             }
         }
 
