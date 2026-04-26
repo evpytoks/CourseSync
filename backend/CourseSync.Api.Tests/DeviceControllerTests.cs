@@ -34,7 +34,7 @@ public sealed class DeviceControllerTests
         var svc = new UserDeviceService(tdb.Db);
         var c = CreateController(svc, null);
         var res = await c.Register(new RegisterDeviceRequest("android", "token"), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -44,6 +44,6 @@ public sealed class DeviceControllerTests
         var svc = new UserDeviceService(tdb.Db);
         var c = CreateController(svc, null);
         var res = await c.Unregister(new UnregisterDeviceRequest("token"), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 }

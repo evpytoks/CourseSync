@@ -51,7 +51,7 @@ public sealed class GroupControllerTests
         await using var tdb = new TestDb();
         var controller = CreateController(new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()), null);
         var res = await controller.Create(new CreateGroupRequest("Valid"), CancellationToken.None);
-        var unauth = Assert.IsType<UnauthorizedObjectResult>(res);
+        var unauth = ActionResultAssert.Unauthorized(res);
         Assert.Equal("unauthorized", Assert.IsType<ErrorEnvelope>(unauth.Value).Error.Code);
     }
 
@@ -64,7 +64,7 @@ public sealed class GroupControllerTests
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()), user.Id);
         var res = await controller.Create(new CreateGroupRequest(""), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        var bad = ActionResultAssert.BadRequest(res);
         Assert.Equal("group_name_required", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -86,7 +86,7 @@ public sealed class GroupControllerTests
         await using var tdb = new TestDb();
         var controller = CreateController(new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()), null);
         var res = await controller.List(CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public sealed class GroupControllerTests
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()), user.Id);
         var res = await controller.Join(new GroupJoinRequest("123"), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        var bad = ActionResultAssert.BadRequest(res);
         Assert.Equal("invalid_code_format", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -153,7 +153,7 @@ public sealed class GroupControllerTests
         await tdb.Db.SaveChangesAsync();
         var controller = CreateController(new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()), user.Id);
         var res = await controller.Join(new GroupJoinRequest("ABCDEF"), CancellationToken.None);
-        var notFound = Assert.IsType<NotFoundObjectResult>(res);
+        var notFound = ActionResultAssert.NotFound(res);
         Assert.Equal("group_not_found", Assert.IsType<ErrorEnvelope>(notFound.Value).Error.Code);
     }
 
@@ -203,7 +203,7 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var controller = CreateController(svc, user.Id);
         var res = await controller.Change(create.Value.GroupId, new GroupChangeRequest("ThisNameIsWayTooLongForLimit"), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        var bad = ActionResultAssert.BadRequest(res);
         Assert.Equal("group_name_too_long", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -266,7 +266,7 @@ public sealed class GroupControllerTests
         Assert.NotNull(create);
         var me = CreateMeController(svc, user.Id);
         var res = await me.GetCurrentGroup(CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        var bad = ActionResultAssert.BadRequest(res.Result);
         Assert.Equal("no_group_selected", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -283,7 +283,7 @@ public sealed class GroupControllerTests
 
         var me = CreateMeController(svc, user.Id);
         var res = await me.GetCurrentGroup(CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        var bad = ActionResultAssert.BadRequest(res.Result);
         Assert.Equal("no_group_selected", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -319,7 +319,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.Delete(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -368,7 +368,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             user.Id);
         var res = await controller.Delete(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<NotFoundObjectResult>(res);
+        ActionResultAssert.NotFound(res);
     }
 
     [Fact]
@@ -382,7 +382,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             user.Id);
         var res = await controller.Leave(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<NotFoundObjectResult>(res);
+        ActionResultAssert.NotFound(res);
     }
 
     [Fact]
@@ -457,7 +457,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.OwnerList(CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -468,7 +468,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.Join(new GroupJoinRequest("ABCDEF"), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -479,7 +479,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.Change(Guid.NewGuid(), new GroupChangeRequest("x"), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -490,7 +490,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.Leave(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -501,7 +501,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.GetParticipants(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -531,7 +531,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.BlockParticipant(Guid.NewGuid(), new GroupParticipantEmailRequest("a@b.ru"), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -561,7 +561,7 @@ public sealed class GroupControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.UnblockParticipant(Guid.NewGuid(), "a@b.ru", CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]

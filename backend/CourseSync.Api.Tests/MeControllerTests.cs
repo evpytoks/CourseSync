@@ -35,7 +35,7 @@ public sealed class MeControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.GetCurrentGroup(CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -46,6 +46,6 @@ public sealed class MeControllerTests
             new GroupService(tdb.Db, new NotificationService(tdb.Db), new NoOpCourseMaterialBlobStorage()),
             null);
         var res = await controller.SetCurrentGroup(new SetCurrentGroupRequest(Guid.NewGuid()), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 }

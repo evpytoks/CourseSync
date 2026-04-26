@@ -46,7 +46,7 @@ public sealed class CourseControllerTests
         await using var tdb = new TestDb();
         var controller = CreateController(tdb, null);
         var res = await controller.Delete(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class CourseControllerTests
 
         var controller = CreateController(tdb, user.Id);
         var res = await controller.Delete(Guid.NewGuid(), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        var bad = ActionResultAssert.BadRequest(res);
         Assert.Equal("no_group_selected", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -180,7 +180,7 @@ public sealed class CourseControllerTests
 
         var controller = CreateController(tdb, owner.Id);
         var res = await controller.Delete(Guid.NewGuid(), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        var bad = ActionResultAssert.BadRequest(res);
         Assert.Equal("course_not_in_group", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -274,7 +274,7 @@ public sealed class CourseControllerTests
 
         var controller = CreateController(tdb, user.Id);
         var res = await controller.OpenPersonalMaterialPdf(course.Id, Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<NotFoundObjectResult>(res);
+        ActionResultAssert.NotFound(res);
     }
 
     [Fact]
@@ -322,7 +322,7 @@ public sealed class CourseControllerTests
             });
 
         var res = await controller.SaveGrading(course.Id, req, CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        var bad = ActionResultAssert.BadRequest(res);
         Assert.Equal("grading_coefficients_sum_must_equal_1", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 

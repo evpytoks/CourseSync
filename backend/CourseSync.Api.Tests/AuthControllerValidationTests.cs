@@ -87,7 +87,7 @@ public sealed class AuthControllerValidationTests
 
         var res = await controller.SendCode(new SendCodeRequest(email), CancellationToken.None);
 
-        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        var bad = ActionResultAssert.BadRequest(res.Result);
         var envelope = Assert.IsType<ErrorEnvelope>(bad.Value);
         Assert.Equal(expectedCode, envelope.Error.Code);
     }
@@ -145,11 +145,11 @@ public sealed class AuthControllerValidationTests
         var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var missingRequestId = await controller.Login(new LoginRequest("user@edu.hse.ru", "", "123456"), CancellationToken.None);
-        var br1 = Assert.IsType<BadRequestObjectResult>(missingRequestId.Result);
+        var br1 = ActionResultAssert.BadRequest(missingRequestId.Result);
         Assert.Equal("request_id_required", Assert.IsType<ErrorEnvelope>(br1.Value).Error.Code);
 
         var missingCode = await controller.Login(new LoginRequest("user@edu.hse.ru", "req_x", ""), CancellationToken.None);
-        var br2 = Assert.IsType<BadRequestObjectResult>(missingCode.Result);
+        var br2 = ActionResultAssert.BadRequest(missingCode.Result);
         Assert.Equal("code_required", Assert.IsType<ErrorEnvelope>(br2.Value).Error.Code);
     }
 
@@ -164,7 +164,7 @@ public sealed class AuthControllerValidationTests
         var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var res = await controller.Login(new LoginRequest(email, "req_x", "123456"), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        var bad = ActionResultAssert.BadRequest(res.Result);
         var envelope = Assert.IsType<ErrorEnvelope>(bad.Value);
         Assert.Equal(expectedCode, envelope.Error.Code);
     }
@@ -176,7 +176,7 @@ public sealed class AuthControllerValidationTests
         var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var res = await controller.Refresh(new RefreshRequest(""), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res.Result);
+        var bad = ActionResultAssert.BadRequest(res.Result);
         Assert.Equal("refresh_token_required", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -192,7 +192,7 @@ public sealed class AuthControllerValidationTests
         var sendPayload = Assert.IsType<SendCodeResponse>(sendOk.Value);
 
         var login = await controller.Login(new LoginRequest(email, sendPayload.RequestId, "000000"), CancellationToken.None);
-        var unauth = Assert.IsType<UnauthorizedObjectResult>(login.Result);
+        var unauth = ActionResultAssert.Unauthorized(login.Result);
         Assert.Equal("invalid_code", Assert.IsType<ErrorEnvelope>(unauth.Value).Error.Code);
     }
 
@@ -210,7 +210,7 @@ public sealed class AuthControllerValidationTests
         for (int i = 0; i < 2; i++)
         {
             var attempt = await controller.Login(new LoginRequest(email, sendPayload.RequestId, "000000"), CancellationToken.None);
-            Assert.IsType<UnauthorizedObjectResult>(attempt.Result);
+            ActionResultAssert.Unauthorized(attempt.Result);
         }
 
         var third = await controller.Login(new LoginRequest(email, sendPayload.RequestId, "000000"), CancellationToken.None);
@@ -226,7 +226,7 @@ public sealed class AuthControllerValidationTests
         var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var login = await controller.Login(new LoginRequest("user@edu.hse.ru", "req_nonexistent", "123456"), CancellationToken.None);
-        var unauth = Assert.IsType<UnauthorizedObjectResult>(login.Result);
+        var unauth = ActionResultAssert.Unauthorized(login.Result);
         Assert.Equal("invalid_code", Assert.IsType<ErrorEnvelope>(unauth.Value).Error.Code);
     }
 
@@ -237,7 +237,7 @@ public sealed class AuthControllerValidationTests
         var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var res = await controller.Refresh(new RefreshRequest("not-a-valid-refresh-token"), CancellationToken.None);
-        var unauth = Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        var unauth = ActionResultAssert.Unauthorized(res.Result);
         Assert.Equal("invalid_refresh_token", Assert.IsType<ErrorEnvelope>(unauth.Value).Error.Code);
     }
 
@@ -248,7 +248,7 @@ public sealed class AuthControllerValidationTests
         var (controller, _) = CreateController(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 60, MaxAttempts = 3 });
 
         var res = await controller.Logout(new RefreshRequest("   "), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        var bad = ActionResultAssert.BadRequest(res);
         Assert.Equal("refresh_token_required", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -282,15 +282,14 @@ public sealed class AuthControllerValidationTests
     }
 
     [Fact]
-    public async Task SendCode_email_send_fails_returns_500_email_send_failed()
+    public async Task SendCode_email_send_fails_returns_503_email_service_unavailable()
     {
         await using var tdb = new TestDb();
         var (controller, _) = CreateControllerWithSender(tdb.Db, new AuthCodeOptions { CodeTtlSeconds = 300, SendCooldownSeconds = 0, MaxAttempts = 3 }, new ThrowingEmailSender());
 
         var send = await controller.SendCode(new SendCodeRequest("user@edu.hse.ru"), CancellationToken.None);
-        var fail = Assert.IsType<ObjectResult>(send.Result);
-        Assert.Equal(500, fail.StatusCode);
-        Assert.Equal("email_send_failed", Assert.IsType<ErrorEnvelope>(fail.Value).Error.Code);
+        var fail = ActionResultAssert.Status(send.Result, 503);
+        Assert.Equal("email_service_unavailable", Assert.IsType<ErrorEnvelope>(fail.Value).Error.Code);
     }
 
     private sealed class TestEmailSender : IEmailSender

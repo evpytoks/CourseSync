@@ -35,7 +35,7 @@ public sealed class CalendarControllerTests
         var users = new UserService(tdb.Db);
         var c = CreateController(cal, users, null);
         var res = await c.List(null, null, CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class CalendarControllerTests
         var users = new UserService(tdb.Db);
         var c = CreateController(cal, users, null);
         var res = await c.EventTypes(CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class CalendarControllerTests
         var c = CreateController(cal, users, null);
         var req = new AddCalendarEventRequest(Guid.NewGuid(), null, "type", "name", DateTime.UtcNow, "");
         var res = await c.Add(req, CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class CalendarControllerTests
         var users = new UserService(tdb.Db);
         var c = CreateController(cal, users, null);
         var res = await c.Get(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public sealed class CalendarControllerTests
         var c = CreateController(cal, users, null);
         var req = new UpdateCalendarEventRequest(null, "t", "n", DateTime.UtcNow, "");
         var res = await c.Change(Guid.NewGuid(), req, CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class CalendarControllerTests
         var users = new UserService(tdb.Db);
         var c = CreateController(cal, users, null);
         var res = await c.Delete(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -103,6 +103,6 @@ public sealed class CalendarControllerTests
         var users = new UserService(tdb.Db);
         var c = CreateController(cal, users, null);
         var res = await c.ToggleDone(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 }
