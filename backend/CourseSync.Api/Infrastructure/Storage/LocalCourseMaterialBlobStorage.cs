@@ -11,6 +11,12 @@ public sealed class LocalCourseMaterialBlobStorage : ICourseMaterialBlobStorage
 
     private string StorageRoot => Path.Combine(_env.ContentRootPath, "course-materials");
 
+    public Task EnsureAvailableAsync(CancellationToken ct)
+    {
+        Directory.CreateDirectory(StorageRoot);
+        return Task.CompletedTask;
+    }
+
     public async Task UploadAsync(Stream content, string objectKey, CancellationToken ct)
     {
         var fullPath = Path.Combine(StorageRoot, objectKey.Replace('/', Path.DirectorySeparatorChar));

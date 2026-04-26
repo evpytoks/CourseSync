@@ -46,29 +46,29 @@ public sealed class CourseControllerAuthorizationTests
         var id = Guid.NewGuid();
         var mid = Guid.NewGuid();
 
-        Assert.IsType<UnauthorizedObjectResult>((await c.List(CancellationToken.None)).Result);
-        Assert.IsType<UnauthorizedObjectResult>((await c.ListByGroup(id, CancellationToken.None)).Result);
-        Assert.IsType<UnauthorizedObjectResult>(await c.Add(new AddCourseRequest("n", "", null, null), CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>((await c.GetById(id, CancellationToken.None)).Result);
-        Assert.IsType<UnauthorizedObjectResult>((await c.GetCalendar(id, CancellationToken.None)).Result);
-        Assert.IsType<UnauthorizedObjectResult>(await c.SaveGrading(id, new SaveCourseGradingRequest("", null), CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.GetGradingText(id, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.GradingElements(id, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.GetGrading(id, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.GetGradingScores(id, null, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.UpdateGradingScores(id, new UpdateCourseGradingScoresRequest("x", Array.Empty<decimal>()), CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.SaveCumulativeGrade(id, new SaveCourseCumulativeGradeRequest(null, null, null), CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.GetCumulativeGrade(id, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.Change(id, new ChangeCourseRequest("n", "", null, null), CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.Delete(id, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.ListGeneralMaterials(id, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.AddGeneralMaterial(id, null, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.ListPersonalMaterials(id, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.AddPersonalMaterial(id, null, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.DeleteGeneralMaterial(id, mid, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.OpenGeneralMaterialPdf(id, mid, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.DeletePersonalMaterial(id, mid, CancellationToken.None));
-        Assert.IsType<UnauthorizedObjectResult>(await c.OpenPersonalMaterialPdf(id, mid, CancellationToken.None));
+        ActionResultAssert.Unauthorized((await c.List(CancellationToken.None)).Result);
+        ActionResultAssert.Unauthorized((await c.ListByGroup(id, CancellationToken.None)).Result);
+        ActionResultAssert.Unauthorized(await c.Add(new AddCourseRequest("n", "", null, null), CancellationToken.None));
+        ActionResultAssert.Unauthorized((await c.GetById(id, CancellationToken.None)).Result);
+        ActionResultAssert.Unauthorized((await c.GetCalendar(id, CancellationToken.None)).Result);
+        ActionResultAssert.Unauthorized(await c.SaveGrading(id, new SaveCourseGradingRequest("", null), CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.GetGradingText(id, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.GradingElements(id, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.GetGrading(id, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.GetGradingScores(id, null, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.UpdateGradingScores(id, new UpdateCourseGradingScoresRequest("x", Array.Empty<decimal>()), CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.SaveCumulativeGrade(id, new SaveCourseCumulativeGradeRequest(null, null, null), CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.GetCumulativeGrade(id, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.Change(id, new ChangeCourseRequest("n", "", null, null), CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.Delete(id, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.ListGeneralMaterials(id, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.AddGeneralMaterial(id, null, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.ListPersonalMaterials(id, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.AddPersonalMaterial(id, null, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.DeleteGeneralMaterial(id, mid, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.OpenGeneralMaterialPdf(id, mid, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.DeletePersonalMaterial(id, mid, CancellationToken.None));
+        ActionResultAssert.Unauthorized(await c.OpenPersonalMaterialPdf(id, mid, CancellationToken.None));
     }
 
     [Fact]

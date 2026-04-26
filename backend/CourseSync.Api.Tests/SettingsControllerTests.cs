@@ -37,7 +37,7 @@ public sealed class SettingsControllerTests
         var controller = CreateController(users, null);
 
         var res = await controller.Get(CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class SettingsControllerTests
         var controller = CreateController(users, null);
 
         var res = await controller.Update(new UpdateUserSettingsRequest(NotificationsOn: true, DarkThemeOn: null, CalendarEventTypeColors: null), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public sealed class SettingsControllerTests
             });
 
         var res = await controller.Update(req, CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        var bad = ActionResultAssert.BadRequest(res);
         var err = Assert.IsType<ErrorEnvelope>(bad.Value);
         Assert.Equal("calendar_event_color_invalid", err.Error.Code);
     }

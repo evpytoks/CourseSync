@@ -43,7 +43,7 @@ public sealed class AuthControllerHappyPathTests
         Assert.NotEqual(loginPayload.RefreshToken, refreshPayload.RefreshToken);
 
         var reusedRefresh = await controller.Refresh(new RefreshRequest(loginPayload.RefreshToken), CancellationToken.None);
-        var reuseUnauthorized = Assert.IsType<UnauthorizedObjectResult>(reusedRefresh.Result);
+        var reuseUnauthorized = ActionResultAssert.Unauthorized(reusedRefresh.Result);
         Assert.Equal("refresh_reused", Assert.IsType<ErrorEnvelope>(reuseUnauthorized.Value).Error.Code);
     }
 

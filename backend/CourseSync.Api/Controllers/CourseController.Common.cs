@@ -17,14 +17,16 @@ public sealed partial class CourseController
     private static readonly IReadOnlyDictionary<string, ErrorSpec> MaterialAccessErrors =
         new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
         {
-            ["forbidden"] = new(403, "forbidden")
+            ["forbidden"] = new(403, "forbidden"),
+            ["storage_unavailable"] = new(503, "storage_unavailable")
         };
 
     private static readonly IReadOnlyDictionary<string, ErrorSpec> AddMaterialErrors =
         new Dictionary<string, ErrorSpec>(StringComparer.Ordinal)
         {
             ["forbidden"] = new(403, "forbidden"),
-            ["course_not_in_group"] = new(400, "course_not_in_group")
+            ["course_not_in_group"] = new(400, "course_not_in_group"),
+            ["storage_unavailable"] = new(503, "storage_unavailable")
         };
 
     private static readonly IReadOnlyDictionary<string, ErrorSpec> DeleteMaterialErrors =
@@ -33,7 +35,7 @@ public sealed partial class CourseController
             ["forbidden"] = new(403, "forbidden"),
             ["course_not_in_group"] = new(400, "course_not_in_group"),
             ["material_not_found"] = new(404, "material_not_found"),
-            ["storage_delete_failed"] = new(503, "storage_delete_failed")
+            ["storage_unavailable"] = new(503, "storage_unavailable")
         };
 
     private static readonly IReadOnlyDictionary<string, ErrorSpec> DownloadMaterialErrors =
@@ -41,7 +43,8 @@ public sealed partial class CourseController
         {
             ["forbidden"] = new(403, "forbidden"),
             ["course_not_in_group"] = new(400, "course_not_in_group"),
-            ["material_not_found"] = new(404, "material_not_found")
+            ["material_not_found"] = new(404, "material_not_found"),
+            ["storage_unavailable"] = new(503, "storage_unavailable")
         };
 
     private static readonly IReadOnlyDictionary<string, ErrorSpec> GradingErrors =

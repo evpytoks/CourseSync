@@ -39,7 +39,7 @@ public sealed class NewsControllerTests
         var userSvc = new UserService(tdb.Db);
         var controller = CreateController(news, userSvc, user.Id);
         var res = await controller.Add(new AddNewsRequest(Guid.Empty, "hello"), CancellationToken.None);
-        var bad = Assert.IsType<BadRequestObjectResult>(res);
+        var bad = ActionResultAssert.BadRequest(res);
         Assert.Equal("group_id_required", Assert.IsType<ErrorEnvelope>(bad.Value).Error.Code);
     }
 
@@ -143,7 +143,7 @@ public sealed class NewsControllerTests
         var userSvc = new UserService(tdb.Db);
         var controller = CreateController(news, userSvc, null);
         var res = await controller.List(CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -154,7 +154,7 @@ public sealed class NewsControllerTests
         var userSvc = new UserService(tdb.Db);
         var controller = CreateController(news, userSvc, null);
         var res = await controller.UnreadCount(CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public sealed class NewsControllerTests
         var userSvc = new UserService(tdb.Db);
         var controller = CreateController(news, userSvc, null);
         var res = await controller.MarkAllRead(CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public sealed class NewsControllerTests
         var userSvc = new UserService(tdb.Db);
         var controller = CreateController(news, userSvc, null);
         var res = await controller.Get(Guid.NewGuid(), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res.Result);
+        ActionResultAssert.Unauthorized(res.Result);
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public sealed class NewsControllerTests
         var userSvc = new UserService(tdb.Db);
         var controller = CreateController(news, userSvc, null);
         var res = await controller.Add(new AddNewsRequest(Guid.NewGuid(), "text"), CancellationToken.None);
-        Assert.IsType<UnauthorizedObjectResult>(res);
+        ActionResultAssert.Unauthorized(res);
     }
 
     [Fact]
