@@ -16,6 +16,11 @@ public sealed class S3CourseMaterialBlobStorage : ICourseMaterialBlobStorage
                   ?? throw new InvalidOperationException("CourseMaterials:S3:BucketName is missing.");
     }
 
+    public Task EnsureAvailableAsync(CancellationToken ct) =>
+        _s3.ListObjectsV2Async(
+            new ListObjectsV2Request { BucketName = _bucket, MaxKeys = 1 },
+            ct);
+
     public async Task UploadAsync(Stream content, string objectKey, CancellationToken ct)
     {
         var request = new PutObjectRequest

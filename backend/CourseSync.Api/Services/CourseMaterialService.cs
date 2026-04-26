@@ -43,6 +43,10 @@ public sealed class CourseMaterialService : ICourseMaterialService
         if (!access.Ok)
             return (false, null, access.ErrorCode);
 
+        var storageErr = await StorageAvailabilityErrorAsync(ct);
+        if (storageErr is not null)
+            return (false, null, storageErr);
+
         var items = await _db.CourseGeneralMaterials
             .AsNoTracking()
             .Where(m => m.CourseId == courseId)
@@ -61,6 +65,10 @@ public sealed class CourseMaterialService : ICourseMaterialService
         var access = await CheckCourseAccessAsync(userId, groupId, courseId, ct);
         if (!access.Ok)
             return (false, null, access.ErrorCode);
+
+        var storageErr = await StorageAvailabilityErrorAsync(ct);
+        if (storageErr is not null)
+            return (false, null, storageErr);
 
         var items = await _db.CoursePersonalMaterials
             .AsNoTracking()
@@ -99,11 +107,24 @@ public sealed class CourseMaterialService : ICourseMaterialService
         var id = Guid.NewGuid();
         var objectKey = $"general/{courseId}/{id}.pdf";
 
+        await using (var inStream = file.OpenReadStream())
+        {
+            try
+            {
+                await _blob.UploadAsync(inStream, objectKey, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                return (false, "storage_unavailable");
+            }
+        }
+
         try
         {
-            await using var inStream = file.OpenReadStream();
-            await _blob.UploadAsync(inStream, objectKey, ct);
-
             var entity = new CourseGeneralMaterial
             {
                 Id = id,
@@ -116,6 +137,10 @@ public sealed class CourseMaterialService : ICourseMaterialService
             };
             _db.CourseGeneralMaterials.Add(entity);
             await _db.SaveChangesAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {
@@ -173,11 +198,24 @@ public sealed class CourseMaterialService : ICourseMaterialService
         var id = Guid.NewGuid();
         var objectKey = $"personal/{courseId}/{id}.pdf";
 
+        await using (var inStream = file.OpenReadStream())
+        {
+            try
+            {
+                await _blob.UploadAsync(inStream, objectKey, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                return (false, "storage_unavailable");
+            }
+        }
+
         try
         {
-            await using var inStream = file.OpenReadStream();
-            await _blob.UploadAsync(inStream, objectKey, ct);
-
             var entity = new CoursePersonalMaterial
             {
                 Id = id,
@@ -190,6 +228,10 @@ public sealed class CourseMaterialService : ICourseMaterialService
             };
             _db.CoursePersonalMaterials.Add(entity);
             await _db.SaveChangesAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {
@@ -302,7 +344,24 @@ public sealed class CourseMaterialService : ICourseMaterialService
         }
         catch
         {
-            return "storage_delete_failed";
+            return "storage_unavailable";
+        }
+    }
+
+    private async Task<string?> StorageAvailabilityErrorAsync(CancellationToken ct)
+    {
+        try
+        {
+            await _blob.EnsureAvailableAsync(ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return "storage_unavailable";
         }
     }
 
@@ -332,7 +391,20 @@ public sealed class CourseMaterialService : ICourseMaterialService
         if (entity is null)
             return (false, null, "material_not_found");
 
-        var stream = await _blob.OpenReadAsync(entity.StoragePath, ct);
+        Stream? stream;
+        try
+        {
+            stream = await _blob.OpenReadAsync(entity.StoragePath, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return (false, null, "storage_unavailable");
+        }
+
         if (stream is null)
             return (false, null, "material_not_found");
 
@@ -356,7 +428,20 @@ public sealed class CourseMaterialService : ICourseMaterialService
         if (entity is null)
             return (false, null, "material_not_found");
 
-        var stream = await _blob.OpenReadAsync(entity.StoragePath, ct);
+        Stream? stream;
+        try
+        {
+            stream = await _blob.OpenReadAsync(entity.StoragePath, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return (false, null, "storage_unavailable");
+        }
+
         if (stream is null)
             return (false, null, "material_not_found");
 
